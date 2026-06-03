@@ -1699,54 +1699,13 @@ function renderClassificacoes(){
       '<span style="font-size:.85rem;font-weight:700;color:var(--text-hi)">Classificações por Segmento</span>'+
       (mesLabel?'<span class="badge">'+mesLabel+'</span>':'')+
     '</div>'+
-    // Calcula total geral por classificação (todos os segmentos, venda + locação somados)
-    var totalGeral = {};
-    Object.values(segData).forEach(function(d){
-      Object.keys(d.venda).forEach(function(k){ totalGeral[k] = (totalGeral[k]||0) + d.venda[k]; });
-      Object.keys(d.locacao).forEach(function(k){ totalGeral[k] = (totalGeral[k]||0) + d.locacao[k]; });
-    });
-    var totalLeadsClassif = Object.values(totalGeral).reduce(function(a,b){return a+b;},0);
-
-    // KPIs de destaque
     '<div class="kpis" style="display:grid;max-width:1300px;margin:0 auto 10px">'+
-      '<div class="kpi"><div class="kpi-lbl">Leads Total</div><div class="kpi-val kc">'+leadsAll.length.toLocaleString(\'pt-BR\')+'</div><div class="kpi-sub">base carregada</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Leads Total</div><div class="kpi-val kc">'+leadsAll.length+'</div><div class="kpi-sub">base carregada</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">N1 Venda</div><div class="kpi-val" style="color:#4ade80">'+totalN1V+'</div><div class="kpi-sub">classificação venda</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">N1 Locação</div><div class="kpi-val" style="color:#4ade80">'+totalN1L+'</div><div class="kpi-sub">classificação locação</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">Reprovado Venda</div><div class="kpi-val" style="color:#f87171">'+totalRepV+'</div><div class="kpi-sub">classificação venda</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">Reprovado Locação</div><div class="kpi-val" style="color:#f87171">'+totalRepL+'</div><div class="kpi-sub">classificação locação</div></div>'+
     '</div>'+
-
-    // Tabela resumo geral com TODAS as classificações somadas
-    (function(){
-      var classifs = CLASSIF_ORDEM.filter(function(k){return totalGeral[k]>0;});
-      var outros   = Object.keys(totalGeral).filter(function(k){return CLASSIF_ORDEM.indexOf(k)===-1 && totalGeral[k]>0;});
-      classifs = classifs.concat(outros);
-      var maxG = Math.max.apply(null, classifs.map(function(k){return totalGeral[k]||0;}));
-      var linhas = classifs.map(function(k){
-        var q   = totalGeral[k]||0;
-        var pct = Math.round(q/totalLeadsClassif*100);
-        var bar = Math.round(q/maxG*100);
-        var cor = CLASSIF_CORES[k]||{bg:'#475569',label:'#94a3b8'};
-        return '<tr>'+
-          '<td><span style="font-weight:700;color:'+cor.label+'">'+k+'</span></td>'+
-          '<td style="min-width:200px">'+
-            '<div style="display:flex;align-items:center;gap:8px">'+
-              '<div style="flex:1;background:var(--bg3);border-radius:20px;height:14px">'+
-                '<div style="background:'+cor.bg+';width:'+bar+'%;height:14px;border-radius:20px"></div>'+
-              '</div>'+
-              '<span style="font-weight:700;color:'+cor.label+';width:36px;text-align:right">'+q+'</span>'+
-              '<span style="color:var(--text3);width:40px">'+pct+'%</span>'+
-            '</div>'+
-          '</td>'+
-        '</tr>';
-      }).join('');
-      return '<div class="v-block" style="max-width:1300px;margin:0 auto 16px">'+
-        '<div class="v-head">Resumo Geral — Todas as Classificações (Venda + Locação) <span class="vbadge">'+totalLeadsClassif+' total</span></div>'+
-        '<table><thead><tr><th style="text-align:left;padding:8px 10px;width:120px">Classificação</th><th>Quantidade + %</th></tr></thead>'+
-        '<tbody>'+linhas+'</tbody>'+
-        '<tfoot><tr><td>TOTAL</td><td style="font-weight:700;color:var(--text-hi)">'+totalLeadsClassif+'</td></tr></tfoot>'+
-      '</table></div>';
-    })()++
     '<div class="filter-segs" id="classif-filter" style="max-width:1300px;margin:0 auto 14px">'+filterBtns+'</div>'+
     '<div id="classif-blocos" style="max-width:1300px;margin:0 auto">'+blocos+'</div>';
 }
