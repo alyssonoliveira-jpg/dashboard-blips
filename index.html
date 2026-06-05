@@ -2437,7 +2437,7 @@ function renderPerformance(){
     .map(function(v){
       var efic    = v.cql_t > 0 ? v.n1_t/v.cql_t*100 : 0;          // eficiência N1/CQL
       var pctMeta = v.meta&&v.meta>0 ? v.pct_meta : null;
-      var score   = efic * 0.5 + (pctMeta||0) * 0.5;                // score composto
+      var score   = v.g_val;                                          // ordenado por quem mais vendeu
 
       // Status baseado em % meta vs % esperado
       var status, statusCls;
