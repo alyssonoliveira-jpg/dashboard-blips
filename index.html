@@ -74,6 +74,20 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .banner-msg{padding:18px 22px;background:var(--bg2);font-size:.88rem;color:var(--text2);line-height:1.6}
 .banner-msg strong{color:var(--text-hi)}
 
+/* ── FILTRO GLOBAL ── */
+.filtro-global{max-width:1300px;margin:0 auto 14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+.filtro-global.show{display:flex}
+.fg-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);flex-shrink:0}
+.fg-sep{width:1px;height:24px;background:var(--border);flex-shrink:0}
+.fg-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;outline:none;min-width:140px}
+.fg-select:focus{border-color:#3b82f6}
+.fg-search{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-size:.78rem;outline:none;min-width:180px}
+.fg-search::placeholder{color:var(--text3)}
+.fg-search:focus{border-color:#3b82f6}
+.fg-reset{padding:6px 14px;background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:8px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;margin-left:auto}
+.fg-reset:hover{border-color:#f87171;color:#f87171}
+.fg-active-count{font-size:.7rem;font-weight:700;color:#fbbf24;background:rgba(251,191,36,.12);padding:2px 8px;border-radius:20px}
+
 /* TOGGLE DARK/LIGHT */
 .theme-toggle{position:fixed;top:14px;right:220px;background:var(--bg2);border:1px solid var(--border);border-radius:50px;padding:6px 14px;display:none;align-items:center;gap:8px;z-index:1001;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text2);transition:all .15s}
 .theme-toggle:hover{border-color:#3b82f6;color:var(--text)}
@@ -331,6 +345,36 @@ tfoot td.sep{border-left:1px solid #1e2535}
 
 <!-- INDICADOR DA BASE ATIVA (visivel a todos) -->
 <div class="base-ativa" id="base-ativa"></div>
+
+<!-- FILTRO GLOBAL -->
+<div class="filtro-global" id="filtro-global">
+  <span class="fg-label">🔍 Filtros</span>
+  <div class="fg-sep"></div>
+  <span class="fg-label">Segmento</span>
+  <select class="fg-select" id="fg-segmento" onchange="aplicarFiltroGlobal()">
+    <option value="all">Todos os segmentos</option>
+  </select>
+  <div class="fg-sep"></div>
+  <span class="fg-label">Vendedor</span>
+  <input class="fg-search" id="fg-vendedor" placeholder="Buscar vendedor..." oninput="aplicarFiltroGlobal()">
+  <div class="fg-sep"></div>
+  <span class="fg-label">Status</span>
+  <select class="fg-select" id="fg-status" onchange="aplicarFiltroGlobal()" style="min-width:160px">
+    <option value="all">Todos os status</option>
+    <option value="status-critico">🔴 Crítico</option>
+    <option value="status-atencao">🟡 Atenção</option>
+    <option value="status-ok">🟢 No ritmo / Meta batida</option>
+  </select>
+  <div class="fg-sep"></div>
+  <span class="fg-label">Interesse</span>
+  <select class="fg-select" id="fg-interesse" onchange="aplicarFiltroGlobal()" style="min-width:120px">
+    <option value="all">Venda + Locação</option>
+    <option value="VENDA">Só Venda</option>
+    <option value="LOCACAO">Só Locação</option>
+  </select>
+  <span class="fg-active-count" id="fg-count" style="display:none"></span>
+  <button class="fg-reset" onclick="resetarFiltros()">✕ Limpar filtros</button>
+</div>
 
 <!-- BARRA DE ALERTAS -->
 <div class="alertas-bar" id="alertas-bar"></div>
@@ -747,6 +791,95 @@ function toggleFiltroData(){
 
 // Cache global das bases disponiveis (mes -> base_id)
 var basesPorMes  = {};
+
+// ── ESTADO DOS FILTROS GLOBAIS ──
+var filtroGlobal = { segmento:'all', vendedor:'', status:'all', interesse:'all' };
+
+function inicializarFiltroGlobal(){
+  var bar = document.getElementById('filtro-global');
+  if(!bar) return;
+
+  // Popula segmentos
+  var sel = document.getElementById('fg-segmento');
+  sel.innerHTML = '<option value="all">Todos os segmentos</option>';
+  SEGMENTOS.forEach(function(s){
+    var opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s.replace('Blips - ','');
+    sel.appendChild(opt);
+  });
+
+  // Restaura valores salvos
+  sel.value = filtroGlobal.segmento;
+  document.getElementById('fg-status').value   = filtroGlobal.status;
+  document.getElementById('fg-interesse').value = filtroGlobal.interesse;
+  document.getElementById('fg-vendedor').value  = filtroGlobal.vendedor;
+
+  bar.classList.add('show');
+  atualizarContadorFiltros();
+}
+
+function aplicarFiltroGlobal(){
+  filtroGlobal.segmento  = document.getElementById('fg-segmento').value;
+  filtroGlobal.vendedor  = document.getElementById('fg-vendedor').value.toLowerCase().trim();
+  filtroGlobal.status    = document.getElementById('fg-status').value;
+  filtroGlobal.interesse = document.getElementById('fg-interesse').value;
+  atualizarContadorFiltros();
+  // Re-renderiza a aba ativa
+  var abaAtiva = document.querySelector('.tab.active');
+  if(abaAtiva) trocarAba(abaAtiva.dataset.tab);
+}
+
+function resetarFiltros(){
+  filtroGlobal = { segmento:'all', vendedor:'', status:'all', interesse:'all' };
+  document.getElementById('fg-segmento').value  = 'all';
+  document.getElementById('fg-status').value    = 'all';
+  document.getElementById('fg-interesse').value = 'all';
+  document.getElementById('fg-vendedor').value  = '';
+  atualizarContadorFiltros();
+  var abaAtiva = document.querySelector('.tab.active');
+  if(abaAtiva) trocarAba(abaAtiva.dataset.tab);
+}
+
+function atualizarContadorFiltros(){
+  var count = document.getElementById('fg-count');
+  var ativos = [
+    filtroGlobal.segmento !== 'all',
+    filtroGlobal.vendedor !== '',
+    filtroGlobal.status   !== 'all',
+    filtroGlobal.interesse!== 'all',
+  ].filter(Boolean).length;
+  if(ativos > 0){
+    count.textContent = ativos + ' filtro'+(ativos>1?'s':'')+' ativo'+(ativos>1?'s':'');
+    count.style.display = 'inline';
+  } else {
+    count.style.display = 'none';
+  }
+}
+
+// Aplica filtros globais nos leads
+function leadsComFiltro(){
+  if(!leadsAll) return [];
+  var l = leadsAll;
+  if(filtroGlobal.segmento !== 'all')
+    l = l.filter(function(r){return r.funil === filtroGlobal.segmento;});
+  if(filtroGlobal.interesse !== 'all')
+    l = l.filter(function(r){return r.interesse === filtroGlobal.interesse;});
+  if(filtroGlobal.vendedor !== '')
+    l = l.filter(function(r){return r.propKey && r.propKey.includes(filtroGlobal.vendedor);});
+  return l;
+}
+
+// Aplica filtros globais nos ganhos
+function ganhosComFiltro(){
+  if(!ganhosAll) return [];
+  var g = ganhosAll;
+  if(filtroGlobal.segmento !== 'all')
+    g = g.filter(function(r){return r.funil === filtroGlobal.segmento;});
+  if(filtroGlobal.vendedor !== '')
+    g = g.filter(function(r){return r.propKey && r.propKey.includes(filtroGlobal.vendedor);});
+  return g;
+}
 var baseAtivaId  = null;
 var mesSelecionado = null;   // ex: "2026-06" — usado na Projeção como fonte de verdade
 
@@ -1098,6 +1231,18 @@ function limparFiltroData(){
 }
 
 function reprocessar(leads, ganhos){
+  // Aplica filtros globais
+  if(filtroGlobal.segmento !== 'all')
+    leads  = leads.filter(function(r){return r.funil===filtroGlobal.segmento;});
+  if(filtroGlobal.interesse !== 'all')
+    leads  = leads.filter(function(r){return r.interesse===filtroGlobal.interesse;});
+  if(filtroGlobal.vendedor !== '')
+    leads  = leads.filter(function(r){return r.propKey && r.propKey.includes(filtroGlobal.vendedor);});
+  if(filtroGlobal.segmento !== 'all')
+    ganhos = ganhos.filter(function(r){return r.funil===filtroGlobal.segmento;});
+  if(filtroGlobal.vendedor !== '')
+    ganhos = ganhos.filter(function(r){return r.propKey && r.propKey.includes(filtroGlobal.vendedor);});
+
   var soma = function(arr){return arr.reduce(function(a,r){return a+r.valor;},0);};
   var segPresentes = leads.map(function(r){return r.funil;})
     .filter(function(f,i,a){return f && !f.includes('Ideal') && a.indexOf(f)===i;});
@@ -2105,6 +2250,9 @@ function renderPerformance(){
   // Classifica cada vendedor
   var arr = ultimosVendedores
     .filter(function(v){ return v.cql_t > 0; })
+    // Filtros globais na performance
+    .filter(function(v){ return filtroGlobal.segmento==='all' || v.seg===filtroGlobal.segmento; })
+    .filter(function(v){ return filtroGlobal.vendedor==='' || v.nome.toLowerCase().includes(filtroGlobal.vendedor); })
     .map(function(v){
       var efic    = v.cql_t > 0 ? v.n1_t/v.cql_t*100 : 0;          // eficiência N1/CQL
       var pctMeta = v.meta&&v.meta>0 ? v.pct_meta : null;
@@ -2129,6 +2277,11 @@ function renderPerformance(){
     .sort(function(a,b){ return b.score - a.score; });
 
   // KPIs resumo
+  // Aplica filtro de status (para os cards)
+  var arrFiltrado = filtroGlobal.status === 'all'
+    ? arr
+    : arr.filter(function(v){return v.statusCls === filtroGlobal.status;});
+
   var noRitmo  = arr.filter(function(v){return v.statusCls==='status-ok';}).length;
   var atencao  = arr.filter(function(v){return v.statusCls==='status-atencao';}).length;
   var critico  = arr.filter(function(v){return v.statusCls==='status-critico';}).length;
@@ -2144,9 +2297,9 @@ function renderPerformance(){
     '</div>';
 
   // Cards por segmento
-  var segs = [...new Set(arr.map(function(v){return v.seg;}))].sort();
+  var segs = [...new Set(arrFiltrado.map(function(v){return v.seg;}))].sort();
   var blocos = segs.map(function(seg){
-    var sub = arr.filter(function(v){return v.seg===seg;});
+    var sub = arrFiltrado.filter(function(v){return v.seg===seg;});
     var cards = sub.map(function(v,i){
       var barMeta  = v.meta&&v.meta>0 ? Math.min(100,Math.round(v.pct_meta)) : 0;
       var barEfic  = Math.min(100, Math.round(v.efic));
@@ -2945,6 +3098,9 @@ function validarUsuario(user){
       bannerImg.style.display = 'none';
     }
   }
+
+  // Ativa filtro global
+  inicializarFiltroGlobal();
 
   // Carrega metas e depois a ultima base
   carregarMetasConfig().then(function(){
