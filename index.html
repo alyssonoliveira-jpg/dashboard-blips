@@ -1022,6 +1022,9 @@ async function carregarMesDoBanco(ym){
   var btn = document.querySelector('.mf-btn[data-mes="'+ym+'"]');
   if(btn) btn.classList.add('active');
 
+  // Recarrega metas do mês selecionado antes de renderizar
+  await carregarMetasConfig(ym);
+
   mostrarLoading('Buscando bases de ' + ym + '...');
   try {
     // Busca TODAS as bases do mes (nao so a mais recente)
@@ -2971,19 +2974,21 @@ async function salvarConfigSegmentos(){
       var chave = tr.getAttribute('data-chave');
       var meta  = parseFloat(tr.querySelector('.seg-meta').value)||0;
       var conv  = parseFloat(tr.querySelector('.seg-conv').value)||0;
+      var mesAlvo = mesSelecionado || (function(){var h=new Date();return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');}());
       updates.push(
-        sb.from('config_metas').update({
+        sb.from('config_metas').upsert({
+          tipo:'segmento', chave: chave,
           meta_valor: meta, conv_alvo: conv,
+          mes_referencia: mesAlvo,
           updated_at: new Date().toISOString(), updated_by: usuarioAtual.email
-        }).eq('tipo','segmento').eq('chave', chave)
+        }, { onConflict:'tipo,chave,mes_referencia' })
       );
     });
     var results = await Promise.all(updates);
     var erros = results.filter(function(r){return r.error;});
     if(erros.length) throw erros[0].error;
-    statusEl.innerHTML = '<span class="cfg-saved">✓ Salvo</span>';
+    statusEl.innerHTML = '<span class="cfg-saved">✓ Salvo para '+( mesSelecionado||'mês atual')+'</span>';
     setTimeout(function(){statusEl.innerHTML='';},3000);
-    // Recarrega metas em memoria
     await carregarMetasConfig();
     if(leadsAll) reprocessar(leadsAll, ganhosAll);
   } catch(err){
@@ -3001,12 +3006,14 @@ async function salvarConfigVendedores(){
       var chave = tr.getAttribute('data-chave');
       var seg   = tr.querySelector('.vend-seg').value;
       var meta  = parseFloat(tr.querySelector('.vend-meta').value)||0;
+      var mesAlvoV = mesSelecionado || (function(){var h=new Date();return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');}());
       updates.push(
         sb.from('config_metas').upsert({
           tipo:'vendedor', chave: chave, segmento: seg, meta_valor: meta,
           nome_display: tr.querySelector('td:first-child strong').textContent,
+          mes_referencia: mesAlvoV,
           updated_at: new Date().toISOString(), updated_by: usuarioAtual.email
-        }, { onConflict:'tipo,chave' })
+        }, { onConflict:'tipo,chave,mes_referencia' })
       );
     });
     var results = await Promise.all(updates);
@@ -3287,17 +3294,37 @@ function validarUsuario(user){
 }
 
 // ── CARREGA METAS DO SUPABASE ──
-async function carregarMetasConfig(){
+async function carregarMetasConfig(mes){
+  // mes = '2026-06' ou null (usa mesSelecionado ou mês atual)
+  var mesAlvo = mes || mesSelecionado;
+  if(!mesAlvo){
+    var hoje = new Date();
+    mesAlvo = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0');
+  }
+
   try {
-    const { data, error } = await sb.from('config_metas').select('*');
+    // Busca metas do mês específico; fallback para metas sem mês (legado)
+    const { data, error } = await sb
+      .from('config_metas')
+      .select('*')
+      .eq('mes_referencia', mesAlvo);
     if(error) throw error;
-    if(!data || !data.length) return;
+
+    // Se não encontrou metas para esse mês, tenta sem filtro (compatibilidade)
+    var registros = data;
+    if(!registros || !registros.length){
+      const { data: fallback } = await sb.from('config_metas').select('*').is('mes_referencia', null);
+      registros = fallback || [];
+      if(registros.length) console.warn('Metas: usando registros sem mês de referência (legado)');
+    }
+
+    if(!registros.length){ console.warn('Nenhuma meta encontrada para', mesAlvo); return; }
 
     // Limpa caches
     CONV_ALVO = {}; META_SEG = {}; META_VEND = {}; VEND_SEG = {};
     SEG_NOME_DISPLAY = {}; VENDS_DISPLAY = {};
 
-    data.forEach(function(r){
+    registros.forEach(function(r){
       if(r.tipo === 'segmento'){
         META_SEG[r.chave] = Number(r.meta_valor || 0);
         CONV_ALVO[r.chave] = Number(r.conv_alvo || 0);
@@ -3308,7 +3335,7 @@ async function carregarMetasConfig(){
         VENDS_DISPLAY[r.chave] = r.nome_display || r.chave;
       }
     });
-    console.log('Metas carregadas:', Object.keys(META_SEG).length, 'segmentos,', Object.keys(META_VEND).length, 'vendedores');
+    console.log('Metas carregadas para', mesAlvo+':', Object.keys(META_SEG).length, 'segmentos,', Object.keys(META_VEND).length, 'vendedores');
   } catch(err){
     console.error('Erro carregar metas:', err);
   }
