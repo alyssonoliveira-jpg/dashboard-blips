@@ -459,7 +459,7 @@ tfoot td.sep{border-left:1px solid #1e2535}
 <div class="tabs" id="tabs">
   <button class="tab active" data-tab="segmentos"    onclick="trocarAba('segmentos')">Segmentos</button>
   <button class="tab"        data-tab="vendedores"   onclick="trocarAba('vendedores')">Vendedores</button>
-  <button class="tab"        data-tab="insights"     onclick="trocarAba('insights')">🧠 Insights</button>
+  <button class="tab"        data-tab="credito"      onclick="trocarAba('credito')">💳 Crédito</button>
   <button class="tab"        data-tab="performance"  onclick="trocarAba('performance')">⚡ Performance</button>
   <button class="tab"        data-tab="projecao"     onclick="trocarAba('projecao')">📈 Projeção Venda</button>
   <button class="tab"        data-tab="projecao-meta" onclick="trocarAba('projecao-meta')">🎯 Projeção de Meta</button>
@@ -486,9 +486,9 @@ tfoot td.sep{border-left:1px solid #1e2535}
   <div id="classif-content"></div>
 </div>
 
-<!-- PAGINA INSIGHTS -->
-<div class="page" id="page-insights" style="display:none">
-  <div id="insights-content"></div>
+<!-- PAGINA CREDITO -->
+<div class="page" id="page-credito" style="display:none">
+  <div id="credito-content"></div>
 </div>
 
 <!-- PAGINA PERFORMANCE -->
@@ -801,7 +801,7 @@ async function gerarDashboard(){
       if(nomeAba === 'projecao-meta')    renderProjecaoMeta();
       if(nomeAba === 'classificacoes')   renderClassificacoes();
       if(nomeAba === 'performance')      renderPerformance();
-      if(nomeAba === 'insights')         renderInsights();
+      if(nomeAba === 'credito')          renderCredito();
       if(nomeAba === 'ranking-n1')     renderRankingN1();
       if(nomeAba === 'ranking-venda')  renderRankingVenda();
       if(nomeAba === 'configuracoes')  renderConfiguracoes();
@@ -1344,13 +1344,13 @@ function trocarAba(nome){
   document.getElementById('page-projecao-meta').style.display   = nome==='projecao-meta'   ? '' : 'none';
   document.getElementById('page-classificacoes').style.display  = nome==='classificacoes'  ? '' : 'none';
   document.getElementById('page-performance').style.display     = nome==='performance'     ? '' : 'none';
-  document.getElementById('page-insights').style.display        = nome==='insights'        ? '' : 'none';
+  document.getElementById('page-credito').style.display         = nome==='credito'         ? '' : 'none';
   document.getElementById('page-projecao').style.display   = nome==='projecao'   ? '' : 'none';
   document.getElementById('page-config').style.display     = nome==='config'     ? '' : 'none';
 
   if(nome==='projecao')        renderProjecao();
   if(nome==='performance')     renderPerformance();
-  if(nome==='insights')        renderInsights();
+  if(nome==='credito')         renderCredito();
   if(nome==='classificacoes') renderClassificacoes();
   if(nome==='projecao-meta')  renderProjecaoMeta();
   if(nome==='ranking-n1')   renderRankingN1();
@@ -2253,289 +2253,117 @@ function renderRankingVenda(){
     segBlocks;
 }
 
+
+
 // ══════════════════════════════════════════════════════
-// 🧠 INSIGHTS — 6 visões analíticas
+// 💳 CRÉDITO — Aprovações N1 vs Reprovações por dia
 // ══════════════════════════════════════════════════════
-function renderInsights(){
-  var box = document.getElementById('insights-content');
-  if(!ultimosSegmentos||!ultimosSegmentos.length){
-    box.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">Carregue uma base primeiro.</div>';
-    return;
-  }
-
-  var nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var mesLabel = mesSelecionado?(function(){var p=mesSelecionado.split('-');return nomesMes[+p[1]-1]+'/'+p[0].slice(2);}()):'';
-
-  // ── 1. TERMÔMETRO DE PIPELINE ──
-  // Score 0-100 = 40% conv N1 + 30% % meta + 30% ritmo vs esperado
-  var hoje=new Date();hoje.setHours(0,0,0,0);
-  var pctEsp=0;
-  if(mesSelecionado){
-    var pm=mesSelecionado.split('-');var ano=+pm[0],mes=+pm[1]-1;
-    var p1=new Date(ano,mes,1),p2=new Date(ano,mes+1,0);
-    var isAt=hoje.getFullYear()===ano&&hoje.getMonth()===mes;
-    var corte=isAt?hoje:p2;
-    var duT=calcularDiasUteis(p1,p2),duP=calcularDiasUteis(p1,corte);
-    pctEsp=duT>0?duP/duT*100:100;
-    if(!isAt)pctEsp=100;
-  }
-
-  var termoRows = ultimosSegmentos
-    .filter(function(s){return s.meta&&s.meta>0;})
-    .map(function(s){
-      var convAlvo = (CONV_ALVO[s.funilOrig]||0);
-      var scoreN1  = Math.min(100, s.n1_t>0&&s.cql_t>0 ? (s.n1_t/s.cql_t*100)/(convAlvo||20)*100 : 0);
-      var scoreMeta= Math.min(100, s.meta>0 ? s.pct_meta : 0);
-      var scoreRitmo= pctEsp>0 ? Math.min(100, (s.pct_meta/pctEsp)*100) : scoreMeta;
-      var score = Math.round(scoreN1*0.4 + scoreMeta*0.3 + scoreRitmo*0.3);
-      var cor  = score>=70?'#16a34a':score>=40?'#d97706':'#dc2626';
-      var emoji= score>=70?'🟢':score>=40?'🟡':'🔴';
-      return {nome:s.nome, score:score, cor:cor, emoji:emoji,
-        n1pct: s.cql_t>0?Math.round(s.n1_t/s.cql_t*100):0,
-        metaPct:Math.round(s.pct_meta), ritmo:Math.round(scoreRitmo)};
-    })
-    .sort(function(a,b){return b.score-a.score;});
-
-  var termoHtml = termoRows.map(function(r){
-    return '<div class="termo-item">'+
-      '<span class="termo-emoji">'+r.emoji+'</span>'+
-      '<span class="termo-seg">'+r.nome+'</span>'+
-      '<div class="termo-bar-bg">'+
-        '<div class="termo-bar-fill" style="width:'+r.score+'%;background:'+r.cor+'">'+
-          '<span class="termo-score">'+r.score+'</span>'+
-        '</div>'+
-      '</div>'+
-      '<span class="termo-num" style="color:'+r.cor+'">'+r.score+'</span>'+
-      '<span style="font-size:.65rem;color:var(--text3);width:90px;flex-shrink:0">N1:'+r.n1pct+'% · Meta:'+r.metaPct+'%</span>'+
-    '</div>';
-  }).join('');
-
-  // ── 2. COMPARATIVO MÊS VS MÊS ──
-  // Usa cache de métricas anteriores se disponível
-  var compHtml = '';
-  if(window._metasAnteriores && window._metasAnteriores.length){
-    var mesAnt = window._mesAnteriorLabel || 'Mês ant.';
-    var rows = ultimosSegmentos.map(function(s){
-      var ant = window._metasAnteriores.find(function(a){return a.funilOrig===s.funilOrig;});
-      if(!ant) return '';
-      var diffCQL = ant.cql_t>0 ? ((s.cql_t-ant.cql_t)/ant.cql_t*100) : 0;
-      var diffN1  = ant.n1_t>0  ? ((s.n1_t -ant.n1_t )/ant.n1_t *100) : 0;
-      var diffG   = ant.g_val>0 ? ((s.g_val-ant.g_val)/ant.g_val*100) : 0;
-      function seta(d){ return d>0?'<span style="color:#4ade80">↑'+Math.round(d)+'%</span>':'<span style="color:#f87171">↓'+Math.abs(Math.round(d))+'%</span>'; }
-      return '<tr><td><span class="tag-seg">'+s.nome+'</span></td>'+
-        '<td>'+fmtBRL(s.cql_t)+' '+seta(diffCQL)+'</td>'+
-        '<td>'+fmtBRL(s.n1_t)+' '+seta(diffN1)+'</td>'+
-        '<td>'+fmtBRL(s.g_val)+' '+seta(diffG)+'</td>'+
-      '</tr>';
-    }).join('');
-    compHtml = '<div class="v-block"><div class="tbl-hd">Comparativo '+mesLabel+' vs '+mesAnt+'</div>'+
-      '<table><thead><tr><th style="text-align:left">Segmento</th><th>CQL</th><th>N1</th><th>Ganho</th></tr></thead>'+
-      '<tbody>'+rows+'</tbody></table></div>';
-  } else {
-    compHtml = '<div class="v-block"><div class="tbl-hd">Comparativo Mês vs Mês</div>'+
-      '<div style="padding:24px;text-align:center;color:var(--text3);font-size:.82rem">'+
-        'Para ver o comparativo, carregue um segundo mês pelo filtro de meses.<br>'+
-        '<span style="font-size:.72rem;opacity:.7">O dashboard salva automaticamente os dados do mês anterior para comparação.</span>'+
-      '</div></div>';
-  }
-
-  // ── 3. ALERTA DE ESTAGNAÇÃO (vendedores sem N1 recente) ──
-  var estagHtml = '';
-  if(leadsAll && leadsAll.length && ultimosVendedores && ultimosVendedores.length){
-    var maxTs = Math.max.apply(null, leadsAll.map(function(r){return r.dataTs||0;}));
-    var limiar = maxTs - (3*24*60*60*1000); // últimos 3 dias dos dados
-    var vendComN1Recente = {};
-    leadsAll.forEach(function(r){
-      if((r.isN1v||r.isN1l) && r.dataTs && r.dataTs>=limiar){
-        vendComN1Recente[r.propKey] = true;
-      }
-    });
-    var estagnados = ultimosVendedores
-      .filter(function(v){ return v.n1_t>0 && !vendComN1Recente[v.nome.toLowerCase()]; })
-      .sort(function(a,b){return b.cql_t-a.cql_t;});
-
-    var estRows = estagnados.slice(0,10).map(function(v){
-      return '<tr>'+
-        '<td>'+v.nome+'</td>'+
-        '<td><span style="font-size:.67rem;color:#7dd3fc;background:#1a2540;padding:1px 7px;border-radius:20px">'+v.seg.replace('Blips - ','')+'</span></td>'+
-        '<td>'+fmtBRL(v.cql_t)+'</td>'+
-        '<td style="color:#f87171;font-weight:700">Sem N1 recente</td>'+
-      '</tr>';
-    }).join('');
-
-    estagHtml = '<div class="v-block"><div class="tbl-hd" style="color:#f87171">⚠️ Vendedores sem N1 nos últimos 3 dias <span class="vbadge">'+estagnados.length+'</span></div>'+
-      (estagnados.length?
-        '<table><thead><tr><th style="text-align:left">Vendedor</th><th style="text-align:left">Segmento</th><th>CQL</th><th>Status</th></tr></thead><tbody>'+estRows+'</tbody></table>':
-        '<div style="padding:20px;text-align:center;color:#4ade80">✅ Todos os vendedores com N1 têm atividade recente</div>')+
-      '</div>';
-  }
-
-  // ── 4. SIMULADOR DE META ──
-  var metaTotal = ultimosSegmentos.reduce(function(a,s){return a+(s.meta||0);},0);
-  var ganhoAtual= ultimosSegmentos.reduce(function(a,s){return a+(s.g_val||0);},0);
-  var n1TotalV  = ultimosSegmentos.reduce(function(a,s){return a+s.n1_vv;},0);
-  var n1TotalL  = ultimosSegmentos.reduce(function(a,s){return a+s.n1_ll;},0);
-  var convVMedia= ultimosSegmentos.reduce(function(a,s){return a+(CONV_PROJ[s.funilOrig]||{v:0}).v;},0)/ultimosSegmentos.length;
-  var convLMedia= ultimosSegmentos.reduce(function(a,s){return a+(CONV_PROJ[s.funilOrig]||{l:0}).l;},0)/ultimosSegmentos.length;
-  var simVenda  = Math.round(n1TotalV/1000000);
-  var simLoc    = Math.round(n1TotalL/1000000);
-
-  var simHtml = '<div class="ins-card"><div class="ins-title">🎯 Simulador de Meta</div>'+
-    '<div class="sim-slider-wrap">'+
-      '<div class="sim-slider-label">'+
-        '<span style="color:#818cf8">N1 Venda disponível (R$ Mi)</span>'+
-        '<span id="sim-venda-val" style="font-weight:700;color:#818cf8">R$ '+simVenda+'M</span>'+
-      '</div>'+
-      '<input class="sim-slider" type="range" min="0" max="'+Math.max(simVenda*2,10)+'" value="'+simVenda+'" oninput="simAtualizar()">'+
-    '</div>'+
-    '<div class="sim-slider-wrap">'+
-      '<div class="sim-slider-label">'+
-        '<span style="color:#a78bfa">N1 Locação disponível (R$ Mi)</span>'+
-        '<span id="sim-loc-val" style="font-weight:700;color:#a78bfa">R$ '+simLoc+'M</span>'+
-      '</div>'+
-      '<input class="sim-slider" type="range" min="0" max="'+Math.max(simLoc*2,10)+'" value="'+simLoc+'" oninput="simAtualizar()">'+
-    '</div>'+
-    '<div class="sim-resultado" id="sim-resultado">'+
-      '<div style="font-size:.72rem;color:var(--text3);margin-bottom:6px">Resultado projetado com as taxas de conversão médias</div>'+
-      '<div id="sim-proj-val" style="font-size:1.8rem;font-weight:800;color:#fbbf24">—</div>'+
-      '<div id="sim-meta-pct" style="font-size:.82rem;margin-top:4px">—</div>'+
-    '</div>'+
-  '</div>';
-
-  // ── 5. DISTRIBUIÇÃO POR TICKET MÉDIO ──
-  var faixas = [
-    {label:'< R$ 30k',   min:0,       max:30000},
-    {label:'R$ 30-60k',  min:30000,   max:60000},
-    {label:'R$ 60-100k', min:60000,   max:100000},
-    {label:'R$ 100-200k',min:100000,  max:200000},
-    {label:'> R$ 200k',  min:200000,  max:Infinity},
-  ];
-  var n1Leads = leadsAll ? leadsAll.filter(function(r){return (r.isN1v||r.isN1l)&&r.valor>0;}) : [];
-  var faixaCounts = faixas.map(function(f){
-    var c=n1Leads.filter(function(r){return r.valor>=f.min&&r.valor<f.max;}).length;
-    return {label:f.label, count:c, val:n1Leads.filter(function(r){return r.valor>=f.min&&r.valor<f.max;}).reduce(function(a,r){return a+r.valor;},0)};
+function renderCredito(){
+  var box=document.getElementById('credito-content');
+  if(!leadsAll||!leadsAll.length){box.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">Carregue uma base primeiro.</div>';return;}
+  var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var mesLabel=mesSelecionado?(function(){var p=mesSelecionado.split('-');return nomesMes[+p[1]-1]+'/'+p[0].slice(2);}()):'';
+  var segFiltro=window._creditoSeg||'all';
+  var dias={};
+  leadsAll.forEach(function(r){
+    if(!r.dataObj)return;
+    if(segFiltro!=='all'&&r.funil!==segFiltro)return;
+    var d=r.dataObj.getFullYear()+'-'+String(r.dataObj.getMonth()+1).padStart(2,'0')+'-'+String(r.dataObj.getDate()).padStart(2,'0');
+    if(!dias[d])dias[d]={dia:d,total:0,n1:0,rep:0,outros:0};
+    dias[d].total++;
+    if(r.cl==='N1'||r.cv==='N1')dias[d].n1++;
+    else if(r.cl==='Reprovado'||r.cv==='Reprovado')dias[d].rep++;
+    else dias[d].outros++;
   });
-  var maxFaixa = Math.max.apply(null,faixaCounts.map(function(f){return f.count;}));
-  var ticketHtml = '<div class="ins-card"><div class="ins-title">📊 Distribuição de N1 por Ticket</div>'+
-    faixaCounts.map(function(f){
-      var bar=maxFaixa>0?Math.round(f.count/maxFaixa*100):0;
-      return '<div class="ticket-bar-item">'+
-        '<span class="ticket-range">'+f.label+'</span>'+
-        '<div class="ticket-bar-bg"><div class="ticket-bar-fill" style="width:'+bar+'%;background:linear-gradient(90deg,#4338ca,#7c3aed)"></div></div>'+
-        '<span class="ticket-count">'+f.count+'</span>'+
-        '<span style="font-size:.65rem;color:var(--text3);width:70px;text-align:right">'+fmtBRL(f.val)+'</span>'+
-      '</div>';
-    }).join('')+
-  '</div>';
-
-  // ── 6. FUNIL VISUAL POR SEGMENTO ──
-  var funilSeg = document.getElementById('fg-segmento')&&document.getElementById('fg-segmento').value!=='all'
-    ? document.getElementById('fg-segmento').value : null;
-  var segParaFunil = funilSeg
-    ? ultimosSegmentos.filter(function(s){return s.funilOrig===funilSeg;})
-    : ultimosSegmentos.slice(0,4);
-
-  var funilCards = segParaFunil.map(function(s){
-    var steps = [
-      {label:'Leads Total',  val:s.cql_t,  cor:'#1d4ed8', pct:100},
-      {label:'N1 Total',     val:s.n1_t,   cor:'#7c3aed', pct:s.cql_t>0?Math.round(s.n1_t/s.cql_t*100):0},
-      {label:'Ganho',        val:s.g_val,  cor:'#16a34a', pct:s.n1_t>0?Math.round(s.g_val/s.n1_t*100):0},
-    ];
-    var maxW = 100;
-    var stepsHtml = steps.map(function(st,i){
-      var w = Math.max(15, st.pct);
-      return '<div class="fv-step" style="width:'+w+'%;background:'+st.cor+'20;border-left:3px solid '+st.cor+'">'+
-        '<span class="fv-label" style="color:'+st.cor+'">'+st.label+'</span>'+
-        '<span class="fv-val" style="color:'+st.cor+'">'+fmtBRL(st.val)+
-          (i>0?'<span style="font-size:.65rem;opacity:.8;margin-left:4px">'+st.pct+'%</span>':'')+
-        '</span>'+
-      '</div>'+
-      (i<steps.length-1?'<div class="fv-arrow">▼ conv '+steps[i+1].pct+'%</div>':'');
-    }).join('');
-    return '<div class="ins-card">'+
-      '<div class="ins-title">'+s.nome+'</div>'+
-      '<div class="funil-visual">'+stepsHtml+'</div>'+
+  var diasArr=Object.values(dias).sort(function(a,b){return a.dia.localeCompare(b.dia);});
+  var totN1=diasArr.reduce(function(a,d){return a+d.n1;},0);
+  var totRep=diasArr.reduce(function(a,d){return a+d.rep;},0);
+  var totOut=diasArr.reduce(function(a,d){return a+d.outros;},0);
+  var totAll=diasArr.reduce(function(a,d){return a+d.total;},0);
+  var txAprov=totAll>0?Math.round(totN1/totAll*100):0;
+  var corTx=txAprov>=30?'#4ade80':txAprov>=15?'#fbbf24':'#f87171';
+  var kpisHtml='<div class="kpis" style="display:grid;max-width:1300px;margin:0 auto 20px">'+
+    '<div class="kpi"><div class="kpi-lbl">Total Analisados</div><div class="kpi-val kc">'+totAll+'</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">N1 Aprovado</div><div class="kpi-val" style="color:#4ade80">'+totN1+'</div><div class="kpi-sub">'+txAprov+'% do total</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Reprovado</div><div class="kpi-val" style="color:#f87171">'+totRep+'</div><div class="kpi-sub">'+(totAll>0?Math.round(totRep/totAll*100):0)+'% do total</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Em análise/Outros</div><div class="kpi-val" style="color:#fbbf24">'+totOut+'</div><div class="kpi-sub">'+(totAll>0?Math.round(totOut/totAll*100):0)+'% do total</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Taxa de Aprovação</div><div class="kpi-val" style="color:'+corTx+'">'+txAprov+'%</div></div>'+
     '</div>';
-  }).join('');
-
-  // ── MAPA DE CALOR ──
-  var vendoresUnicos = (ultimosVendedores||[]).filter(function(v){return v.cql_t>0;}).slice(0,12);
-  var segsHeat = SEGMENTOS.filter(function(sg){
-    return ultimosSegmentos.some(function(s){return s.funilOrig===sg;});
-  });
-  function corCalor(pct){
-    if(pct>=40) return '#166534';
-    if(pct>=25) return '#15803d';
-    if(pct>=15) return '#d97706';
-    if(pct>=5)  return '#b45309';
-    return '#7f1d1d';
+  var segsP=[...new Set(leadsAll.map(function(r){return r.funil;}).filter(function(f){return f&&!f.includes('Ideal');}))].sort();
+  var segBtns='<button class="fseg'+(segFiltro==='all'?' active':'')+'" onclick="creditoFiltrar(\'all\')">Todos</button>';
+  segsP.forEach(function(s){segBtns+='<button class="fseg'+(segFiltro===s?' active':'')+'" onclick="creditoFiltrar(\''+s+'\')">'+s.replace('Blips - ','')+'</button>';});
+  var maxVal=Math.max.apply(null,diasArr.map(function(d){return d.total;}));
+  maxVal=Math.ceil(maxVal/10)*10||10;
+  var BW=30,GAP=6,GROUP=BW*3+GAP*2+22,H=280,PL=45,PB=55,PT=24,PR=20;
+  var W=PL+diasArr.length*GROUP+PR;
+  var CH=H-PT-PB;
+  var grid='';
+  for(var gi=0;gi<=5;gi++){
+    var gv=Math.round(maxVal/5*gi);
+    var gy=PT+CH-(gv/maxVal)*CH;
+    grid+='<line x1="'+PL+'" y1="'+gy+'" x2="'+(W-PR)+'" y2="'+gy+'" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>';
+    grid+='<text x="'+(PL-6)+'" y="'+(gy+4)+'" text-anchor="end" font-size="10" fill="var(--text3)">'+gv+'</text>';
   }
-  var heatHeader = '<tr><th>Vendedor</th>'+segsHeat.map(function(s){return '<th>'+s.replace('Blips - ','')+'</th>';}).join('')+'</tr>';
-  var heatRows = vendoresUnicos.map(function(v){
-    var cells = segsHeat.map(function(sg){
-      if(v.seg!==sg) return '<td style="color:var(--text3);background:var(--bg3)!important">—</td>';
-      var efic = v.cql_t>0 ? Math.round(v.n1_t/v.cql_t*100) : 0;
-      var bg   = corCalor(efic);
-      return '<td style="background:'+bg+'20;color:'+bg+';border-radius:4px">'+efic+'%</td>';
-    }).join('');
-    return '<tr><td>'+v.nome.split(' ')[0]+'</td>'+cells+'</tr>';
+  var bars='',xlbls='';
+  diasArr.forEach(function(d,i){
+    var x0=PL+i*GROUP+8;
+    var hN=(d.n1/maxVal)*CH,hR=(d.rep/maxVal)*CH,hO=(d.outros/maxVal)*CH;
+    bars+='<rect x="'+x0+'" y="'+(PT+CH-hN)+'" width="'+BW+'" height="'+hN+'" fill="#16a34a" rx="3"/>';
+    if(d.n1>0)bars+='<text x="'+(x0+BW/2)+'" y="'+(PT+CH-hN-4)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#4ade80">'+d.n1+'</text>';
+    bars+='<rect x="'+(x0+BW+GAP)+'" y="'+(PT+CH-hR)+'" width="'+BW+'" height="'+hR+'" fill="#dc2626" rx="3"/>';
+    if(d.rep>0)bars+='<text x="'+(x0+BW+GAP+BW/2)+'" y="'+(PT+CH-hR-4)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#f87171">'+d.rep+'</text>';
+    bars+='<rect x="'+(x0+BW*2+GAP*2)+'" y="'+(PT+CH-hO)+'" width="'+BW+'" height="'+hO+'" fill="#d97706" rx="3"/>';
+    if(d.outros>0)bars+='<text x="'+(x0+BW*2+GAP*2+BW/2)+'" y="'+(PT+CH-hO-4)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#fbbf24">'+d.outros+'</text>';
+    var p=d.dia.split('-');
+    xlbls+='<text x="'+(x0+BW+GAP/2)+'" y="'+(PT+CH+16)+'" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text2)">'+p[2]+'/'+p[1]+'</text>';
+    xlbls+='<text x="'+(x0+BW+GAP/2)+'" y="'+(PT+CH+30)+'" text-anchor="middle" font-size="10" fill="var(--text3)">'+d.total+' leads</text>';
+    xlbls+='<text x="'+(x0+BW+GAP/2)+'" y="'+(PT+CH+43)+'" text-anchor="middle" font-size="10" fill="'+corTx+'">'+(d.total>0?Math.round(d.n1/d.total*100):0)+'% N1</text>';
+  });
+  var axX='<line x1="'+PL+'" y1="'+(PT+CH)+'" x2="'+(W-PR)+'" y2="'+(PT+CH)+'" stroke="var(--border2)" stroke-width="1.5"/>';
+  var axY='<line x1="'+PL+'" y1="'+PT+'" x2="'+PL+'" y2="'+(PT+CH)+'" stroke="var(--border2)" stroke-width="1.5"/>';
+  var leg='<g transform="translate('+PL+','+(H-6)+')" font-size="11">'+
+    '<rect x="0" y="-8" width="12" height="12" fill="#16a34a" rx="2"/><text x="16" y="2" fill="var(--text2)">N1 Aprovado</text>'+
+    '<rect x="120" y="-8" width="12" height="12" fill="#dc2626" rx="2"/><text x="136" y="2" fill="var(--text2)">Reprovado</text>'+
+    '<rect x="230" y="-8" width="12" height="12" fill="#d97706" rx="2"/><text x="246" y="2" fill="var(--text2)">Em análise / Outros</text>'+
+    '</g>';
+  var svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+grid+axX+axY+bars+xlbls+leg+'</svg>';
+  var diasSegs={};
+  leadsAll.forEach(function(r){
+    if(!r.dataObj)return;
+    if(segFiltro!=='all'&&r.funil!==segFiltro)return;
+    var d=r.dataObj.getFullYear()+'-'+String(r.dataObj.getMonth()+1).padStart(2,'0')+'-'+String(r.dataObj.getDate()).padStart(2,'0');
+    var seg=r.funil.replace('Blips - ','');
+    var key=d+'|'+seg;
+    if(!diasSegs[key])diasSegs[key]={dia:d,seg:seg,n1:0,rep:0,out:0,total:0};
+    diasSegs[key].total++;
+    if(r.cl==='N1'||r.cv==='N1')diasSegs[key].n1++;
+    else if(r.cl==='Reprovado'||r.cv==='Reprovado')diasSegs[key].rep++;
+    else diasSegs[key].out++;
+  });
+  var tabRows=Object.values(diasSegs).sort(function(a,b){return a.dia.localeCompare(b.dia)||a.seg.localeCompare(b.seg);}).map(function(r){
+    var tx=r.total>0?Math.round(r.n1/r.total*100):0;
+    var cor=tx>=30?'#4ade80':tx>=15?'#fbbf24':'#f87171';
+    var p=r.dia.split('-');
+    return '<tr><td><strong>'+p[2]+'/'+p[1]+'</strong></td><td><span class="tag-seg">'+r.seg+'</span></td><td class="hi">'+r.total+'</td><td style="color:#4ade80;font-weight:700">'+r.n1+'</td><td style="color:#f87171;font-weight:700">'+r.rep+'</td><td style="color:#fbbf24">'+r.out+'</td><td><span style="font-weight:700;color:'+cor+'">'+tx+'%</span></td></tr>';
   }).join('');
-
-  var calor = '<div class="v-block heatmap"><div class="tbl-hd">🌡️ Mapa de Calor — Eficiência N1/CQL por Vendedor × Segmento</div>'+
-    '<div style="overflow:auto"><table><thead>'+heatHeader+'</thead><tbody>'+heatRows+'</tbody></table></div></div>';
-
-  // ── MONTA TUDO ──
-  box.innerHTML =
-    // Linha 1: Termômetro + Comparativo
-    '<div style="max-width:1300px;margin:0 auto 10px;font-size:.8rem;font-weight:700;color:var(--text-hi)">1. Termômetro de Pipeline &amp; Comparativo</div>'+
-    '<div class="ins-grid2" style="margin-bottom:20px">'+
-      '<div class="ins-card"><div class="ins-title">🌡️ Termômetro de Pipeline <span class="vbadge">Score 0-100</span></div>'+termoHtml+'</div>'+
-      compHtml+
+  box.innerHTML=
+    '<div style="max-width:1300px;margin:0 auto 16px;padding:0 4px;display:flex;align-items:center;gap:10px">'+
+      '<span style="font-size:.85rem;font-weight:700;color:var(--text-hi)">💳 Análise de Crédito por Dia</span>'+
+      (mesLabel?'<span class="badge">'+mesLabel+'</span>':'')+
     '</div>'+
-    // Linha 2: Estagnação
-    '<div style="max-width:1300px;margin:0 auto 10px;font-size:.8rem;font-weight:700;color:var(--text-hi)">3. Alertas de Estagnação</div>'+
-    '<div style="max-width:1300px;margin:0 auto 20px">'+estagHtml+'</div>'+
-    // Linha 3: Simulador + Ticket
-    '<div style="max-width:1300px;margin:0 auto 10px;font-size:.8rem;font-weight:700;color:var(--text-hi)">4 &amp; 5. Simulador de Meta · Ticket Médio</div>'+
-    '<div class="ins-grid2" style="margin-bottom:20px">'+simHtml+ticketHtml+'</div>'+
-    // Linha 4: Funil visual
-    '<div style="max-width:1300px;margin:0 auto 10px;font-size:.8rem;font-weight:700;color:var(--text-hi)">6. Funil Visual por Segmento</div>'+
-    '<div class="ins-grid2" style="margin-bottom:20px">'+funilCards+'</div>'+
-    // Linha 5: Mapa de calor
-    '<div style="max-width:1300px;margin:0 auto 10px;font-size:.8rem;font-weight:700;color:var(--text-hi)">Bônus: Mapa de Calor Vendedor × Segmento</div>'+
-    '<div style="max-width:1300px;margin:0 auto 20px">'+calor+'</div>';
-
-  // Inicializa simulador
-  simAtualizar();
+    kpisHtml+
+    '<div class="filter-segs" style="max-width:1300px;margin:0 auto 16px">'+segBtns+'</div>'+
+    '<div class="v-block" style="max-width:1300px;margin:0 auto 20px;padding:20px">'+
+      '<div class="tbl-hd" style="padding:0 0 14px;border:none">N1 Aprovado vs Reprovado vs Em análise por Dia</div>'+
+      '<div style="overflow-x:auto">'+svg+'</div>'+
+    '</div>'+
+    '<div class="v-block" style="max-width:1300px;margin:0 auto">'+
+      '<div class="tbl-hd">Detalhe por Dia × Segmento</div>'+
+      '<table><thead><tr><th style="text-align:left">Dia</th><th style="text-align:left">Segmento</th><th>Total</th><th style="color:#4ade80">N1</th><th style="color:#f87171">Reprovado</th><th style="color:#fbbf24">Outros</th><th>Taxa N1</th></tr></thead><tbody>'+tabRows+'</tbody></table>'+
+    '</div>';
 }
 
-// Atualiza simulador em tempo real
-window.simAtualizar = function(){
-  var vEl = document.querySelector('#page-insights .sim-slider:nth-of-type(1)');
-  var lEl = document.querySelector('#page-insights .sim-slider:nth-of-type(2)');
-  if(!vEl||!lEl) return;
-  var vM = +vEl.value, lM = +lEl.value;
-  document.getElementById('sim-venda-val').textContent = 'R$ '+vM+'M';
-  document.getElementById('sim-loc-val').textContent   = 'R$ '+lM+'M';
-  // Usa conv média dos segmentos ativos
-  var segs = ultimosSegmentos||[];
-  var totalProj = segs.reduce(function(a,s){
-    var c = CONV_PROJ[s.funilOrig]||{v:8,l:8};
-    var propV = s.n1_t>0 ? s.n1_vv/s.n1_t : 0.5;
-    var propL = s.n1_t>0 ? s.n1_ll/s.n1_t : 0.5;
-    return a + (vM*1e6*propV)*(c.v/100) + (lM*1e6*propL)*(c.l/100);
-  },0);
-  var metaT = segs.reduce(function(a,s){return a+(s.meta||0);},0);
-  var ganhoAt= segs.reduce(function(a,s){return a+(s.g_val||0);},0);
-  var proj = ganhoAt + totalProj;
-  var pct  = metaT>0?proj/metaT*100:0;
-  var cor  = pct>=100?'#4ade80':pct>=70?'#fbbf24':'#f87171';
-  document.getElementById('sim-proj-val').textContent = fmtBRL(proj);
-  document.getElementById('sim-proj-val').style.color = cor;
-  document.getElementById('sim-meta-pct').innerHTML =
-    'Atingimento de meta projetado: <strong style="color:'+cor+'">'+fmtPct(pct)+'</strong>'+
-    (pct>=100?' ✅':pct>=70?' ⚠️':' 🔴');
-};
+window.creditoFiltrar=function(seg){window._creditoSeg=seg;renderCredito();};
 
 // ── Filtros internos da aba Performance ──
 var perfFiltro = { seg:'all', status:'all', busca:'' };
