@@ -39,6 +39,34 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .login-error{background:#3b1212;border:1px solid #7f1d1d;color:#fca5a5;padding:12px;border-radius:10px;font-size:.82rem;margin-bottom:18px;text-align:left;display:none}
 .login-error.show{display:block}
 
+/* ── ALERTAS ── */
+.alertas-bar{max-width:1300px;margin:0 auto 14px;display:none;flex-direction:column;gap:8px}
+.alertas-bar.show{display:flex}
+.alerta-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;font-size:.78rem;font-weight:600}
+.alerta-critico{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+.alerta-atencao{background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.28);color:#fde68a}
+.alerta-ok{background:rgba(74,222,128,.10);border:1px solid rgba(74,222,128,.25);color:#86efac}
+.alerta-icon{font-size:1.1rem;flex-shrink:0}
+.alerta-text{flex:1}
+.alerta-badge{background:rgba(255,255,255,.12);border-radius:20px;padding:1px 8px;font-size:.68rem;margin-left:6px}
+
+/* ── PERFORMANCE RANKING ── */
+.perf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;max-width:1300px;margin:0 auto 20px}
+.perf-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.perf-card-top{display:flex;align-items:center;gap:10px}
+.perf-nome{font-size:.82rem;font-weight:700;color:var(--text-hi);flex:1;line-height:1.2}
+.perf-seg{font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:20px;background:#1a2540;color:#7dd3fc;white-space:nowrap}
+.status-badge{padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:800;flex-shrink:0}
+.status-ok{background:rgba(74,222,128,.18);color:#4ade80}
+.status-atencao{background:rgba(251,191,36,.18);color:#fbbf24}
+.status-critico{background:rgba(239,68,68,.18);color:#f87171}
+.perf-metricas{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.perf-met{text-align:center;background:var(--bg3);border-radius:8px;padding:6px 4px}
+.perf-met-val{font-size:.88rem;font-weight:800;line-height:1}
+.perf-met-lbl{font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.perf-bar-wrap{background:var(--bg3);border-radius:20px;height:6px;overflow:hidden}
+.perf-bar-fill{height:6px;border-radius:20px;transition:width .4s}
+
 /* BANNER NAO-ADMIN */
 .banner-section{max-width:900px;margin:0 auto 28px;display:none}
 .banner-section.show{display:block}
@@ -304,6 +332,9 @@ tfoot td.sep{border-left:1px solid #1e2535}
 <!-- INDICADOR DA BASE ATIVA (visivel a todos) -->
 <div class="base-ativa" id="base-ativa"></div>
 
+<!-- BARRA DE ALERTAS -->
+<div class="alertas-bar" id="alertas-bar"></div>
+
 <!-- BANNER (visivel apenas para nao-admins, escondido para admins) -->
 <div class="banner-section" id="banner-section" style="display:none">
   <div class="banner-inner">
@@ -371,6 +402,7 @@ tfoot td.sep{border-left:1px solid #1e2535}
 <div class="tabs" id="tabs">
   <button class="tab active" data-tab="segmentos"    onclick="trocarAba('segmentos')">Segmentos</button>
   <button class="tab"        data-tab="vendedores"   onclick="trocarAba('vendedores')">Vendedores</button>
+  <button class="tab"        data-tab="performance"  onclick="trocarAba('performance')">⚡ Performance</button>
   <button class="tab"        data-tab="projecao"     onclick="trocarAba('projecao')">📈 Projeção Venda</button>
   <button class="tab"        data-tab="projecao-meta" onclick="trocarAba('projecao-meta')">🎯 Projeção de Meta</button>
   <button class="tab"        data-tab="classificacoes" onclick="trocarAba('classificacoes')">✅ Visão Aprovação</button>
@@ -394,6 +426,11 @@ tfoot td.sep{border-left:1px solid #1e2535}
 <!-- PAGINA CLASSIFICACOES -->
 <div class="page" id="page-classificacoes" style="display:none">
   <div id="classif-content"></div>
+</div>
+
+<!-- PAGINA PERFORMANCE -->
+<div class="page" id="page-performance" style="display:none">
+  <div id="performance-content"></div>
 </div>
 
 <!-- PAGINA RANKING N1 -->
@@ -672,6 +709,7 @@ async function gerarDashboard(){
       if(nomeAba === 'projecao')          renderProjecao();
       if(nomeAba === 'projecao-meta')    renderProjecaoMeta();
       if(nomeAba === 'classificacoes')   renderClassificacoes();
+      if(nomeAba === 'performance')      renderPerformance();
       if(nomeAba === 'ranking-n1')     renderRankingN1();
       if(nomeAba === 'ranking-venda')  renderRankingVenda();
       if(nomeAba === 'configuracoes')  renderConfiguracoes();
@@ -1112,10 +1150,12 @@ function trocarAba(nome){
   document.getElementById('page-ranking-venda').style.display  = nome==='ranking-venda'  ? '' : 'none';
   document.getElementById('page-projecao-meta').style.display   = nome==='projecao-meta'   ? '' : 'none';
   document.getElementById('page-classificacoes').style.display  = nome==='classificacoes'  ? '' : 'none';
+  document.getElementById('page-performance').style.display     = nome==='performance'     ? '' : 'none';
   document.getElementById('page-projecao').style.display   = nome==='projecao'   ? '' : 'none';
   document.getElementById('page-config').style.display     = nome==='config'     ? '' : 'none';
 
   if(nome==='projecao')        renderProjecao();
+  if(nome==='performance')     renderPerformance();
   if(nome==='classificacoes') renderClassificacoes();
   if(nome==='projecao-meta')  renderProjecaoMeta();
   if(nome==='ranking-n1')   renderRankingN1();
@@ -1267,6 +1307,33 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
 
   // Após renderizar vendedores, gera a aba Batedores de Meta
   renderBatedores(arr, segsVend);
+
+  // Dispara alertas automaticamente ao carregar vendedores
+  var hoje2 = new Date(); hoje2.setHours(0,0,0,0);
+  var pctEsp2 = 0;
+  if(mesSelecionado){
+    var pm2 = mesSelecionado.split('-');
+    var ano2 = +pm2[0], mes2 = +pm2[1]-1;
+    var primDia2 = new Date(ano2,mes2,1);
+    var ultDia2  = new Date(ano2,mes2+1,0);
+    var isAt2    = hoje2.getFullYear()===ano2 && hoje2.getMonth()===mes2;
+    var corte2   = isAt2 ? hoje2 : ultDia2;
+    var duT2 = calcularDiasUteis(primDia2, ultDia2);
+    var duP2 = calcularDiasUteis(primDia2, corte2);
+    pctEsp2  = duT2>0 ? duP2/duT2*100 : 100;
+  }
+  // Classifica arr para alertas
+  var arrAlerta = arr.map(function(v){
+    var pctMeta = v.meta&&v.meta>0 ? v.pct_meta : null;
+    var statusCls;
+    if(pctMeta===null){ statusCls='status-atencao'; }
+    else if(pctMeta>=100){ statusCls='status-ok'; }
+    else if(pctMeta>=pctEsp2*0.85){ statusCls='status-ok'; }
+    else if(pctMeta>=pctEsp2*0.60){ statusCls='status-atencao'; }
+    else { statusCls='status-critico'; }
+    return Object.assign({},v,{statusCls:statusCls});
+  });
+  renderAlertas(arrAlerta, pctEsp2);
 }
 
 // ── BATEDORES DE META: vendedores com %meta >= 100 ──
@@ -1984,6 +2051,224 @@ function renderRankingVenda(){
     segBlocks;
 }
 
+// ══════════════════════════════════════════════════════
+// ⚡ PERFORMANCE — Ranking de vendedores com status
+// ══════════════════════════════════════════════════════
+function renderPerformance(){
+  var box = document.getElementById('performance-content');
+  if(!ultimosVendedores || !ultimosVendedores.length){
+    box.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Carregue uma base primeiro.</div>';
+    return;
+  }
+
+  var nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var mesLabel = mesSelecionado ? (function(){var p=mesSelecionado.split('-');return nomesMes[+p[1]-1]+'/'+p[0].slice(2);}()) : '';
+
+  // Calcula dias uteis passados/total para saber % esperado de atingimento
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var pctEsperado = 0;
+  if(mesSelecionado){
+    var pm = mesSelecionado.split('-');
+    var ano = +pm[0], mes = +pm[1]-1;
+    var primDia = new Date(ano,mes,1);
+    var ultDia  = new Date(ano,mes+1,0);
+    var isMesAt = hoje.getFullYear()===ano && hoje.getMonth()===mes;
+    var corte   = isMesAt ? hoje : ultDia;
+    var duTotal = calcularDiasUteis(primDia, ultDia);
+    var duPass  = calcularDiasUteis(primDia, corte);
+    pctEsperado = duTotal>0 ? duPass/duTotal*100 : 100;
+  }
+
+  // Classifica cada vendedor
+  var arr = ultimosVendedores
+    .filter(function(v){ return v.cql_t > 0; })
+    .map(function(v){
+      var efic    = v.cql_t > 0 ? v.n1_t/v.cql_t*100 : 0;          // eficiência N1/CQL
+      var pctMeta = v.meta&&v.meta>0 ? v.pct_meta : null;
+      var score   = efic * 0.5 + (pctMeta||0) * 0.5;                // score composto
+
+      // Status baseado em % meta vs % esperado
+      var status, statusCls;
+      if(pctMeta === null){
+        status='Sem meta'; statusCls='status-atencao';
+      } else if(pctMeta >= 100){
+        status='Meta batida!'; statusCls='status-ok';
+      } else if(pctMeta >= pctEsperado * 0.85){
+        status='No ritmo'; statusCls='status-ok';
+      } else if(pctMeta >= pctEsperado * 0.60){
+        status='Atenção'; statusCls='status-atencao';
+      } else {
+        status='Crítico'; statusCls='status-critico';
+      }
+
+      return Object.assign({}, v, { efic:efic, score:score, status:status, statusCls:statusCls, pctEsp:pctEsperado });
+    })
+    .sort(function(a,b){ return b.score - a.score; });
+
+  // KPIs resumo
+  var noRitmo  = arr.filter(function(v){return v.statusCls==='status-ok';}).length;
+  var atencao  = arr.filter(function(v){return v.statusCls==='status-atencao';}).length;
+  var critico  = arr.filter(function(v){return v.statusCls==='status-critico';}).length;
+  var top3efic = arr.slice().sort(function(a,b){return b.efic-a.efic;}).slice(0,3).map(function(v){return v.nome;}).join(', ');
+
+  var kpisHtml =
+    '<div class="kpis" style="display:grid;max-width:1300px;margin:0 auto 20px">'+
+      '<div class="kpi"><div class="kpi-lbl">No Ritmo 🟢</div><div class="kpi-val" style="color:#4ade80">'+noRitmo+'</div><div class="kpi-sub">vendedores</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Atenção 🟡</div><div class="kpi-val" style="color:#fbbf24">'+atencao+'</div><div class="kpi-sub">vendedores</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Crítico 🔴</div><div class="kpi-val" style="color:#f87171">'+critico+'</div><div class="kpi-sub">vendedores</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">% Esperado no mês</div><div class="kpi-val kc">'+fmtPct(pctEsperado)+'</div><div class="kpi-sub">baseado nos dias úteis</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Top eficiência N1</div><div class="kpi-val" style="font-size:.85rem;color:#c084fc">'+arr[0].nome+'</div><div class="kpi-sub">maior N1/CQL</div></div>'+
+    '</div>';
+
+  // Cards por segmento
+  var segs = [...new Set(arr.map(function(v){return v.seg;}))].sort();
+  var blocos = segs.map(function(seg){
+    var sub = arr.filter(function(v){return v.seg===seg;});
+    var cards = sub.map(function(v,i){
+      var barMeta  = v.meta&&v.meta>0 ? Math.min(100,Math.round(v.pct_meta)) : 0;
+      var barEfic  = Math.min(100, Math.round(v.efic));
+      var corEfic  = v.efic>=30?'#4ade80':v.efic>=15?'#fbbf24':'#f87171';
+      var rank     = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'º';
+      return '<div class="perf-card">'+
+        '<div class="perf-card-top">'+
+          '<span style="font-size:1rem;flex-shrink:0">'+rank+'</span>'+
+          '<span class="perf-nome">'+v.nome+'</span>'+
+          '<span class="status-badge '+v.statusCls+'">'+v.status+'</span>'+
+        '</div>'+
+        '<div class="perf-metricas">'+
+          '<div class="perf-met">'+
+            '<div class="perf-met-val" style="color:#60a5fa">'+fmtBRL(v.cql_t)+'</div>'+
+            '<div class="perf-met-lbl">CQL</div>'+
+          '</div>'+
+          '<div class="perf-met">'+
+            '<div class="perf-met-val" style="color:#c084fc">'+fmtBRL(v.n1_t)+'</div>'+
+            '<div class="perf-met-lbl">N1</div>'+
+          '</div>'+
+          '<div class="perf-met">'+
+            '<div class="perf-met-val" style="color:#4ade80">'+fmtBRL(v.g_val)+'</div>'+
+            '<div class="perf-met-lbl">Ganho</div>'+
+          '</div>'+
+        '</div>'+
+        // Barra eficiência N1/CQL
+        '<div>'+
+          '<div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--text3);margin-bottom:3px">'+
+            '<span>Efic. N1/CQL</span><span style="color:'+corEfic+';font-weight:700">'+fmtPct(v.efic)+'</span>'+
+          '</div>'+
+          '<div class="perf-bar-wrap"><div class="perf-bar-fill" style="width:'+barEfic+'%;background:'+corEfic+'"></div></div>'+
+        '</div>'+
+        // Barra % Meta
+        (v.meta&&v.meta>0 ?
+          '<div>'+
+            '<div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--text3);margin-bottom:3px">'+
+              '<span>% Meta <span style="opacity:.6">(esp: '+fmtPct(pctEsperado)+')</span></span>'+
+              '<span style="color:'+(v.pct_meta>=pctEsperado*0.85?'#4ade80':v.pct_meta>=pctEsperado*0.60?'#fbbf24':'#f87171')+';font-weight:700">'+fmtPct(v.pct_meta)+'</span>'+
+            '</div>'+
+            '<div class="perf-bar-wrap" style="position:relative">'+
+              '<div class="perf-bar-fill" style="width:'+barMeta+'%;background:'+(v.pct_meta>=100?'#16a34a':v.pct_meta>=pctEsperado*0.85?'#22c55e':v.pct_meta>=pctEsperado*0.60?'#d97706':'#dc2626')+'"></div>'+
+              // Marcador da % esperada
+              '<div style="position:absolute;top:0;left:'+Math.min(99,Math.round(pctEsperado))+'%;width:2px;height:100%;background:#fff;opacity:.4;border-radius:1px"></div>'+
+            '</div>'+
+          '</div>'
+        : '<div style="font-size:.65rem;color:var(--text3)">Sem meta cadastrada</div>')+
+      '</div>';
+    }).join('');
+
+    return '<div style="max-width:1300px;margin:0 auto 8px;font-size:.78rem;font-weight:700;color:#7dd3fc;padding:0 4px">'+
+      seg.replace('Blips - ','')+' <span style="color:var(--text3);font-weight:400">('+sub.length+')</span>'+
+    '</div>'+
+    '<div class="perf-grid" style="margin-bottom:24px">'+cards+'</div>';
+  }).join('');
+
+  box.innerHTML =
+    '<div style="max-width:1300px;margin:0 auto 16px;padding:0 4px;display:flex;align-items:center;gap:10px">'+
+      '<span style="font-size:.85rem;font-weight:700;color:var(--text-hi)">Performance por Vendedor</span>'+
+      (mesLabel?'<span class="badge">'+mesLabel+'</span>':'')+
+      '<span style="font-size:.7rem;color:var(--text3)">Score = Eficiência N1 + % Meta  ·  Ordenado por score</span>'+
+    '</div>'+
+    kpisHtml + blocos;
+
+  // Dispara alertas após calcular performance
+  renderAlertas(arr, pctEsperado);
+}
+
+// ══════════════════════════════════════════════════════
+// ⚠️ ALERTAS — barra automática no topo
+// ══════════════════════════════════════════════════════
+function renderAlertas(arr, pctEsperado){
+  var bar = document.getElementById('alertas-bar');
+  if(!bar || !arr) return;
+
+  var alertas = [];
+
+  // 1. Vendedores em estado crítico
+  var criticos = arr.filter(function(v){return v.statusCls==='status-critico';});
+  if(criticos.length>0){
+    alertas.push({
+      tipo:'critico',
+      icon:'🔴',
+      text: criticos.length+' vendedor(es) em estado <strong>Crítico</strong> — abaixo de '+fmtPct(pctEsperado*0.60)+' da meta esperada: '+
+        criticos.slice(0,3).map(function(v){return v.nome.split(' ')[0];}).join(', ')+(criticos.length>3?' +mais...':'')
+    });
+  }
+
+  // 2. Vendedores em atenção
+  var atencao = arr.filter(function(v){return v.statusCls==='status-atencao' && v.meta&&v.meta>0;});
+  if(atencao.length>0){
+    alertas.push({
+      tipo:'atencao',
+      icon:'🟡',
+      text: atencao.length+' vendedor(es) precisam de <strong>atenção</strong>: '+
+        atencao.slice(0,3).map(function(v){return v.nome.split(' ')[0]+' ('+fmtPct(v.pct_meta)+')';}).join(', ')
+    });
+  }
+
+  // 3. Segmentos com conversão abaixo do alvo
+  if(ultimosSegmentos){
+    var segsAbaixo = ultimosSegmentos.filter(function(s){
+      return s.conv_alvo>0 && s.conv_g < s.conv_alvo && s.n1_t>0;
+    });
+    if(segsAbaixo.length>0){
+      alertas.push({
+        tipo:'atencao',
+        icon:'📉',
+        text: 'Conversão N1→Ganho abaixo do alvo em: '+
+          segsAbaixo.map(function(s){
+            return '<strong>'+s.nome+'</strong> ('+fmtPct(s.conv_g)+' / alvo '+fmtPct(s.conv_alvo)+')';
+          }).join(' · ')
+      });
+    }
+  }
+
+  // 4. Projeção do mês
+  if(ultimosSegmentos && pctEsperado>0){
+    var totalMeta  = ultimosSegmentos.reduce(function(a,s){return a+(s.meta||0);},0);
+    var totalGanho = ultimosSegmentos.reduce(function(a,s){return a+(s.g_val||0);},0);
+    var pctMeta    = totalMeta>0 ? totalGanho/totalMeta*100 : 0;
+    if(pctMeta < pctEsperado*0.70 && totalMeta>0){
+      alertas.push({
+        tipo:'critico',
+        icon:'🎯',
+        text: 'Meta do mês em risco — realizado <strong>'+fmtPct(pctMeta)+'</strong> vs esperado <strong>'+fmtPct(pctEsperado)+'</strong>. Faltam <strong>'+fmtBRL(totalMeta-totalGanho)+'</strong> para bater a meta.'
+      });
+    } else if(pctMeta >= 100){
+      alertas.push({ tipo:'ok', icon:'🏆', text: 'Meta do mês <strong>batida!</strong> — '+fmtPct(pctMeta)+' atingido.' });
+    }
+  }
+
+  if(!alertas.length){
+    bar.classList.remove('show');
+    return;
+  }
+
+  bar.innerHTML = alertas.map(function(a){
+    return '<div class="alerta-item alerta-'+a.tipo+'">'+
+      '<span class="alerta-icon">'+a.icon+'</span>'+
+      '<span class="alerta-text">'+a.text+'</span>'+
+    '</div>';
+  }).join('');
+  bar.classList.add('show');
+}
+
 function renderBatedores(vendArr, segsVend){
   var batedores = vendArr.filter(function(v){return v.meta && v.meta>0 && v.pct_meta>=100;});
 
@@ -2154,13 +2439,28 @@ function renderProjecao(){
   var ritmoNecessario = isMesAtual && diasUteisRestantes>0 ? faltaTotal/diasUteisRestantes : 0;
   var pctAtingido = metaTotal ? vendidoTotal/metaTotal*100 : 0;
 
+  // ── Projeção de fechamento ──
+  // Baseada no ritmo atual: vendido / dias úteis passados × dias úteis totais
+  var projecaoFechamento = 0;
+  var pctProjecao = 0;
+  var projecaoLabel = '';
+  if(isMesAtual && diasUteisPassados > 0){
+    projecaoFechamento = vendidoTotal / diasUteisPassados * diasUteisTotal;
+    pctProjecao = metaTotal > 0 ? projecaoFechamento/metaTotal*100 : 0;
+    projecaoLabel = pctProjecao >= 100 ? '✅ Vai bater a meta' : '⚠️ Abaixo da meta';
+  }
+  var projCor = pctProjecao>=100?'#4ade80':pctProjecao>=70?'#fbbf24':'#f87171';
+
   var kpisHtml = '<div class="proj-kpis">'+
     '<div class="kpi"><div class="kpi-lbl">Meta Total</div><div class="kpi-val kc">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">'+ultimosSegmentos.length+' segmentos</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Vendido</div><div class="kpi-val kg">'+fmtBRL(vendidoTotal)+'</div><div class="kpi-sub">'+fmtPct(pctAtingido)+' da meta</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Falta</div><div class="kpi-val ko">'+fmtBRL(faltaTotal)+'</div><div class="kpi-sub">pra bater a meta</div></div>'+
     (isMesAtual ?
-      '<div class="kpi"><div class="kpi-lbl">Ritmo por dia útil</div><div class="kpi-val kp">'+fmtBRL(ritmoNecessario)+'</div><div class="kpi-sub">próximos '+diasUteisRestantes+' dias</div></div>'+
-      '<div class="kpi"><div class="kpi-lbl">Ritmo por dia corrido</div><div class="kpi-val kv">'+fmtBRL(faltaTotal/diasCorridosRestantes)+'</div><div class="kpi-sub">próximos '+diasCorridosRestantes+' dias</div></div>'
+      '<div class="kpi"><div class="kpi-lbl">Projeção de Fechamento</div>'+
+        '<div class="kpi-val" style="color:'+projCor+'">'+fmtBRL(projecaoFechamento)+'</div>'+
+        '<div class="kpi-sub">'+projecaoLabel+' · '+fmtPct(pctProjecao)+'</div>'+
+      '</div>'+
+      '<div class="kpi"><div class="kpi-lbl">Ritmo necessário</div><div class="kpi-val kp">'+fmtBRL(ritmoNecessario)+'</div><div class="kpi-sub">por dia útil · '+fmtBRL(diasCorridosRestantes>0?faltaTotal/diasCorridosRestantes:0)+'/dia corrido</div></div>'
       :
       '<div class="kpi"><div class="kpi-lbl">Status</div><div class="kpi-val '+(pctAtingido>=100?'kg':'ko')+'">'+(pctAtingido>=100?'BATIDO':'NÃO BATIDO')+'</div><div class="kpi-sub">'+fmtPct(pctAtingido)+'</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">Diferença</div><div class="kpi-val '+(pctAtingido>=100?'kg':'ko')+'">'+(pctAtingido>=100?'+':'-')+fmtBRL(Math.abs(metaTotal-vendidoTotal))+'</div><div class="kpi-sub">vs meta</div></div>')+
