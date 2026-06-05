@@ -1310,9 +1310,15 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
 
   // Dispara alertas automaticamente ao carregar vendedores
   var hoje2 = new Date(); hoje2.setHours(0,0,0,0);
+  var mesRef2 = mesSelecionado;
+  if(!mesRef2 && leadsAll && leadsAll.length){
+    var dt2 = leadsAll.map(function(r){return r.dataTs;}).filter(Boolean);
+    if(dt2.length){ var mx2=new Date(Math.max.apply(null,dt2)); mesRef2=mx2.getFullYear()+'-'+String(mx2.getMonth()+1).padStart(2,'0'); }
+  }
+  if(!mesRef2) mesRef2 = hoje2.getFullYear()+'-'+String(hoje2.getMonth()+1).padStart(2,'0');
   var pctEsp2 = 0;
-  if(mesSelecionado){
-    var pm2 = mesSelecionado.split('-');
+  if(mesRef2){
+    var pm2 = mesRef2.split('-');
     var ano2 = +pm2[0], mes2 = +pm2[1]-1;
     var primDia2 = new Date(ano2,mes2,1);
     var ultDia2  = new Date(ano2,mes2+1,0);
@@ -1321,6 +1327,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
     var duT2 = calcularDiasUteis(primDia2, ultDia2);
     var duP2 = calcularDiasUteis(primDia2, corte2);
     pctEsp2  = duT2>0 ? duP2/duT2*100 : 100;
+    if(!isAt2) pctEsp2 = 100;
   }
   // Classifica arr para alertas
   var arrAlerta = arr.map(function(v){
@@ -2067,8 +2074,22 @@ function renderPerformance(){
   // Calcula dias uteis passados/total para saber % esperado de atingimento
   var hoje = new Date(); hoje.setHours(0,0,0,0);
   var pctEsperado = 0;
-  if(mesSelecionado){
-    var pm = mesSelecionado.split('-');
+
+  // Detecta o mês dos dados: mesSelecionado OU mês atual OU mês máximo dos leads
+  var mesRef = mesSelecionado;
+  if(!mesRef && leadsAll && leadsAll.length){
+    var datas2 = leadsAll.map(function(r){return r.dataTs;}).filter(Boolean);
+    if(datas2.length){
+      var maxD = new Date(Math.max.apply(null,datas2));
+      mesRef = maxD.getFullYear()+'-'+String(maxD.getMonth()+1).padStart(2,'0');
+    }
+  }
+  if(!mesRef){
+    mesRef = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0');
+  }
+
+  if(mesRef){
+    var pm = mesRef.split('-');
     var ano = +pm[0], mes = +pm[1]-1;
     var primDia = new Date(ano,mes,1);
     var ultDia  = new Date(ano,mes+1,0);
@@ -2077,6 +2098,8 @@ function renderPerformance(){
     var duTotal = calcularDiasUteis(primDia, ultDia);
     var duPass  = calcularDiasUteis(primDia, corte);
     pctEsperado = duTotal>0 ? duPass/duTotal*100 : 100;
+    // Mês passado = 100% esperado
+    if(!isMesAt) pctEsperado = 100;
   }
 
   // Classifica cada vendedor
