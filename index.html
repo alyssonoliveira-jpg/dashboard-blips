@@ -346,36 +346,6 @@ tfoot td.sep{border-left:1px solid #1e2535}
 <!-- INDICADOR DA BASE ATIVA (visivel a todos) -->
 <div class="base-ativa" id="base-ativa"></div>
 
-<!-- FILTRO GLOBAL -->
-<div class="filtro-global" id="filtro-global">
-  <span class="fg-label">🔍 Filtros</span>
-  <div class="fg-sep"></div>
-  <span class="fg-label">Segmento</span>
-  <select class="fg-select" id="fg-segmento" onchange="aplicarFiltroGlobal()">
-    <option value="all">Todos os segmentos</option>
-  </select>
-  <div class="fg-sep"></div>
-  <span class="fg-label">Vendedor</span>
-  <input class="fg-search" id="fg-vendedor" placeholder="Buscar vendedor..." oninput="aplicarFiltroGlobal()">
-  <div class="fg-sep"></div>
-  <span class="fg-label">Status</span>
-  <select class="fg-select" id="fg-status" onchange="aplicarFiltroGlobal()" style="min-width:160px">
-    <option value="all">Todos os status</option>
-    <option value="status-critico">🔴 Crítico</option>
-    <option value="status-atencao">🟡 Atenção</option>
-    <option value="status-ok">🟢 No ritmo / Meta batida</option>
-  </select>
-  <div class="fg-sep"></div>
-  <span class="fg-label">Interesse</span>
-  <select class="fg-select" id="fg-interesse" onchange="aplicarFiltroGlobal()" style="min-width:120px">
-    <option value="all">Venda + Locação</option>
-    <option value="VENDA">Só Venda</option>
-    <option value="LOCACAO">Só Locação</option>
-  </select>
-  <span class="fg-active-count" id="fg-count" style="display:none"></span>
-  <button class="fg-reset" onclick="resetarFiltros()">✕ Limpar filtros</button>
-</div>
-
 <!-- BARRA DE ALERTAS -->
 <div class="alertas-bar" id="alertas-bar"></div>
 
@@ -474,6 +444,34 @@ tfoot td.sep{border-left:1px solid #1e2535}
 
 <!-- PAGINA PERFORMANCE -->
 <div class="page" id="page-performance" style="display:none">
+  <!-- Filtros da Performance -->
+  <div style="max-width:1300px;margin:0 auto 14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+    <!-- Linha 1: Segmento -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="fg-label">Segmento</span>
+      <button class="fseg active" data-pseg="all"    onclick="filtrarPerf('seg','all')">Todos</button>
+      <button class="fseg" data-pseg="Blips - Artesanato" onclick="filtrarPerf('seg','Blips - Artesanato')">Artesanato</button>
+      <button class="fseg" data-pseg="Blips - Confeccao"  onclick="filtrarPerf('seg','Blips - Confeccao')">Confeccao</button>
+      <button class="fseg" data-pseg="Blips - Construcao" onclick="filtrarPerf('seg','Blips - Construcao')">Construcao</button>
+      <button class="fseg" data-pseg="Blips - CV"         onclick="filtrarPerf('seg','Blips - CV')">CV</button>
+      <button class="fseg" data-pseg="Blips - Estetica"   onclick="filtrarPerf('seg','Blips - Estetica')">Estetica</button>
+      <button class="fseg" data-pseg="Blips - Fitness"    onclick="filtrarPerf('seg','Blips - Fitness')">Fitness</button>
+      <button class="fseg" data-pseg="Blips - Food"       onclick="filtrarPerf('seg','Blips - Food')">Food</button>
+      <button class="fseg" data-pseg="Blips - Pizza"      onclick="filtrarPerf('seg','Blips - Pizza')">Pizza</button>
+      <button class="fseg" data-pseg="Blips - Sorvete"    onclick="filtrarPerf('seg','Blips - Sorvete')">Sorvete</button>
+    </div>
+    <!-- Linha 2: Status + Busca -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="fg-label">Status</span>
+      <button class="fseg active" data-pstatus="all"            onclick="filtrarPerf('status','all')">Todos</button>
+      <button class="fseg" data-pstatus="status-critico"        onclick="filtrarPerf('status','status-critico')">🔴 Crítico</button>
+      <button class="fseg" data-pstatus="status-atencao"        onclick="filtrarPerf('status','status-atencao')">🟡 Atenção</button>
+      <button class="fseg" data-pstatus="status-ok"             onclick="filtrarPerf('status','status-ok')">🟢 No ritmo</button>
+      <div style="flex:1;min-width:200px">
+        <input id="perf-busca" class="fg-search" style="width:100%" placeholder="🔍 Buscar vendedor..." oninput="filtrarPerf('busca',this.value)">
+      </div>
+    </div>
+  </div>
   <div id="performance-content"></div>
 </div>
 
@@ -2203,6 +2201,26 @@ function renderRankingVenda(){
     segBlocks;
 }
 
+// ── Filtros internos da aba Performance ──
+var perfFiltro = { seg:'all', status:'all', busca:'' };
+
+function filtrarPerf(tipo, valor){
+  perfFiltro[tipo] = (tipo==='busca') ? valor.toLowerCase().trim() : valor;
+
+  // Atualiza botões visuais
+  if(tipo==='seg'){
+    document.querySelectorAll('[data-pseg]').forEach(function(b){b.classList.remove('active');});
+    var b = document.querySelector('[data-pseg="'+valor+'"]');
+    if(b) b.classList.add('active');
+  }
+  if(tipo==='status'){
+    document.querySelectorAll('[data-pstatus]').forEach(function(b){b.classList.remove('active');});
+    var b2 = document.querySelector('[data-pstatus="'+valor+'"]');
+    if(b2) b2.classList.add('active');
+  }
+  renderPerformance();
+}
+
 // ══════════════════════════════════════════════════════
 // ⚡ PERFORMANCE — Ranking de vendedores com status
 // ══════════════════════════════════════════════════════
@@ -2250,9 +2268,8 @@ function renderPerformance(){
   // Classifica cada vendedor
   var arr = ultimosVendedores
     .filter(function(v){ return v.cql_t > 0; })
-    // Filtros globais na performance
-    .filter(function(v){ return filtroGlobal.segmento==='all' || v.seg===filtroGlobal.segmento; })
-    .filter(function(v){ return filtroGlobal.vendedor==='' || v.nome.toLowerCase().includes(filtroGlobal.vendedor); })
+    .filter(function(v){ return perfFiltro.seg==='all'    || v.seg===perfFiltro.seg; })
+    .filter(function(v){ return perfFiltro.busca===''     || v.nome.toLowerCase().includes(perfFiltro.busca); })
     .map(function(v){
       var efic    = v.cql_t > 0 ? v.n1_t/v.cql_t*100 : 0;          // eficiência N1/CQL
       var pctMeta = v.meta&&v.meta>0 ? v.pct_meta : null;
@@ -2278,9 +2295,9 @@ function renderPerformance(){
 
   // KPIs resumo
   // Aplica filtro de status (para os cards)
-  var arrFiltrado = filtroGlobal.status === 'all'
+  var arrFiltrado = perfFiltro.status === 'all'
     ? arr
-    : arr.filter(function(v){return v.statusCls === filtroGlobal.status;});
+    : arr.filter(function(v){return v.statusCls === perfFiltro.status;});
 
   var noRitmo  = arr.filter(function(v){return v.statusCls==='status-ok';}).length;
   var atencao  = arr.filter(function(v){return v.statusCls==='status-atencao';}).length;
@@ -3098,9 +3115,6 @@ function validarUsuario(user){
       bannerImg.style.display = 'none';
     }
   }
-
-  // Ativa filtro global
-  inicializarFiltroGlobal();
 
   // Carrega metas e depois a ultima base
   carregarMetasConfig().then(function(){
