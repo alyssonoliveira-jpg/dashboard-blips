@@ -570,8 +570,11 @@ var dataMax   = null;   // maior data encontrada nos leads
 
 var SEGMENTOS = [
   'Blips - Artesanato','Blips - Confeccao','Blips - Construcao','Blips - CV',
-  'Blips - Estetica','Blips - Fitness','Blips - Food','Blips - Pizza','Blips - Sorvete'
+  'Blips - Estetica','Blips - Fitness','Blips - Food','Blips - Pizza','Blips - Sorvete',
+  'Ideal - Suprimentos'
 ];
+// Segmentos que NÃO entram em certas abas (Crédito, Visão Aprovação, Ranking N1)
+var SEGMENTOS_SEM_CREDITO = ['Ideal - Suprimentos'];
 
 // Metas dinamicas — carregadas do Supabase em carregarMetasConfig()
 var CONV_ALVO = {};      // segmento -> conv alvo %
@@ -753,7 +756,7 @@ async function gerarDashboard(){
     });
 
     var segPresentes = leads.map(function(r){return r.funil;})
-      .filter(function(f,i,a){return f&&!f.includes('Ideal')&&a.indexOf(f)===i;});
+      .filter(function(f,i,a){return f&&(f==='Ideal - Suprimentos'||!f.includes('Ideal'))&&a.indexOf(f)===i;});
     var segOrdenados = SEGMENTOS.filter(function(s){return segPresentes.includes(s);})
       .concat(segPresentes.filter(function(s){return !SEGMENTOS.includes(s);}).sort());
 
@@ -1558,7 +1561,7 @@ function renderRankingN1(){
   var maxN1Seg = ultimosSegmentos ? Math.max.apply(null, ultimosSegmentos.map(function(r){return r.n1_t||0;})) : 0;
 
   var funilCards = (ultimosSegmentos || [])
-    .filter(function(r){ return r.n1_t > 0; })
+    .filter(function(r){ return r.n1_t > 0 && SEGMENTOS_SEM_CREDITO.indexOf(r.funilOrig)===-1; })
     .sort(function(a,b){ return b.n1_t - a.n1_t; })
     .map(function(r){
       var n1  = r.n1_t || 0;
@@ -1808,7 +1811,8 @@ function renderClassificacoes(){
   var segData = {};
   leadsAll.forEach(function(r){
     var funil = String(r.funil||'').trim();
-    if(!funil || funil.includes('Ideal')) return;
+    if(!funil || (funil.includes('Ideal') && funil !== 'Ideal - Suprimentos')) return;
+    if(SEGMENTOS_SEM_CREDITO.indexOf(funil)>-1) return; // Suprimentos fora da Visão Aprovação
     var cv = String(r.cv||'').trim() || 'Sem classif.';
     var cl = String(r.cl||'').trim() || 'Sem classif.';
     if(!segData[funil]) segData[funil] = {venda:{}, locacao:{}};
@@ -2018,14 +2022,37 @@ function renderProjecaoMeta(){
   var totalProjV = 0, totalProjL = 0, totalProj = 0, totalMeta = 0, totalGanho = 0;
   var totalN1V = 0, totalN1L = 0;
 
+  // Calcula dias úteis passados para projeção de ritmo (Suprimentos)
+  var duPassados = 0, duTotais = 1;
+  if(mesSelecionado){
+    var pmP=mesSelecionado.split('-');var anoP=+pmP[0],mesP=+pmP[1]-1;
+    var p1P=new Date(anoP,mesP,1),p2P=new Date(anoP,mesP+1,0);
+    var hojeP=new Date();hojeP.setHours(0,0,0,0);
+    var isAtP=hojeP.getFullYear()===anoP&&hojeP.getMonth()===mesP;
+    var corteP=isAtP?hojeP:p2P;
+    duTotais = calcularDiasUteis(p1P,p2P)||1;
+    duPassados = calcularDiasUteis(p1P,corteP)||1;
+    if(!isAtP) duPassados = duTotais;
+  }
+
   // Calcula projeção por segmento
   var rows = ultimosSegmentos.map(function(seg){
+    var isSup = seg.funilOrig === 'Ideal - Suprimentos';
     var conv = CONV_PROJ[seg.funilOrig] || { v:0, l:0 };
-    var projV = seg.n1_vv * (conv.v/100);
-    var projL = seg.n1_ll * (conv.l/100);
-    var proj  = projV + projL;
-    var meta  = seg.meta || 0;
+    var projV, projL, proj;
     var ganho = seg.g_val || 0;
+    var meta  = seg.meta || 0;
+
+    if(isSup){
+      // Suprimentos: projeção por ritmo de ganhos
+      projV = 0; projL = 0;
+      proj  = duPassados > 0 ? (ganho / duPassados * duTotais) : ganho;
+    } else {
+      projV = seg.n1_vv * (conv.v/100);
+      projL = seg.n1_ll * (conv.l/100);
+      proj  = projV + projL;
+    }
+
     var pctMeta = meta > 0 ? proj/meta*100 : 0;
     var pctGanho = proj > 0 ? ganho/proj*100 : 0;
 
@@ -2270,6 +2297,7 @@ function renderCredito(){
   var dias={};
   leadsAll.forEach(function(r){
     if(!r.dataObj)return;
+    if(SEGMENTOS_SEM_CREDITO.indexOf(r.funil)>-1)return; // exclui Suprimentos
     if(segFiltro!=='all'&&r.funil!==segFiltro)return;
     var d=r.dataObj.getFullYear()+'-'+String(r.dataObj.getMonth()+1).padStart(2,'0')+'-'+String(r.dataObj.getDate()).padStart(2,'0');
     if(!dias[d])dias[d]={dia:d,total:0,n1:0,rep:0,outros:0};
@@ -2292,7 +2320,7 @@ function renderCredito(){
     '<div class="kpi"><div class="kpi-lbl">Em análise/Outros</div><div class="kpi-val" style="color:#fbbf24">'+totOut+'</div><div class="kpi-sub">'+(totAll>0?Math.round(totOut/totAll*100):0)+'% do total</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Taxa de Aprovação</div><div class="kpi-val" style="color:'+corTx+'">'+txAprov+'%</div></div>'+
     '</div>';
-  var segsP=[...new Set(leadsAll.map(function(r){return r.funil;}).filter(function(f){return f&&!f.includes('Ideal');}))].sort();
+  var segsP=[...new Set(leadsAll.map(function(r){return r.funil;}).filter(function(f){return f&&(f==='Ideal - Suprimentos'||!f.includes('Ideal'))&&SEGMENTOS_SEM_CREDITO.indexOf(f)===-1;}))].sort();
   var segBtns='<button class="fseg'+(segFiltro==='all'?' active':'')+'" onclick="creditoFiltrar(\'all\')">Todos</button>';
   segsP.forEach(function(s){segBtns+='<button class="fseg'+(segFiltro===s?' active':'')+'" onclick="creditoFiltrar(\''+s+'\')">'+s.replace('Blips - ','')+'</button>';});
   var maxVal=Math.max.apply(null,diasArr.map(function(d){return d.total;}));
