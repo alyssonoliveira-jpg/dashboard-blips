@@ -689,7 +689,10 @@ async function gerarDashboard(){
 
     var gKeys   = Object.keys(dadosGanhos[0]);
     var GK_FUNIL = gKeys.find(function(k){return k.toLowerCase().includes('funil');})||'';
-    var GK_VALOR = gKeys.find(function(k){return k.toLowerCase().includes('valor');})||'';
+    // Detecta coluna de valor: prefere "Sum_" (agregado) mas aceita qualquer "valor do negócio" (linha a linha)
+    var GK_VALOR = gKeys.find(function(k){return k.toLowerCase().includes('sum_')&&k.toLowerCase().includes('valor');})||
+                  gKeys.find(function(k){return k.toLowerCase().includes('valor do neg');})||
+                  gKeys.find(function(k){return k.toLowerCase().includes('valor');})||'';
 
     var parseData = function(val){
       if(val === null || val === undefined || val === '') return null;
