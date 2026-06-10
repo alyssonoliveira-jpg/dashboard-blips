@@ -857,7 +857,15 @@ async function gerarDashboard(){
       };
     });
 
-    var segPresentes = leads.map(function(r){return r.funil;})
+    // Salva globalmente para refiltro (sem filtro de segmento)
+    leadsAll  = leads;
+    ganhosAll = ganhos;
+
+    // Para o render inicial aplica filtro de segmento se restrito
+    var leadsR  = (filtroGlobal.segmento && filtroGlobal.segmento!=='all') ? leads.filter(function(r){return r.funil===filtroGlobal.segmento;}) : leads;
+    var ganhosR = (filtroGlobal.segmento && filtroGlobal.segmento!=='all') ? ganhos.filter(function(r){return r.funil===filtroGlobal.segmento;}) : ganhos;
+
+    var segPresentes = leadsR.map(function(r){return r.funil;})
       .filter(function(f,i,a){return f&&(f==='Ideal - Suprimentos'||!f.includes('Ideal'))&&a.indexOf(f)===i;});
     var segOrdenados = SEGMENTOS.filter(function(s){return segPresentes.includes(s);})
       .concat(segPresentes.filter(function(s){return !SEGMENTOS.includes(s);}).sort());
@@ -865,7 +873,7 @@ async function gerarDashboard(){
     var soma = function(arr){return arr.reduce(function(a,r){return a+r.valor;},0);};
 
     var met = segOrdenados.map(function(seg){
-      var s    = leads.filter(function(r){return r.funil===seg;});
+      var s    = leadsR.filter(function(r){return r.funil===seg;});
       var vd   = s.filter(function(r){return r.interesse==='VENDA'||(r.interesse===''&&r.cv!=='');});
       var lc   = s.filter(function(r){return r.interesse==='LOCACAO'||(r.interesse===''&&r.cv===''&&r.cl!=='');});
       var cql  = vd.concat(lc);                                    // CQL = VENDA + LOCACAO apenas
@@ -876,7 +884,7 @@ async function gerarDashboard(){
       var aprovV = vd.filter(function(r){return r.isAprovV;});
       var n1l  = lc.filter(function(r){return r.isN1l;});
       var n1   = aprovV.concat(n1l);
-      var gs   = ganhos.filter(function(r){return r.funil===seg;});
+      var gs   = ganhosR.filter(function(r){return r.funil===seg;});
       var ct=soma(cql),cv2=soma(vd),cl2=soma(lc),gv=soma(gs);
       var nv1=soma(n1v),nv2=soma(n2v),nv3=soma(n3v),nv4=soma(n4v);
       var navV=nv1+nv2+nv3+nv4,nl=soma(n1l),nt=navV+nl;
@@ -893,15 +901,11 @@ async function gerarDashboard(){
       };
     });
 
-    // Salva globalmente para refiltro
-    leadsAll  = leads;
-    ganhosAll = ganhos;
-
     // Inicializa filtro de data
     inicializarFiltroData();
 
-    renderizar(met,leads.length);
-    renderVendedores(leads, ganhos, segOrdenados, soma);
+    renderizar(met,leadsR.length);
+    renderVendedores(leadsR, ganhosR, segOrdenados, soma);
     document.getElementById('tabs').classList.add('active-tabs');
 
     // Re-renderiza Projeção e Configurações se já estiverem abertas
