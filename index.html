@@ -3505,9 +3505,11 @@ async function validarUsuario(user){
 
   // Busca segmento permitido na tabela user_permissions
   try {
-    const { data: perm } = await sb.from('user_permissions').select('segmento').eq('email', email).maybeSingle();
+    const { data: perm, error: permErr } = await sb.from('user_permissions').select('segmento').eq('email', email).maybeSingle();
+    console.log('[RBAC] email:', email, '| perm:', perm, '| error:', permErr);
     _userSegmento = (perm && perm.segmento) ? perm.segmento : null;
-  } catch(e) { _userSegmento = null; }
+    console.log('[RBAC] _userSegmento definido como:', _userSegmento);
+  } catch(e) { console.error('[RBAC] catch:', e); _userSegmento = null; }
   // Aplica filtro global imediatamente se restrito
   if(_userSegmento) filtroGlobal.segmento = _userSegmento;
 
