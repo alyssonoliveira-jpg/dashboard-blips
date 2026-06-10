@@ -246,7 +246,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .hd h1{font-size:1.4rem;font-weight:700;color:#f8fafc}
 .hd p{color:#475569;font-size:.78rem;margin-top:5px}
 
-.kpis{display:none;grid-template-columns:repeat(5,1fr);gap:12px;max-width:1300px;margin:0 auto 24px}
+.kpis{display:none;grid-template-columns:repeat(6,1fr);gap:12px;max-width:1300px;margin:0 auto 24px}
 .kpi{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
 .kpi-lbl{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#475569;margin-bottom:8px}
 .kpi-val{font-size:1.45rem;font-weight:800;line-height:1;white-space:nowrap}
@@ -3443,6 +3443,7 @@ function renderizar(met,totalLeads){
   var kpis=document.getElementById('kpis');
   kpis.style.display='grid';
   kpis.innerHTML=
+    '<div class="kpi"><div class="kpi-lbl">Meta Geral</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">todos os segmentos</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Leads CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+trend(tc,prev&&prev.tc)+'</div><div class="kpi-sub">'+totalLeads.toLocaleString('pt-BR')+' negócios</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+trend(tn,prev&&prev.tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val ko">'+fmtBRL(tv)+trend(tv,prev&&prev.tv)+'</div><div class="kpi-sub">Conv: '+fmtPct(pv)+'</div></div>'+
