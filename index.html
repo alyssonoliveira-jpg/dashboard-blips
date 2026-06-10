@@ -626,6 +626,7 @@ var dadosGanhos = null;
 // Estado pós-parsing — mantém leads/ganhos processados para refiltro por data
 var leadsAll  = null;   // todos os leads parseados (com .dataObj)
 var ganhosAll = null;   // todos os ganhos parseados (com .dataObj se houver)
+var leadsAtivos = [];   // leads do mes/periodo selecionado (usado na aba Equipamento)
 var dataMin   = null;   // menor data encontrada nos leads
 var dataMax   = null;   // maior data encontrada nos leads
 
@@ -893,6 +894,7 @@ async function gerarDashboard(){
     // Salva globalmente para refiltro (sem filtro de segmento)
     leadsAll  = leads;
     ganhosAll = ganhos;
+    leadsAtivos = leads;
 
     // Para o render inicial aplica filtro de segmento se restrito
     var leadsR  = (filtroGlobal.segmento && filtroGlobal.segmento!=='all') ? leads.filter(function(r){return r.funil===filtroGlobal.segmento;}) : leads;
@@ -1336,6 +1338,7 @@ function filtrarPorMesLocal(ym){
   var iniTs = ini.getTime();
   var fimTs = fim.getTime();
   var leadsF = leadsAll.filter(function(r){return r.dataTs && r.dataTs>=iniTs && r.dataTs<=fimTs;});
+  leadsAtivos = leadsF;
   var temDataGanho = ganhosAll.some(function(r){return r.dataTs;});
   var ganhosF = temDataGanho ? ganhosAll.filter(function(r){return r.dataTs && r.dataTs>=iniTs && r.dataTs<=fimTs;}) : ganhosAll;
 
@@ -1426,6 +1429,7 @@ function limparFiltroData(){
   var btnAll = document.querySelector('.mf-btn[data-mes="all"]');
   if(btnAll) btnAll.classList.add('active');
 
+  leadsAtivos = leadsAll;
   atualizarInfoFiltro();
   reprocessar(leadsAll, ganhosAll);
 }
@@ -3647,15 +3651,16 @@ function renderEquipamentos(){
     return;
   }
 
+  var base = leadsAtivos && leadsAtivos.length ? leadsAtivos : leadsAll;
   var segs = _userSegmento ? [_userSegmento]
     : SEGMENTOS.filter(function(s){
-        return leadsAll.some(function(r){return r.funil===s && r.equip;});
+        return base.some(function(r){return r.funil===s && r.equip;});
       });
 
   var html = '<div style="display:flex;flex-direction:column;gap:24px;padding-bottom:32px">';
 
   segs.forEach(function(seg){
-    var leadseg = leadsAll.filter(function(r){return r.funil===seg && r.equip;});
+    var leadseg = base.filter(function(r){return r.funil===seg && r.equip;});
     if(!leadseg.length) return;
 
     // Contagem por equipamento
