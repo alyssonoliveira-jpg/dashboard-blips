@@ -1563,7 +1563,8 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
   // Renderiza blocos por segmento
   var box = document.getElementById('vend-blocks');
   var html = '';
-  segsVend.forEach(function(seg){
+  var segsVendFilt = _userSegmento ? segsVend.filter(function(s){return s===_userSegmento;}) : segsVend;
+  segsVendFilt.forEach(function(seg){
     var sub = arr.filter(function(v){return v.seg===seg;})
                  .sort(function(a,b){return b.cql_t - a.cql_t;});
     if(!sub.length) return;
