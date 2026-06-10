@@ -2398,20 +2398,22 @@ function renderCredito(){
     if(!r.dataObj)return;
     if(SEGMENTOS_SEM_CREDITO.indexOf(r.funil)>-1)return;
     if(segFiltro!=='all'&&r.funil!==segFiltro)return;
-    // filtro de modalidade
-    if(modFiltro==='venda'&&r.interesse!=='VENDA')return;
-    if(modFiltro==='locacao'&&r.interesse!=='LOCACAO')return;
+    // detecta modalidade pelo cv/cl (mais confiável que r.interesse)
+    var temCV=r.cv!=='', temCL=r.cl!=='';
+    var modLead=temCV?'VENDA':(temCL?'LOCACAO':'');
+    if(modFiltro==='venda'&&modLead!=='VENDA')return;
+    if(modFiltro==='locacao'&&modLead!=='LOCACAO')return;
     var d=r.dataObj.getFullYear()+'-'+String(r.dataObj.getMonth()+1).padStart(2,'0')+'-'+String(r.dataObj.getDate()).padStart(2,'0');
     if(!dias[d])dias[d]={dia:d,total:0,n1v:0,n2v:0,n3v:0,n4v:0,n1l:0,rep:0,outros:0};
     dias[d].total++;
-    if(r.interesse==='VENDA'){
+    if(modLead==='VENDA'){
       if(r.cv==='N1')dias[d].n1v++;
       else if(r.cv==='N2')dias[d].n2v++;
       else if(r.cv==='N3')dias[d].n3v++;
       else if(r.cv==='N4')dias[d].n4v++;
       else if(r.cv==='Reprovado')dias[d].rep++;
       else dias[d].outros++;
-    } else if(r.interesse==='LOCACAO'){
+    } else if(modLead==='LOCACAO'){
       if(r.cl==='N1')dias[d].n1l++;
       else if(r.cl==='Reprovado')dias[d].rep++;
       else dias[d].outros++;
@@ -2505,21 +2507,23 @@ function renderCredito(){
     if(!r.dataObj)return;
     if(SEGMENTOS_SEM_CREDITO.indexOf(r.funil)>-1)return;
     if(segFiltro!=='all'&&r.funil!==segFiltro)return;
-    if(modFiltro==='venda'&&r.interesse!=='VENDA')return;
-    if(modFiltro==='locacao'&&r.interesse!=='LOCACAO')return;
+    var temCV2=r.cv!=='', temCL2=r.cl!=='';
+    var modLead2=temCV2?'VENDA':(temCL2?'LOCACAO':'');
+    if(modFiltro==='venda'&&modLead2!=='VENDA')return;
+    if(modFiltro==='locacao'&&modLead2!=='LOCACAO')return;
     var d=r.dataObj.getFullYear()+'-'+String(r.dataObj.getMonth()+1).padStart(2,'0')+'-'+String(r.dataObj.getDate()).padStart(2,'0');
     var seg=r.funil.replace('Blips - ','');
     var key=d+'|'+seg;
     if(!diasSegs[key])diasSegs[key]={dia:d,seg:seg,total:0,n1v:0,n2v:0,n3v:0,n4v:0,n1l:0,rep:0,out:0};
     diasSegs[key].total++;
-    if(r.interesse==='VENDA'){
+    if(modLead2==='VENDA'){
       if(r.cv==='N1')diasSegs[key].n1v++;
       else if(r.cv==='N2')diasSegs[key].n2v++;
       else if(r.cv==='N3')diasSegs[key].n3v++;
       else if(r.cv==='N4')diasSegs[key].n4v++;
       else if(r.cv==='Reprovado')diasSegs[key].rep++;
       else diasSegs[key].out++;
-    } else if(r.interesse==='LOCACAO'){
+    } else if(modLead2==='LOCACAO'){
       if(r.cl==='N1')diasSegs[key].n1l++;
       else if(r.cl==='Reprovado')diasSegs[key].rep++;
       else diasSegs[key].out++;
