@@ -836,8 +836,8 @@ async function gerarDashboard(){
 
     var met = segOrdenados.map(function(seg){
       var s    = leads.filter(function(r){return r.funil===seg;});
-      var vd   = s.filter(function(r){return r.cv!=='';});
-      var lc   = s.filter(function(r){return r.cv===''&&r.cl!=='';});
+      var vd   = s.filter(function(r){return r.interesse==='VENDA'||(r.interesse===''&&r.cv!=='');});
+      var lc   = s.filter(function(r){return r.interesse==='LOCACAO'||(r.interesse===''&&r.cv===''&&r.cl!=='');});
       var cql  = vd.concat(lc);                                    // CQL = VENDA + LOCACAO apenas
       var n1v  = vd.filter(function(r){return r.isN1v;});
       var n2v  = vd.filter(function(r){return r.isN2v;});
@@ -1383,8 +1383,8 @@ function reprocessar(leads, ganhos){
 
   var met = segOrdenados.map(function(seg){
     var s    = leads.filter(function(r){return r.funil===seg;});
-    var vd   = s.filter(function(r){return r.cv!=='';});
-    var lc   = s.filter(function(r){return r.cv===''&&r.cl!=='';});
+    var vd   = s.filter(function(r){return r.interesse==='VENDA'||(r.interesse===''&&r.cv!=='');});
+    var lc   = s.filter(function(r){return r.interesse==='LOCACAO'||(r.interesse===''&&r.cv===''&&r.cl!=='');});
     var cql  = vd.concat(lc);
     var n1v  = vd.filter(function(r){return r.isN1v;});
     var n2v  = vd.filter(function(r){return r.isN2v;});
@@ -1474,8 +1474,8 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
   var arr = Object.keys(vendores).map(function(k){
     var v   = vendores[k];
     var s   = v.leads;
-    var vd  = s.filter(function(r){return r.cv!=='';});
-    var lc  = s.filter(function(r){return r.cv===''&&r.cl!=='';});
+    var vd  = s.filter(function(r){return r.interesse==='VENDA'||(r.interesse===''&&r.cv!=='');});
+    var lc  = s.filter(function(r){return r.interesse==='LOCACAO'||(r.interesse===''&&r.cv===''&&r.cl!=='');});
     var cql = vd.concat(lc);
     var n1v    = vd.filter(function(r){return r.isN1v;});
     var n2v    = vd.filter(function(r){return r.isN2v;});
@@ -2404,7 +2404,7 @@ function renderCredito(){
     if(SEGMENTOS_SEM_CREDITO.indexOf(r.funil)>-1)return;
     if(segFiltro!=='all'&&r.funil!==segFiltro)return;
     // detecta modalidade pelo cv/cl (mais confiável que r.interesse)
-    var temCV=r.cv!=='', temCL=r.cl!=='';
+    var temCV=r.interesse==='VENDA'||(r.interesse===''&&r.cv!==''), temCL=r.cl!=='';
     var modLead=temCV?'VENDA':(temCL?'LOCACAO':'');
     if(modFiltro==='venda'&&modLead!=='VENDA')return;
     if(modFiltro==='locacao'&&modLead!=='LOCACAO')return;
@@ -2512,7 +2512,7 @@ function renderCredito(){
     if(!r.dataObj)return;
     if(SEGMENTOS_SEM_CREDITO.indexOf(r.funil)>-1)return;
     if(segFiltro!=='all'&&r.funil!==segFiltro)return;
-    var temCV2=r.cv!=='', temCL2=r.cl!=='';
+    var temCV2=r.interesse==='VENDA'||(r.interesse===''&&r.cv!==''), temCL2=r.cl!=='';
     var modLead2=temCV2?'VENDA':(temCL2?'LOCACAO':'');
     if(modFiltro==='venda'&&modLead2!=='VENDA')return;
     if(modFiltro==='locacao'&&modLead2!=='LOCACAO')return;
