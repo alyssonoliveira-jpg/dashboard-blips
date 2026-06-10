@@ -1516,12 +1516,17 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
 
   // Renderiza filtro
   var fBox = document.getElementById('filter-segs');
-  var btnsHtml = '<button class="fseg active" data-seg="all" onclick="filtrarVendSeg(\'all\')">Todos</button>';
-  segsVend.forEach(function(s){
-    var nome = s.replace('Blips - ','');
-    btnsHtml += '<button class="fseg" data-seg="'+s+'" onclick="filtrarVendSeg(\''+s+'\')">'+nome+'</button>';
-  });
-  fBox.innerHTML = btnsHtml;
+  if(_userSegmento){
+    var nomeS = _userSegmento.replace('Blips - ','').replace('Ideal - ','');
+    fBox.innerHTML = '<span class="badge" style="font-size:.82rem;padding:6px 14px;color:#a78bfa;background:#1e1040;border:1px solid #7c3aed">🔒 '+nomeS+'</span>';
+  } else {
+    var btnsHtml = '<button class="fseg active" data-seg="all" onclick="filtrarVendSeg(\'all\')">Todos</button>';
+    segsVend.forEach(function(s){
+      var nome = s.replace('Blips - ','');
+      btnsHtml += '<button class="fseg" data-seg="'+s+'" onclick="filtrarVendSeg(\''+s+'\')">'+nome+'</button>';
+    });
+    fBox.innerHTML = btnsHtml;
+  }
 
   // Renderiza blocos por segmento
   var box = document.getElementById('vend-blocks');
@@ -3384,6 +3389,7 @@ const EMAILS_PERMITIDOS = [
   'larissa.leal@blips.com.br',
   'franciely.batista@blips.com.br',
   'larissa.pereira@blips.com.br',
+  'gabriella.linhares@blips.com.br',
   'matheus.andrada@blips.com.br'
 ];
 const BUCKET        = 'bases';
@@ -3391,7 +3397,8 @@ const BUCKET        = 'bases';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var usuarioAtual    = null;
 var isAdmin         = false;
-var appInicializado = false;   // garante que o carregamento ocorre só 1 vez
+var appInicializado = false;
+var _userSegmento   = null;   // null = acesso total; 'Blips - Construcao' etc = restrito
 
 // ── DARK / LIGHT MODE ──
 (function initTheme(){
@@ -3459,6 +3466,14 @@ function validarUsuario(user){
   usuarioAtual = user;
   isAdmin = ADMIN_EMAILS.includes(email);
 
+  // Busca segmento permitido na tabela user_permissions
+  try {
+    const { data: perm } = await sb.from('user_permissions').select('segmento').eq('email', email).maybeSingle();
+    _userSegmento = (perm && perm.segmento) ? perm.segmento : null;
+  } catch(e) { _userSegmento = null; }
+  // Aplica filtro global imediatamente se restrito
+  if(_userSegmento) filtroGlobal.segmento = _userSegmento;
+
   // Autorizado!
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app').classList.add('authed');
@@ -3503,8 +3518,43 @@ function validarUsuario(user){
 
   // Carrega metas e depois a ultima base
   carregarMetasConfig().then(function(){
-    carregarUltimaBase();
+    carregarUltimaBase().then(function(){
+      if(_userSegmento) aplicarBloqueioSegmento();
+    });
   });
+}
+
+// ── BLOQUEIO DE SEGMENTO POR USUÁRIO ──
+function aplicarBloqueioSegmento(){
+  if(!_userSegmento) return;
+  var nomeS = _userSegmento.replace('Blips - ','').replace('Ideal - ','');
+
+  // 1. Bloqueia select principal (aba Segmentos)
+  var sel = document.getElementById('fg-segmento');
+  if(sel){
+    // Garante que a opção existe e seleciona
+    var opt = Array.from(sel.options).find(function(o){return o.value===_userSegmento;});
+    if(opt) sel.value = _userSegmento;
+    sel.disabled = true;
+    sel.title = '🔒 Acesso restrito a '+nomeS;
+  }
+
+  // 2. Bloqueia botões de segmento da aba Performance
+  document.querySelectorAll('[data-pseg]').forEach(function(btn){
+    var seg = btn.getAttribute('data-pseg');
+    if(seg === 'all' || seg === _userSegmento){
+      if(seg === _userSegmento){
+        btn.classList.add('active');
+        filtrarPerf('seg', _userSegmento);
+      }
+    } else {
+      btn.style.display = 'none';
+    }
+  });
+
+  // 3. Aplica filtro global e re-processa
+  filtroGlobal.segmento = _userSegmento;
+  atualizarFiltros();
 }
 
 // ── CARREGA METAS DO SUPABASE ──
