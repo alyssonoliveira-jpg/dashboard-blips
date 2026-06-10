@@ -499,6 +499,7 @@ tfoot td.sep{border-left:1px solid #1e2535}
   <button class="tab"        data-tab="ranking-n1"   onclick="trocarAba('ranking-n1')">🏅 Ranking N1</button>
   <button class="tab"        data-tab="ranking-venda" onclick="trocarAba('ranking-venda')">🏆 Ranking Venda</button>
   <button class="tab"        data-tab="batedores"    onclick="trocarAba('batedores')">⭐ Batedores de Meta</button>
+  <button class="tab" data-tab="equipamentos" onclick="trocarAba('equipamentos')">🔧 Análise Equipamento</button>
   <button class="tab" id="tab-config" data-tab="config" onclick="trocarAba('config')" style="display:none">⚙️ Configurações</button>
 </div>
 
@@ -564,6 +565,11 @@ tfoot td.sep{border-left:1px solid #1e2535}
 <!-- PAGINA RANKING VENDA -->
 <div class="page" id="page-ranking-venda" style="display:none">
   <div id="ranking-venda-content"></div>
+</div>
+
+<!-- PAGINA ANALISE EQUIPAMENTO -->
+<div class="page" id="page-equipamentos" style="display:none">
+  <div id="equip-content" style="max-width:1300px;margin:0 auto;padding:0 4px"></div>
 </div>
 
 <!-- PAGINA BATEDORES DE META -->
@@ -769,13 +775,15 @@ function findKey(keys,terms){
 async function gerarDashboard(){
   try{
     var keys = Object.keys(dadosLeads[0]);
-    var K_FUNIL = findKey(keys,['funil']);
-    var K_VALOR = findKey(keys,['valor']);
-    var K_INTER = findKey(keys,['interesse']);
-    var K_CL    = findKey(keys,['classifica','loca']);
-    var K_CV    = findKey(keys,['classifica','venda']);
-    var K_PROP  = findKey(keys,['proprietario']) || findKey(keys,['propriet']);
-    var K_DATA  = findKey(keys,['negocio','criado']) || findKey(keys,['negociocriado']) || findKey(keys,['criadoem']) || keys.find(function(k){return k.toLowerCase().includes('criado em');}) || '';
+    var K_FUNIL  = findKey(keys,['funil']);
+    var K_VALOR  = findKey(keys,['valor']);
+    var K_INTER  = findKey(keys,['interesse']);
+    var K_CL     = findKey(keys,['classifica','loca']);
+    var K_CV     = findKey(keys,['classifica','venda']);
+    var K_PROP   = findKey(keys,['proprietario']) || findKey(keys,['propriet']);
+    var K_DATA   = findKey(keys,['negocio','criado']) || findKey(keys,['negociocriado']) || findKey(keys,['criadoem']) || keys.find(function(k){return k.toLowerCase().includes('criado em');}) || '';
+    var K_EQUIP  = keys.find(function(k){return k.toLowerCase().includes('equipamento');}) || '';
+    var K_STATUS = keys.find(function(k){return k.toLowerCase().includes('status');}) || '';
 
     if(!K_FUNIL||!K_VALOR){
       mostrarErro('Coluna Funil ou Valor nao encontrada. Verifique o arquivo de leads.');
@@ -830,7 +838,9 @@ async function gerarDashboard(){
         isN4v: cv==='N4',
         isAprovV: cv==='N1'||cv==='N2'||cv==='N3'||cv==='N4',
         isN1l: cl==='N1',
-        isCQL: int_==='VENDA' || int_==='LOCACAO'
+        isCQL: int_==='VENDA' || int_==='LOCACAO',
+        equip:  K_EQUIP  ? String(r[K_EQUIP]||'').trim()  : '',
+        status: K_STATUS ? String(r[K_STATUS]||'').trim() : ''
       };
     });
 
@@ -1470,9 +1480,11 @@ function trocarAba(nome){
   document.getElementById('page-performance').style.display     = nome==='performance'     ? '' : 'none';
   document.getElementById('page-credito').style.display         = nome==='credito'         ? '' : 'none';
   document.getElementById('page-projecao').style.display   = nome==='projecao'   ? '' : 'none';
-  document.getElementById('page-config').style.display     = nome==='config'     ? '' : 'none';
+  document.getElementById('page-config').style.display       = nome==='config'       ? '' : 'none';
+  document.getElementById('page-equipamentos').style.display = nome==='equipamentos' ? '' : 'none';
 
   if(nome==='projecao')        renderProjecao();
+  if(nome==='equipamentos')    renderEquipamentos();
   if(nome==='performance')     renderPerformance();
   if(nome==='credito')         renderCredito();
   if(nome==='classificacoes') renderClassificacoes();
@@ -3602,6 +3614,78 @@ function aplicarBloqueioSegmento(){
 
   // 3. Garante filtro global definido (render inicial já aplicou na carga)
   filtroGlobal.segmento = _userSegmento;
+}
+
+// ── ANÁLISE EQUIPAMENTO ──
+function renderEquipamentos(){
+  var box = document.getElementById('equip-content');
+  if(!leadsAll || !leadsAll.length){
+    box.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Carregue uma base primeiro.</div>';
+    return;
+  }
+
+  var segs = _userSegmento ? [_userSegmento]
+    : SEGMENTOS.filter(function(s){
+        return leadsAll.some(function(r){return r.funil===s && r.equip;});
+      });
+
+  var html = '<div style="display:flex;flex-direction:column;gap:24px;padding-bottom:32px">';
+
+  segs.forEach(function(seg){
+    var leadseg = leadsAll.filter(function(r){return r.funil===seg && r.equip;});
+    if(!leadseg.length) return;
+
+    // Contagem por equipamento
+    var mapa = {};
+    leadseg.forEach(function(r){
+      var eq = r.equip;
+      if(!mapa[eq]) mapa[eq] = {qtd:0, vendas:0};
+      mapa[eq].qtd++;
+      if(r.status === 'Ganho') mapa[eq].vendas++;
+    });
+
+    // Top 8 por quantidade
+    var top8 = Object.keys(mapa)
+      .map(function(eq){ return {eq:eq, qtd:mapa[eq].qtd, vendas:mapa[eq].vendas}; })
+      .sort(function(a,b){ return b.qtd - a.qtd; })
+      .slice(0,8);
+
+    var nomeS = seg.replace('Blips - ','').replace('Ideal - ','');
+
+    var cards = top8.map(function(item, i){
+      var pct = item.qtd ? Math.round(item.vendas/item.qtd*100) : 0;
+      var cor = pct>=50?'#4ade80':pct>=25?'#fbbf24':'#f87171';
+      var barW = Math.round(item.vendas/item.qtd*100);
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:200px;flex:1">'+
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
+          '<span style="font-size:.68rem;font-weight:700;color:#64748b;background:#1e2535;border-radius:20px;padding:2px 8px">#'+(i+1)+'</span>'+
+          '<span style="font-size:.82rem;font-weight:700;color:#e2e8f0;line-height:1.3">'+item.eq+'</span>'+
+        '</div>'+
+        '<div style="display:flex;gap:20px;margin-bottom:10px">'+
+          '<div><div style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Quantidade</div>'+
+               '<div style="font-size:1.4rem;font-weight:800;color:#60a5fa">'+item.qtd+'</div></div>'+
+          '<div><div style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Venda</div>'+
+               '<div style="font-size:1.4rem;font-weight:800;color:'+cor+'">'+item.vendas+'</div></div>'+
+          '<div><div style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Conv.</div>'+
+               '<div style="font-size:1.4rem;font-weight:800;color:'+cor+'">'+pct+'%</div></div>'+
+        '</div>'+
+        '<div style="height:5px;background:#1e2535;border-radius:4px;overflow:hidden">'+
+          '<div style="height:100%;width:'+barW+'%;background:'+cor+';border-radius:4px;transition:width .4s"></div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    html +=
+      '<div>'+
+        '<div style="font-size:.78rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-left:2px">'+
+          '📦 '+nomeS+' <span style="color:#475569;font-weight:500;font-size:.7rem">— top 8 equipamentos</span>'+
+        '</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:12px">'+cards+'</div>'+
+      '</div>';
+  });
+
+  html += '</div>';
+  box.innerHTML = html;
 }
 
 // ── CARREGA METAS DO SUPABASE ──
