@@ -849,7 +849,7 @@ async function gerarDashboard(){
       var gs   = ganhos.filter(function(r){return r.funil===seg;});
       var ct=soma(cql),cv2=soma(vd),cl2=soma(lc),gv=soma(gs);
       var nv1=soma(n1v),nv2=soma(n2v),nv3=soma(n3v),nv4=soma(n4v);
-      var navV=soma(aprovV),nl=soma(n1l),nt=navV+nl;
+      var navV=nv1+nv2+nv3+nv4,nl=soma(n1l),nt=navV+nl;
       return{
         funilOrig: seg,
         nome: seg.replace('Blips - ','').replace('Ideal - ',''),
@@ -1483,7 +1483,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
     var gv  = soma(v.ganhos);
     var ct  = soma(cql), cv2 = soma(vd), cl2 = soma(lc);
     var nv1=soma(n1v),nv2=soma(n2v),nv3=soma(n3v),nv4=soma(n4v);
-    var navV=soma(aprovV), nl=soma(n1l), nt=navV+nl;
+    var navV=nv1+nv2+nv3+nv4, nl=soma(n1l), nt=navV+nl;
     var metaV = META_VEND[k] !== undefined ? META_VEND[k] : null;
     return {
       nome: v.nome,
@@ -2390,40 +2390,85 @@ function renderCredito(){
   var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var mesLabel=mesSelecionado?(function(){var p=mesSelecionado.split('-');return nomesMes[+p[1]-1]+'/'+p[0].slice(2);}()):'';
   var segFiltro=window._creditoSeg||'all';
+  var modFiltro=window._creditoMod||'all'; // 'all' | 'venda' | 'locacao'
+
+  // Agrega por dia com breakdown completo
   var dias={};
   leadsAll.forEach(function(r){
     if(!r.dataObj)return;
-    if(SEGMENTOS_SEM_CREDITO.indexOf(r.funil)>-1)return; // exclui Suprimentos
+    if(SEGMENTOS_SEM_CREDITO.indexOf(r.funil)>-1)return;
     if(segFiltro!=='all'&&r.funil!==segFiltro)return;
+    // filtro de modalidade
+    if(modFiltro==='venda'&&r.interesse!=='VENDA')return;
+    if(modFiltro==='locacao'&&r.interesse!=='LOCACAO')return;
     var d=r.dataObj.getFullYear()+'-'+String(r.dataObj.getMonth()+1).padStart(2,'0')+'-'+String(r.dataObj.getDate()).padStart(2,'0');
-    if(!dias[d])dias[d]={dia:d,total:0,n1:0,rep:0,outros:0};
+    if(!dias[d])dias[d]={dia:d,total:0,n1v:0,n2v:0,n3v:0,n4v:0,n1l:0,rep:0,outros:0};
     dias[d].total++;
-    if(r.cl==='N1'||(r.cv==='N1'||r.cv==='N2'||r.cv==='N3'||r.cv==='N4'))dias[d].n1++;
-    else if(r.cl==='Reprovado'||r.cv==='Reprovado')dias[d].rep++;
-    else dias[d].outros++;
+    if(r.interesse==='VENDA'){
+      if(r.cv==='N1')dias[d].n1v++;
+      else if(r.cv==='N2')dias[d].n2v++;
+      else if(r.cv==='N3')dias[d].n3v++;
+      else if(r.cv==='N4')dias[d].n4v++;
+      else if(r.cv==='Reprovado')dias[d].rep++;
+      else dias[d].outros++;
+    } else if(r.interesse==='LOCACAO'){
+      if(r.cl==='N1')dias[d].n1l++;
+      else if(r.cl==='Reprovado')dias[d].rep++;
+      else dias[d].outros++;
+    } else {
+      dias[d].outros++;
+    }
   });
+
   var diasArr=Object.values(dias).sort(function(a,b){return a.dia.localeCompare(b.dia);});
-  var totN1=diasArr.reduce(function(a,d){return a+d.n1;},0);
-  var totRep=diasArr.reduce(function(a,d){return a+d.rep;},0);
-  var totOut=diasArr.reduce(function(a,d){return a+d.outros;},0);
-  var totAll=diasArr.reduce(function(a,d){return a+d.total;},0);
-  var txAprov=totAll>0?Math.round(totN1/totAll*100):0;
+  var sum=function(f){return diasArr.reduce(function(a,d){return a+d[f];},0);};
+  var totN1v=sum('n1v'),totN2v=sum('n2v'),totN3v=sum('n3v'),totN4v=sum('n4v'),totN1l=sum('n1l');
+  var totAprovV=totN1v+totN2v+totN3v+totN4v;
+  var totAprov=totAprovV+totN1l;
+  var totRep=sum('rep'),totOut=sum('outros'),totAll=sum('total');
+  var txAprov=totAll>0?Math.round(totAprov/totAll*100):0;
   var corTx=txAprov>=30?'#4ade80':txAprov>=15?'#fbbf24':'#f87171';
-  var kpisHtml='<div class="kpis" style="display:grid;max-width:1300px;margin:0 auto 20px">'+
-    '<div class="kpi"><div class="kpi-lbl">Total Analisados</div><div class="kpi-val kc">'+totAll+'</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">N1 Aprovado</div><div class="kpi-val" style="color:#4ade80">'+totN1+'</div><div class="kpi-sub">'+txAprov+'% do total</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">Reprovado</div><div class="kpi-val" style="color:#f87171">'+totRep+'</div><div class="kpi-sub">'+(totAll>0?Math.round(totRep/totAll*100):0)+'% do total</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">Em análise/Outros</div><div class="kpi-val" style="color:#fbbf24">'+totOut+'</div><div class="kpi-sub">'+(totAll>0?Math.round(totOut/totAll*100):0)+'% do total</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">Taxa de Aprovação</div><div class="kpi-val" style="color:'+corTx+'">'+txAprov+'%</div></div>'+
-    '</div>';
+
+  // KPIs — layout muda por modalidade
+  var kpisHtml='<div class="kpis" style="display:grid;max-width:1300px;margin:0 auto 20px">';
+  kpisHtml+='<div class="kpi"><div class="kpi-lbl">Total Analisados</div><div class="kpi-val kc">'+totAll+'</div></div>';
+  if(modFiltro!=='locacao'){
+    kpisHtml+=
+      '<div class="kpi"><div class="kpi-lbl">N1 Venda</div><div class="kpi-val" style="color:#4ade80">'+totN1v+'</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">N2 Venda</div><div class="kpi-val" style="color:#a3e635">'+totN2v+'</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">N3 Venda</div><div class="kpi-val" style="color:#fbbf24">'+totN3v+'</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">N4 Venda</div><div class="kpi-val" style="color:#fb923c">'+totN4v+'</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Total Aprov. Venda</div><div class="kpi-val" style="color:#c084fc">'+totAprovV+'</div><div class="kpi-sub">'+(totAll>0?Math.round(totAprovV/totAll*100):0)+'% do total</div></div>';
+  }
+  if(modFiltro!=='venda'){
+    kpisHtml+='<div class="kpi"><div class="kpi-lbl">N1 Locação</div><div class="kpi-val" style="color:#60a5fa">'+totN1l+'</div><div class="kpi-sub">'+(totAll>0?Math.round(totN1l/totAll*100):0)+'% do total</div></div>';
+  }
+  kpisHtml+=
+    '<div class="kpi"><div class="kpi-lbl">Reprovado</div><div class="kpi-val" style="color:#f87171">'+totRep+'</div><div class="kpi-sub">'+(totAll>0?Math.round(totRep/totAll*100):0)+'%</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Taxa Aprovação</div><div class="kpi-val" style="color:'+corTx+'">'+txAprov+'%</div></div>'+
+  '</div>';
+
+  // Filtro segmento
   var segsP=[...new Set(leadsAll.map(function(r){return r.funil;}).filter(function(f){return f&&(f==='Ideal - Suprimentos'||!f.includes('Ideal'))&&SEGMENTOS_SEM_CREDITO.indexOf(f)===-1;}))].sort();
   var segBtns='<button class="fseg'+(segFiltro==='all'?' active':'')+'" onclick="creditoFiltrar(\'all\')">Todos</button>';
   segsP.forEach(function(s){segBtns+='<button class="fseg'+(segFiltro===s?' active':'')+'" onclick="creditoFiltrar(\''+s+'\')">'+s.replace('Blips - ','')+'</button>';});
-  var maxVal=Math.max.apply(null,diasArr.map(function(d){return d.total;}));
-  maxVal=Math.ceil(maxVal/10)*10||10;
-  var BW=30,GAP=6,GROUP=BW*3+GAP*2+22,H=280,PL=45,PB=55,PT=24,PR=20;
+
+  // Filtro modalidade
+  var modBtns=
+    '<button class="fseg'+(modFiltro==='all'?' active':'')+'" onclick="creditoMod(\'all\')" style="background:#1e2535">Todos</button>'+
+    '<button class="fseg'+(modFiltro==='venda'?' active':'')+'" onclick="creditoMod(\'venda\')" style="'+(modFiltro==='venda'?'background:#16a34a;color:#fff':'')+'">Venda</button>'+
+    '<button class="fseg'+(modFiltro==='locacao'?' active':'')+'" onclick="creditoMod(\'locacao\')" style="'+(modFiltro==='locacao'?'background:#2563eb;color:#fff':'')+'">Locação</button>';
+
+  // Gráfico SVG
+  var BW=22,GAP=4,PR=20,PL=45,PT=24,PB=55,H=290;
+  var nBars=(modFiltro==='all')?6:(modFiltro==='venda'?5:3);
+  var GROUP=BW*nBars+GAP*(nBars-1)+18;
   var W=PL+diasArr.length*GROUP+PR;
   var CH=H-PT-PB;
+  var maxVal=Math.max.apply(null,diasArr.map(function(d){
+    return modFiltro==='locacao'?(d.n1l+d.rep+d.outros):(d.n1v+d.n2v+d.n3v+d.n4v+d.n1l+d.rep+d.outros);
+  }))||10;
+  maxVal=Math.ceil(maxVal/10)*10;
   var grid='';
   for(var gi=0;gi<=5;gi++){
     var gv=Math.round(maxVal/5*gi);
@@ -2431,66 +2476,113 @@ function renderCredito(){
     grid+='<line x1="'+PL+'" y1="'+gy+'" x2="'+(W-PR)+'" y2="'+gy+'" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>';
     grid+='<text x="'+(PL-6)+'" y="'+(gy+4)+'" text-anchor="end" font-size="10" fill="var(--text3)">'+gv+'</text>';
   }
+  var barsDef=(modFiltro==='locacao')?[
+    {f:'n1l',c:'#1d4ed8',lc:'#60a5fa',lbl:'N1 Loc'}
+  ]:(modFiltro==='venda')?[
+    {f:'n1v',c:'#15803d',lc:'#4ade80',lbl:'N1'},
+    {f:'n2v',c:'#4d7c0f',lc:'#a3e635',lbl:'N2'},
+    {f:'n3v',c:'#b45309',lc:'#fbbf24',lbl:'N3'},
+    {f:'n4v',c:'#c2410c',lc:'#fb923c',lbl:'N4'}
+  ]:[
+    {f:'n1v',c:'#15803d',lc:'#4ade80',lbl:'N1V'},
+    {f:'n2v',c:'#4d7c0f',lc:'#a3e635',lbl:'N2V'},
+    {f:'n3v',c:'#b45309',lc:'#fbbf24',lbl:'N3V'},
+    {f:'n4v',c:'#c2410c',lc:'#fb923c',lbl:'N4V'},
+    {f:'n1l',c:'#1d4ed8',lc:'#60a5fa',lbl:'N1L'}
+  ];
+  barsDef.push({f:'rep',c:'#dc2626',lc:'#f87171',lbl:'Rep'});
   var bars='',xlbls='';
   diasArr.forEach(function(d,i){
-    var x0=PL+i*GROUP+8;
-    var hN=(d.n1/maxVal)*CH,hR=(d.rep/maxVal)*CH,hO=(d.outros/maxVal)*CH;
-    bars+='<rect x="'+x0+'" y="'+(PT+CH-hN)+'" width="'+BW+'" height="'+hN+'" fill="#16a34a" rx="3"/>';
-    if(d.n1>0)bars+='<text x="'+(x0+BW/2)+'" y="'+(PT+CH-hN-4)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#4ade80">'+d.n1+'</text>';
-    bars+='<rect x="'+(x0+BW+GAP)+'" y="'+(PT+CH-hR)+'" width="'+BW+'" height="'+hR+'" fill="#dc2626" rx="3"/>';
-    if(d.rep>0)bars+='<text x="'+(x0+BW+GAP+BW/2)+'" y="'+(PT+CH-hR-4)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#f87171">'+d.rep+'</text>';
-    bars+='<rect x="'+(x0+BW*2+GAP*2)+'" y="'+(PT+CH-hO)+'" width="'+BW+'" height="'+hO+'" fill="#d97706" rx="3"/>';
-    if(d.outros>0)bars+='<text x="'+(x0+BW*2+GAP*2+BW/2)+'" y="'+(PT+CH-hO-4)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#fbbf24">'+d.outros+'</text>';
+    var x0=PL+i*GROUP+6;
+    var totAprovD=(modFiltro==='locacao')?d.n1l:(modFiltro==='venda')?(d.n1v+d.n2v+d.n3v+d.n4v):(d.n1v+d.n2v+d.n3v+d.n4v+d.n1l);
+    barsDef.forEach(function(b,bi){
+      var val=d[b.f]||0;
+      if(!val)return;
+      var h=(val/maxVal)*CH;
+      var x=x0+bi*(BW+GAP);
+      bars+='<rect x="'+x+'" y="'+(PT+CH-h)+'" width="'+BW+'" height="'+h+'" fill="'+b.c+'" rx="2"/>';
+      bars+='<text x="'+(x+BW/2)+'" y="'+(PT+CH-h-3)+'" text-anchor="middle" font-size="9" font-weight="700" fill="'+b.lc+'">'+val+'</text>';
+    });
     var p=d.dia.split('-');
-    xlbls+='<text x="'+(x0+BW+GAP/2)+'" y="'+(PT+CH+16)+'" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text2)">'+p[2]+'/'+p[1]+'</text>';
-    xlbls+='<text x="'+(x0+BW+GAP/2)+'" y="'+(PT+CH+30)+'" text-anchor="middle" font-size="10" fill="var(--text3)">'+d.total+' leads</text>';
-    xlbls+='<text x="'+(x0+BW+GAP/2)+'" y="'+(PT+CH+43)+'" text-anchor="middle" font-size="10" fill="'+corTx+'">'+(d.total>0?Math.round(d.n1/d.total*100):0)+'% N1</text>';
+    var cx=x0+(BW*(barsDef.length)+GAP*(barsDef.length-1))/2;
+    xlbls+='<text x="'+cx+'" y="'+(PT+CH+14)+'" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text2)">'+p[2]+'/'+p[1]+'</text>';
+    xlbls+='<text x="'+cx+'" y="'+(PT+CH+26)+'" text-anchor="middle" font-size="10" fill="var(--text3)">'+d.total+' leads</text>';
+    xlbls+='<text x="'+cx+'" y="'+(PT+CH+38)+'" text-anchor="middle" font-size="10" fill="'+corTx+'">'+(d.total>0?Math.round(totAprovD/d.total*100):0)+'% aprov</text>';
   });
   var axX='<line x1="'+PL+'" y1="'+(PT+CH)+'" x2="'+(W-PR)+'" y2="'+(PT+CH)+'" stroke="var(--border2)" stroke-width="1.5"/>';
   var axY='<line x1="'+PL+'" y1="'+PT+'" x2="'+PL+'" y2="'+(PT+CH)+'" stroke="var(--border2)" stroke-width="1.5"/>';
-  var leg='<g transform="translate('+PL+','+(H-6)+')" font-size="11">'+
-    '<rect x="0" y="-8" width="12" height="12" fill="#16a34a" rx="2"/><text x="16" y="2" fill="var(--text2)">N1 Aprovado</text>'+
-    '<rect x="120" y="-8" width="12" height="12" fill="#dc2626" rx="2"/><text x="136" y="2" fill="var(--text2)">Reprovado</text>'+
-    '<rect x="230" y="-8" width="12" height="12" fill="#d97706" rx="2"/><text x="246" y="2" fill="var(--text2)">Em análise / Outros</text>'+
-    '</g>';
+  var legX=PL; var leg='<g transform="translate('+legX+','+(H-4)+')" font-size="10">';
+  barsDef.forEach(function(b,i){leg+='<rect x="'+(i*80)+'" y="-8" width="10" height="10" fill="'+b.c+'" rx="2"/><text x="'+(i*80+14)+'" y="2" fill="var(--text2)">'+b.lbl+'</text>';});
+  leg+='</g>';
   var svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+grid+axX+axY+bars+xlbls+leg+'</svg>';
+
+  // Tabela detalhe por dia x segmento
   var diasSegs={};
   leadsAll.forEach(function(r){
     if(!r.dataObj)return;
+    if(SEGMENTOS_SEM_CREDITO.indexOf(r.funil)>-1)return;
     if(segFiltro!=='all'&&r.funil!==segFiltro)return;
+    if(modFiltro==='venda'&&r.interesse!=='VENDA')return;
+    if(modFiltro==='locacao'&&r.interesse!=='LOCACAO')return;
     var d=r.dataObj.getFullYear()+'-'+String(r.dataObj.getMonth()+1).padStart(2,'0')+'-'+String(r.dataObj.getDate()).padStart(2,'0');
     var seg=r.funil.replace('Blips - ','');
     var key=d+'|'+seg;
-    if(!diasSegs[key])diasSegs[key]={dia:d,seg:seg,n1:0,rep:0,out:0,total:0};
+    if(!diasSegs[key])diasSegs[key]={dia:d,seg:seg,total:0,n1v:0,n2v:0,n3v:0,n4v:0,n1l:0,rep:0,out:0};
     diasSegs[key].total++;
-    if(r.cl==='N1'||(r.cv==='N1'||r.cv==='N2'||r.cv==='N3'||r.cv==='N4'))diasSegs[key].n1++;
-    else if(r.cl==='Reprovado'||r.cv==='Reprovado')diasSegs[key].rep++;
-    else diasSegs[key].out++;
+    if(r.interesse==='VENDA'){
+      if(r.cv==='N1')diasSegs[key].n1v++;
+      else if(r.cv==='N2')diasSegs[key].n2v++;
+      else if(r.cv==='N3')diasSegs[key].n3v++;
+      else if(r.cv==='N4')diasSegs[key].n4v++;
+      else if(r.cv==='Reprovado')diasSegs[key].rep++;
+      else diasSegs[key].out++;
+    } else if(r.interesse==='LOCACAO'){
+      if(r.cl==='N1')diasSegs[key].n1l++;
+      else if(r.cl==='Reprovado')diasSegs[key].rep++;
+      else diasSegs[key].out++;
+    } else { diasSegs[key].out++; }
   });
+
   var tabRows=Object.values(diasSegs).sort(function(a,b){return a.dia.localeCompare(b.dia)||a.seg.localeCompare(b.seg);}).map(function(r){
-    var tx=r.total>0?Math.round(r.n1/r.total*100):0;
+    var aprovD=(r.n1v+r.n2v+r.n3v+r.n4v+r.n1l);
+    var tx=r.total>0?Math.round(aprovD/r.total*100):0;
     var cor=tx>=30?'#4ade80':tx>=15?'#fbbf24':'#f87171';
     var p=r.dia.split('-');
-    return '<tr><td><strong>'+p[2]+'/'+p[1]+'</strong></td><td><span class="tag-seg">'+r.seg+'</span></td><td class="hi">'+r.total+'</td><td style="color:#4ade80;font-weight:700">'+r.n1+'</td><td style="color:#f87171;font-weight:700">'+r.rep+'</td><td style="color:#fbbf24">'+r.out+'</td><td><span style="font-weight:700;color:'+cor+'">'+tx+'%</span></td></tr>';
+    var cols='<td><strong>'+p[2]+'/'+p[1]+'</strong></td><td><span class="tag-seg">'+r.seg+'</span></td><td class="hi">'+r.total+'</td>';
+    if(modFiltro!=='locacao') cols+='<td style="color:#4ade80">'+r.n1v+'</td><td style="color:#a3e635">'+r.n2v+'</td><td style="color:#fbbf24">'+r.n3v+'</td><td style="color:#fb923c">'+r.n4v+'</td>';
+    if(modFiltro!=='venda')   cols+='<td style="color:#60a5fa">'+r.n1l+'</td>';
+    cols+='<td style="color:#f87171">'+r.rep+'</td><td style="color:#fbbf24">'+r.out+'</td><td><span style="font-weight:700;color:'+cor+'">'+tx+'%</span></td>';
+    return '<tr>'+cols+'</tr>';
   }).join('');
+
+  var thCols='<th style="text-align:left">Dia</th><th style="text-align:left">Segmento</th><th>Total</th>';
+  if(modFiltro!=='locacao') thCols+='<th style="color:#4ade80">N1V</th><th style="color:#a3e635">N2V</th><th style="color:#fbbf24">N3V</th><th style="color:#fb923c">N4V</th>';
+  if(modFiltro!=='venda')   thCols+='<th style="color:#60a5fa">N1L</th>';
+  thCols+='<th style="color:#f87171">Reprov</th><th style="color:#fbbf24">Outros</th><th>% Aprov</th>';
+
   box.innerHTML=
-    '<div style="max-width:1300px;margin:0 auto 16px;padding:0 4px;display:flex;align-items:center;gap:10px">'+
+    '<div style="max-width:1300px;margin:0 auto 12px;padding:0 4px;display:flex;align-items:center;gap:10px">'+
       '<span style="font-size:.85rem;font-weight:700;color:var(--text-hi)">💳 Análise de Crédito por Dia</span>'+
       (mesLabel?'<span class="badge">'+mesLabel+'</span>':'')+
     '</div>'+
+    '<div style="max-width:1300px;margin:0 auto 8px;display:flex;align-items:center;gap:16px">'+
+      '<div class="filter-segs" style="margin:0">'+segBtns+'</div>'+
+      '<div style="height:24px;border-left:1px solid var(--border2)"></div>'+
+      '<div style="display:flex;gap:6px">'+modBtns+'</div>'+
+    '</div>'+
     kpisHtml+
-    '<div class="filter-segs" style="max-width:1300px;margin:0 auto 16px">'+segBtns+'</div>'+
     '<div class="v-block" style="max-width:1300px;margin:0 auto 20px;padding:20px">'+
-      '<div class="tbl-hd" style="padding:0 0 14px;border:none">N1 Aprovado vs Reprovado vs Em análise por Dia</div>'+
+      '<div class="tbl-hd" style="padding:0 0 14px;border:none">Aprovados por Dia</div>'+
       '<div style="overflow-x:auto">'+svg+'</div>'+
     '</div>'+
     '<div class="v-block" style="max-width:1300px;margin:0 auto">'+
       '<div class="tbl-hd">Detalhe por Dia × Segmento</div>'+
-      '<table><thead><tr><th style="text-align:left">Dia</th><th style="text-align:left">Segmento</th><th>Total</th><th style="color:#4ade80">N1</th><th style="color:#f87171">Reprovado</th><th style="color:#fbbf24">Outros</th><th>Taxa N1</th></tr></thead><tbody>'+tabRows+'</tbody></table>'+
+      '<table><thead><tr>'+thCols+'</tr></thead><tbody>'+tabRows+'</tbody></table>'+
     '</div>';
 }
 
 window.creditoFiltrar=function(seg){window._creditoSeg=seg;renderCredito();};
+window.creditoMod=function(mod){window._creditoMod=mod;renderCredito()};
 
 // ── Filtros internos da aba Performance ──
 var perfFiltro = { seg:'all', status:'all', busca:'' };
