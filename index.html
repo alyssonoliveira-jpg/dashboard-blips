@@ -621,12 +621,10 @@ function resolveVendKey(propKey, funil) {
     var c = allChaves[i];
     var words = c.split(' ').length;
     var score;
-    if(c === propKey && words === 1)        score = 1; // exato 1 palavra
-    else if(c === propKey && words === 2)   score = 2; // exato 2 palavras
+    if(c === propKey)                        score = 1; // exato sempre ganha
+    else if(propKey.startsWith(c + ' '))    score = 2; // propKey começa com chave
     else if(c === primeiro && words === 1)  score = 3; // primeiro nome = chave 1 palavra
     else if(c.split(' ')[0] === primeiro)   score = 4; // primeiro nome bate, chave N palavras
-    else if(propKey.startsWith(c + ' ') || propKey === c) score = 5; // propKey começa com chave
-    else if(c === propKey)                  score = 6; // fallback exato
     else continue;
     candidates.push({k: c, score: score, words: words});
   }
