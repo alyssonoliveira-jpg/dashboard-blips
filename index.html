@@ -3419,7 +3419,7 @@ function renderizar(met,totalLeads){
   var tc=s('cql_t'),tn=s('n1_t'),tg=s('g_val'),tv=s('aprov_vv'),tl=s('n1_ll');
   var tcv=s('cql_v'),tcl=s('cql_l');
   var pg=tc?tn/tc*100:0, pv=tcv?tv/tcv*100:0, pl=tcl?tl/tcl*100:0, cg=tn?tg/tn*100:0;
-  var metaTotal = 47161564;
+  var metaTotal = s('meta_valor') || s('meta');
   var pctMetaTotal = metaTotal ? tg/metaTotal*100 : 0;
   var metaTotalClass = 'pill-miss';
   if(pctMetaTotal >= 100) metaTotalClass = 'pill-hit';
@@ -3443,7 +3443,7 @@ function renderizar(met,totalLeads){
   var kpis=document.getElementById('kpis');
   kpis.style.display='grid';
   kpis.innerHTML=
-    '<div class="kpi"><div class="kpi-lbl">Meta Geral</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">todos os segmentos</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Meta Geral</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(47161564)+'</div><div class="kpi-sub">todos os segmentos</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Leads CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+trend(tc,prev&&prev.tc)+'</div><div class="kpi-sub">'+totalLeads.toLocaleString('pt-BR')+' negócios</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+trend(tn,prev&&prev.tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val ko">'+fmtBRL(tv)+trend(tv,prev&&prev.tv)+'</div><div class="kpi-sub">Conv: '+fmtPct(pv)+'</div></div>'+
