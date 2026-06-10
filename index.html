@@ -1549,12 +1549,15 @@ function reprocessar(leads, ganhos){
   renderizar(met, leads.length);
   renderVendedores(leads, ganhos, segOrdenados, soma);
 
-  // Re-renderiza Projeção e Configurações se já estiverem abertas
+  // Re-renderiza abas abertas que dependem do filtro de mês
   var abaAtiva = document.querySelector('.tab.active');
   if(abaAtiva){
     var nomeAba = abaAtiva.dataset.tab;
     if(nomeAba === 'projecao')      renderProjecao();
     if(nomeAba === 'configuracoes') renderConfiguracoes();
+    if(nomeAba === 'equipamentos')  renderEquipamentos();
+    if(nomeAba === 'credito')       renderCredito();
+    if(nomeAba === 'performance')   renderPerformance();
   }
 }
 
