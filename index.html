@@ -588,53 +588,69 @@ var VEND_SEG = {};
 var META_VEND = {};   // chave (lowercase) -> meta R$
 var META_SEG  = {};   // Blips - X -> meta R$
 
-// Cache de resolução: propKey do lead -> chave real no banco
+// Cache de resolução: "propKey|funil" -> chave real no banco
 var _resolveCache = {};
 
 /**
- * Resolve o propKey de um lead para a chave cadastrada em META_VEND/VEND_SEG.
- * Tenta em ordem:
- *  1. Match exato
- *  2. Match pelo primeiro nome (ex: "ketilly alves" → chave "ketilly")
- *  3. Chave que contém o primeiro nome do lead
- *  4. Lead cujo primeiro nome é contido em alguma chave
- * Retorna o propKey original se não achar nada.
+ * Resolve o propKey de um lead para a chave canônica em META_VEND/VEND_SEG.
+ *
+ * Regra de prioridade (menor = melhor):
+ *   P1: chave exata de 1 palavra  (ex: "ketilly")
+ *   P2: chave exata de 2 palavras (ex: "mario lima")
+ *   P3: primeiro nome bate com chave de 1 palavra
+ *   P4: primeiro nome bate com chave de N palavras
+ *   P5: propKey começa com a chave (ex: "ranyelle cristina santos" → "ranyelle cristina")
+ *   P6: match exato como última opção (nome completo armazenado como chave legada)
+ *
+ * Desempate por segmento: se funil for fornecido, prefere a chave cujo
+ * VEND_SEG bate com o funil do lead.
  */
-function resolveVendKey(propKey) {
+function resolveVendKey(propKey, funil) {
   if(!propKey) return propKey;
-  if(_resolveCache[propKey] !== undefined) return _resolveCache[propKey];
-
-  // 1. Exato
-  if(META_VEND[propKey] !== undefined || VEND_SEG[propKey]) {
-    _resolveCache[propKey] = propKey; return propKey;
-  }
+  var cacheKey = propKey + '|' + (funil||'');
+  if(_resolveCache[cacheKey] !== undefined) return _resolveCache[cacheKey];
 
   var allChaves = Object.keys(META_VEND).concat(
     Object.keys(VEND_SEG).filter(function(k){ return META_VEND[k]===undefined; })
   );
 
-  // 2. Primeiro nome do lead bate exato com alguma chave
   var primeiro = propKey.split(' ')[0];
-  if(allChaves.indexOf(primeiro) !== -1) {
-    _resolveCache[propKey] = primeiro; return primeiro;
-  }
+  var candidates = [];
 
-  // 3. Alguma chave começa com o primeiro nome do lead
-  var found = null;
   for(var i=0; i<allChaves.length; i++){
     var c = allChaves[i];
-    if(c.split(' ')[0] === primeiro){ found = c; break; }
+    var words = c.split(' ').length;
+    var score;
+    if(c === propKey && words === 1)        score = 1; // exato 1 palavra
+    else if(c === propKey && words === 2)   score = 2; // exato 2 palavras
+    else if(c === primeiro && words === 1)  score = 3; // primeiro nome = chave 1 palavra
+    else if(c.split(' ')[0] === primeiro)   score = 4; // primeiro nome bate, chave N palavras
+    else if(propKey.startsWith(c + ' ') || propKey === c) score = 5; // propKey começa com chave
+    else if(c === propKey)                  score = 6; // fallback exato
+    else continue;
+    candidates.push({k: c, score: score, words: words});
   }
-  if(found){ _resolveCache[propKey] = found; return found; }
 
-  // 4. Primeiro nome da chave está contido no propKey (ex: propKey="ranyelle cristina santos" chave="ranyelle cristina")
-  for(var j=0; j<allChaves.length; j++){
-    if(propKey.startsWith(allChaves[j])){ found = allChaves[j]; break; }
+  if(!candidates.length){
+    _resolveCache[cacheKey] = propKey;
+    return propKey;
   }
-  if(found){ _resolveCache[propKey] = found; return found; }
 
-  _resolveCache[propKey] = propKey;
-  return propKey;
+  // Ordena: score asc; empate → prefere segmento que bate com funil
+  candidates.sort(function(a, b){
+    if(a.score !== b.score) return a.score - b.score;
+    // desempate por segmento
+    if(funil){
+      var aOk = VEND_SEG[a.k] === funil ? 0 : 1;
+      var bOk = VEND_SEG[b.k] === funil ? 0 : 1;
+      if(aOk !== bOk) return aOk - bOk;
+    }
+    return a.words - b.words; // mais curto ganha
+  });
+
+  var resolved = candidates[0].k;
+  _resolveCache[cacheKey] = resolved;
+  return resolved;
 }
 
 function fmtBRL(v){
@@ -1423,7 +1439,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
   var vendores = {};   // key: chave resolvida -> { nome, seg, leads:[], ganhos:[] }
   leads.forEach(function(r){
     if(!r.proprietario) return;
-    var k = resolveVendKey(r.propKey);
+    var k = resolveVendKey(r.propKey, r.funil);
     var seg = VEND_SEG[k] || r.funil || 'Sem Segmento';
     if(!vendores[k]){
       vendores[k] = { nome: r.proprietario, seg: seg, leads: [], ganhos: [] };
@@ -1432,7 +1448,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
   });
   ganhos.forEach(function(r){
     if(!r.proprietario) return;
-    var k = resolveVendKey(r.propKey);
+    var k = resolveVendKey(r.propKey, r.funil);
     if(!vendores[k]){
       var seg = VEND_SEG[k] || r.funil || 'Sem Segmento';
       vendores[k] = { nome: r.proprietario, seg: seg, leads: [], ganhos: [] };
