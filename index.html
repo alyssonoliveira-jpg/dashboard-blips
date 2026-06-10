@@ -25,8 +25,12 @@ body.light-mode{
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:28px 16px 60px;transition:background .25s,color .25s}
 
 /* TELA DE LOGIN */
-#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;padding:20px}
+#login-screen{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;padding:20px;overflow:hidden}
 #login-screen.hidden{display:none}
+#login-video-bg{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+#login-video-bg iframe{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:177.78vh;height:100vh;min-width:100%;min-height:56.25vw;border:none;pointer-events:none}
+#login-overlay{position:absolute;inset:0;background:rgba(0,0,0,.62);z-index:1}
+#login-screen .login-card{position:relative;z-index:2}
 .login-card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:40px 36px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .login-logo{margin-bottom:14px;display:flex;justify-content:center}
 .login-logo svg{width:78px;height:78px;border-radius:18px;box-shadow:0 8px 24px rgba(251,191,36,.35);display:block}
@@ -330,6 +334,10 @@ tfoot td.sep{border-left:1px solid #1e2535}
 
 <!-- TELA DE LOGIN -->
 <div id="login-screen">
+  <div id="login-video-bg">
+    <iframe src="https://www.youtube.com/embed/p6xHpUi0Cj0?autoplay=1&mute=1&loop=1&playlist=p6xHpUi0Cj0&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  </div>
+  <div id="login-overlay"></div>
   <div class="login-card">
     <div class="login-logo">
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
