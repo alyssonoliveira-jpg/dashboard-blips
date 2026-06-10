@@ -836,8 +836,8 @@ async function gerarDashboard(){
 
     var met = segOrdenados.map(function(seg){
       var s    = leads.filter(function(r){return r.funil===seg;});
-      var vd   = s.filter(function(r){return r.interesse==='VENDA';});
-      var lc   = s.filter(function(r){return r.interesse==='LOCACAO';});
+      var vd   = s.filter(function(r){return r.cv!=='';});
+      var lc   = s.filter(function(r){return r.cv===''&&r.cl!=='';});
       var cql  = vd.concat(lc);                                    // CQL = VENDA + LOCACAO apenas
       var n1v  = vd.filter(function(r){return r.isN1v;});
       var n2v  = vd.filter(function(r){return r.isN2v;});
@@ -1383,8 +1383,8 @@ function reprocessar(leads, ganhos){
 
   var met = segOrdenados.map(function(seg){
     var s    = leads.filter(function(r){return r.funil===seg;});
-    var vd   = s.filter(function(r){return r.interesse==='VENDA';});
-    var lc   = s.filter(function(r){return r.interesse==='LOCACAO';});
+    var vd   = s.filter(function(r){return r.cv!=='';});
+    var lc   = s.filter(function(r){return r.cv===''&&r.cl!=='';});
     var cql  = vd.concat(lc);
     var n1v  = vd.filter(function(r){return r.isN1v;});
     var n2v  = vd.filter(function(r){return r.isN2v;});
@@ -1474,8 +1474,8 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
   var arr = Object.keys(vendores).map(function(k){
     var v   = vendores[k];
     var s   = v.leads;
-    var vd  = s.filter(function(r){return r.interesse==='VENDA';});
-    var lc  = s.filter(function(r){return r.interesse==='LOCACAO';});
+    var vd  = s.filter(function(r){return r.cv!=='';});
+    var lc  = s.filter(function(r){return r.cv===''&&r.cl!=='';});
     var cql = vd.concat(lc);
     var n1v    = vd.filter(function(r){return r.isN1v;});
     var n2v    = vd.filter(function(r){return r.isN2v;});
