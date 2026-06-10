@@ -588,6 +588,55 @@ var VEND_SEG = {};
 var META_VEND = {};   // chave (lowercase) -> meta R$
 var META_SEG  = {};   // Blips - X -> meta R$
 
+// Cache de resolução: propKey do lead -> chave real no banco
+var _resolveCache = {};
+
+/**
+ * Resolve o propKey de um lead para a chave cadastrada em META_VEND/VEND_SEG.
+ * Tenta em ordem:
+ *  1. Match exato
+ *  2. Match pelo primeiro nome (ex: "ketilly alves" → chave "ketilly")
+ *  3. Chave que contém o primeiro nome do lead
+ *  4. Lead cujo primeiro nome é contido em alguma chave
+ * Retorna o propKey original se não achar nada.
+ */
+function resolveVendKey(propKey) {
+  if(!propKey) return propKey;
+  if(_resolveCache[propKey] !== undefined) return _resolveCache[propKey];
+
+  // 1. Exato
+  if(META_VEND[propKey] !== undefined || VEND_SEG[propKey]) {
+    _resolveCache[propKey] = propKey; return propKey;
+  }
+
+  var allChaves = Object.keys(META_VEND).concat(
+    Object.keys(VEND_SEG).filter(function(k){ return META_VEND[k]===undefined; })
+  );
+
+  // 2. Primeiro nome do lead bate exato com alguma chave
+  var primeiro = propKey.split(' ')[0];
+  if(allChaves.indexOf(primeiro) !== -1) {
+    _resolveCache[propKey] = primeiro; return primeiro;
+  }
+
+  // 3. Alguma chave começa com o primeiro nome do lead
+  var found = null;
+  for(var i=0; i<allChaves.length; i++){
+    var c = allChaves[i];
+    if(c.split(' ')[0] === primeiro){ found = c; break; }
+  }
+  if(found){ _resolveCache[propKey] = found; return found; }
+
+  // 4. Primeiro nome da chave está contido no propKey (ex: propKey="ranyelle cristina santos" chave="ranyelle cristina")
+  for(var j=0; j<allChaves.length; j++){
+    if(propKey.startsWith(allChaves[j])){ found = allChaves[j]; break; }
+  }
+  if(found){ _resolveCache[propKey] = found; return found; }
+
+  _resolveCache[propKey] = propKey;
+  return propKey;
+}
+
 function fmtBRL(v){
   if(!v||isNaN(v)||v===0) return 'R$ 0';
   return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
@@ -1371,23 +1420,24 @@ function trocarAba(nome){
 function renderVendedores(leads, ganhos, segOrdenados, soma){
   // Agrupa vendedores por segmento via VEND_SEG
   // Para cada vendedor presente nos leads, pega o segmento mapeado
-  var vendores = {};   // key: lower(nome) -> { nome, seg, leads:[], ganhos:[] }
+  var vendores = {};   // key: chave resolvida -> { nome, seg, leads:[], ganhos:[] }
   leads.forEach(function(r){
     if(!r.proprietario) return;
-    var seg = VEND_SEG[r.propKey] || r.funil || 'Sem Segmento';
-    if(!vendores[r.propKey]){
-      vendores[r.propKey] = { nome: r.proprietario, seg: seg, leads: [], ganhos: [] };
+    var k = resolveVendKey(r.propKey);
+    var seg = VEND_SEG[k] || r.funil || 'Sem Segmento';
+    if(!vendores[k]){
+      vendores[k] = { nome: r.proprietario, seg: seg, leads: [], ganhos: [] };
     }
-    vendores[r.propKey].leads.push(r);
+    vendores[k].leads.push(r);
   });
   ganhos.forEach(function(r){
     if(!r.proprietario) return;
-    var key = r.propKey;
-    if(!vendores[key]){
-      var seg = VEND_SEG[key] || r.funil || 'Sem Segmento';
-      vendores[key] = { nome: r.proprietario, seg: seg, leads: [], ganhos: [] };
+    var k = resolveVendKey(r.propKey);
+    if(!vendores[k]){
+      var seg = VEND_SEG[k] || r.funil || 'Sem Segmento';
+      vendores[k] = { nome: r.proprietario, seg: seg, leads: [], ganhos: [] };
     }
-    vendores[key].ganhos.push(r);
+    vendores[k].ganhos.push(r);
   });
 
   // Calcula métricas por vendedor
@@ -1403,7 +1453,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
     var gv  = soma(v.ganhos);
     var ct  = soma(cql), cv2 = soma(vd), cl2 = soma(lc);
     var nt  = soma(n1),  nv  = soma(n1v),nl  = soma(n1l);
-    var metaV = META_VEND[k] !== undefined ? META_VEND[k] : null;  // null = sem cadastro
+    var metaV = META_VEND[k] !== undefined ? META_VEND[k] : null;
     return {
       nome: v.nome,
       seg:  v.seg,
@@ -3353,7 +3403,7 @@ async function carregarMetasConfig(mes){
 
     // Limpa caches
     CONV_ALVO = {}; META_SEG = {}; META_VEND = {}; VEND_SEG = {};
-    SEG_NOME_DISPLAY = {}; VENDS_DISPLAY = {};
+    SEG_NOME_DISPLAY = {}; VENDS_DISPLAY = {}; _resolveCache = {};
 
     registros.forEach(function(r){
       if(r.tipo === 'segmento'){
