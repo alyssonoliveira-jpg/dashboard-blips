@@ -137,6 +137,40 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .perf-bar-wrap{background:var(--bg3);border-radius:20px;height:6px;overflow:hidden}
 .perf-bar-fill{height:6px;border-radius:20px;transition:width .4s}
 
+/* ── HEADER FIXO ── */
+#sticky-header{position:sticky;top:0;z-index:500;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 16px;max-width:100%;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#sticky-header.show{display:flex}
+.sh-title{font-size:.88rem;font-weight:700;color:var(--text-hi)}
+.sh-badge{font-size:.72rem;font-weight:600;padding:3px 10px;border-radius:20px;background:#1e3a5f;color:#60a5fa;border:1px solid #2a4a7f}
+.sh-sep{width:1px;height:16px;background:var(--border)}
+.sh-info{font-size:.72rem;color:var(--text3)}
+
+/* ── TAB DOTS ── */
+.tab-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:5px;vertical-align:middle;background:#f87171}
+.tab-dot.warn{background:#fbbf24}
+.tab-dot.ok{background:#4ade80}
+
+/* ── KPI TREND ── */
+.kpi-trend{font-size:.68rem;font-weight:700;margin-left:6px;vertical-align:middle}
+.kpi-trend.up{color:#4ade80}.kpi-trend.down{color:#f87171}.kpi-trend.flat{color:#94a3b8}
+
+/* ── LOGIN MELHORADO ── */
+.login-card-header{background:linear-gradient(135deg,#1e1040 0%,#2d1b69 60%,#1a1035 100%);border-radius:14px 14px 0 0;margin:-40px -36px 28px;padding:32px 36px 28px;border-bottom:1px solid rgba(124,58,237,.3)}
+.login-card-brand{font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#a78bfa;margin-bottom:8px}
+.login-card-headline{font-size:1.5rem;font-weight:800;color:#f8fafc;line-height:1.2}
+.login-card-sub{font-size:.8rem;color:#94a3b8;margin-top:6px}
+
+/* ── EQUIPAMENTO TABELA ── */
+.equip-seg-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.equip-seg-table thead th{background:var(--bg3);padding:8px 12px;text-align:left;font-size:.65rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.equip-seg-table thead th:not(:first-child){text-align:right}
+.equip-seg-table tbody tr{border-top:1px solid var(--border);transition:background .12s}
+.equip-seg-table tbody tr:hover{background:var(--bg3)}
+.equip-seg-table td{padding:10px 12px;vertical-align:middle}
+.equip-seg-table td:not(:first-child){text-align:right}
+.equip-rank{font-size:.68rem;font-weight:700;color:#475569;width:24px;display:inline-block;text-align:center}
+.equip-bar-mini{display:inline-block;height:4px;border-radius:2px;margin-left:6px;vertical-align:middle}
+
 /* BANNER NAO-ADMIN */
 .banner-section{max-width:900px;margin:0 auto 28px;display:none}
 .banner-section.show{display:block}
@@ -376,8 +410,11 @@ tfoot td.sep{border-left:1px solid #1e2535}
         </g>
       </svg>
     </div>
-    <div class="login-title">Dashboard Comercial</div>
-    <div class="login-sub">Acesso restrito a gestores · @blips.com.br</div>
+    <div class="login-card-header">
+      <div class="login-card-brand">Blips · Gestão Comercial</div>
+      <div class="login-card-headline">Dashboard Comercial</div>
+      <div class="login-card-sub">Painel exclusivo para gestores e supervisores</div>
+    </div>
     <div class="login-error" id="login-error"></div>
     <button class="btn-google" onclick="entrarComGoogle()">
       <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
@@ -431,6 +468,17 @@ tfoot td.sep{border-left:1px solid #1e2535}
 <div class="loading-overlay hidden" id="loading-overlay">
   <div class="spinner"></div>
   <div class="loading-text" id="loading-text">Carregando...</div>
+</div>
+
+<!-- HEADER FIXO -->
+<div id="sticky-header">
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="sh-title">📊 Dashboard Comercial · Blips</span>
+    <span class="sh-sep"></span>
+    <span class="sh-badge" id="sh-mes">—</span>
+    <span class="sh-info" id="sh-base">Aguardando base...</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px" id="sh-kpis"></div>
 </div>
 
 <!-- APLICACAO PRINCIPAL -->
@@ -1339,6 +1387,23 @@ function filtrarPorMesLocal(ym){
   var fimTs = fim.getTime();
   var leadsF = leadsAll.filter(function(r){return r.dataTs && r.dataTs>=iniTs && r.dataTs<=fimTs;});
   leadsAtivos = leadsF;
+
+  // Calcula KPIs do mês anterior para trend
+  var prevIni = new Date(ano, mes-2, 1);
+  var prevFim = new Date(ano, mes-1, 0, 23, 59, 59);
+  var leadsP = leadsAll.filter(function(r){return r.dataTs && r.dataTs>=prevIni.getTime() && r.dataTs<=prevFim.getTime();});
+  if(leadsP.length){
+    var soma2=function(arr){return arr.reduce(function(a,r){return a+r.valor;},0);};
+    var vdP=leadsP.filter(function(r){return r.interesse==='VENDA'||(r.interesse===''&&r.cv!=='');});
+    var lcP=leadsP.filter(function(r){return r.interesse==='LOCACAO'||(r.interesse===''&&r.cv===''&&r.cl!=='');});
+    var cqlP=vdP.concat(lcP);
+    var n1vP=vdP.filter(function(r){return r.isN1v||r.isN2v||r.isN3v||r.isN4v;});
+    var n1lP=lcP.filter(function(r){return r.isN1l;});
+    var ganhosP = ganhosAll.filter(function(r){return r.dataTs && r.dataTs>=prevIni.getTime() && r.dataTs<=prevFim.getTime();});
+    window._kpiPrevData = {tc:soma2(cqlP), tn:soma2(n1vP)+soma2(n1lP), tv:soma2(n1vP), tl:soma2(n1lP), tg:soma2(ganhosP)};
+  } else {
+    window._kpiPrevData = null;
+  }
   var temDataGanho = ganhosAll.some(function(r){return r.dataTs;});
   var ganhosF = temDataGanho ? ganhosAll.filter(function(r){return r.dataTs && r.dataTs>=iniTs && r.dataTs<=fimTs;}) : ganhosAll;
 
@@ -3361,14 +3426,45 @@ function renderizar(met,totalLeads){
   document.getElementById('hd').style.display='block';
   document.getElementById('hd-sub').textContent='Gerado em '+agora+' | '+totalLeads.toLocaleString('pt-BR')+' leads | '+met.length+' segmentos';
 
+  // ── Trend vs mês anterior ──
+  var prev = window._kpiPrevData || null;
+  function trend(cur, old){
+    if(!old || old===0) return '';
+    var pct = (cur-old)/old*100;
+    if(Math.abs(pct)<1) return '<span class="kpi-trend flat">→</span>';
+    return pct>0
+      ? '<span class="kpi-trend up">▲ '+Math.round(pct)+'%</span>'
+      : '<span class="kpi-trend down">▼ '+Math.round(Math.abs(pct))+'%</span>';
+  }
+
   var kpis=document.getElementById('kpis');
   kpis.style.display='grid';
   kpis.innerHTML=
-    '<div class="kpi"><div class="kpi-lbl">Leads CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+'</div><div class="kpi-sub">'+totalLeads.toLocaleString('pt-BR')+' negócios</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val ko">'+fmtBRL(tv)+'</div><div class="kpi-sub">Conv: '+fmtPct(pv)+'</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">N1 Locação</div><div class="kpi-val ko">'+fmtBRL(tl)+'</div><div class="kpi-sub">Conv: '+fmtPct(pl)+'</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">Resultado / Meta</div><div class="kpi-val kg">'+fmtBRL(tg)+'</div><div class="kpi-sub">Meta: '+fmtBRL(metaTotal)+' &middot; <strong style="color:'+(pctMetaTotal>=100?'#4ade80':pctMetaTotal>=70?'#fbbf24':'#f87171')+'">'+fmtPct(pctMetaTotal)+'</strong></div></div>';
+    '<div class="kpi"><div class="kpi-lbl">Leads CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+trend(tc,prev&&prev.tc)+'</div><div class="kpi-sub">'+totalLeads.toLocaleString('pt-BR')+' negócios</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+trend(tn,prev&&prev.tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val ko">'+fmtBRL(tv)+trend(tv,prev&&prev.tv)+'</div><div class="kpi-sub">Conv: '+fmtPct(pv)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">N1 Locação</div><div class="kpi-val ko">'+fmtBRL(tl)+trend(tl,prev&&prev.tl)+'</div><div class="kpi-sub">Conv: '+fmtPct(pl)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Resultado / Meta</div><div class="kpi-val kg">'+fmtBRL(tg)+trend(tg,prev&&prev.tg)+'</div><div class="kpi-sub">Meta: '+fmtBRL(metaTotal)+' &middot; <strong style="color:'+(pctMetaTotal>=100?'#4ade80':pctMetaTotal>=70?'#fbbf24':'#f87171')+'">'+fmtPct(pctMetaTotal)+'</strong></div></div>';
+
+  // ── Header fixo ──
+  var shMes = document.getElementById('sh-mes');
+  var shBase = document.getElementById('sh-base');
+  if(shMes) shMes.textContent = mesSelecionado || 'Todos os meses';
+  if(shBase) shBase.textContent = totalLeads.toLocaleString('pt-BR')+' leads · '+met.length+' segmentos';
+  var sh = document.getElementById('sticky-header');
+  if(sh) sh.classList.add('show');
+
+  // KPIs resumidos no header
+  var shKpis = document.getElementById('sh-kpis');
+  if(shKpis) shKpis.innerHTML =
+    '<span style="font-size:.72rem;color:#60a5fa;font-weight:700">CQL '+fmtBRL(tc)+'</span>'+
+    '<span class="sh-sep"></span>'+
+    '<span style="font-size:.72rem;color:#4ade80;font-weight:700">Aprov '+fmtBRL(tn)+'</span>'+
+    '<span class="sh-sep"></span>'+
+    '<span style="font-size:.72rem;color:#fbbf24;font-weight:700">Ganhos '+fmtBRL(tg)+'</span>';
+
+  // ── Tab dots ──
+  atualizarTabDots(met, tg, metaTotal, pctMetaTotal);
 
   var linhas=met.map(function(r){
     // Pill da Conv vs Alvo: verde se atingiu, vermelho se abaixo, amarelo se alvo=0
@@ -3643,6 +3739,47 @@ function aplicarBloqueioSegmento(){
   filtroGlobal.segmento = _userSegmento;
 }
 
+// ── TAB DOTS ──
+function atualizarTabDots(met, tg, metaTotal, pctMeta){
+  // Remove dots existentes
+  document.querySelectorAll('.tab-dot').forEach(function(d){d.remove();});
+
+  // Batedores: verifica se há vendedores críticos
+  if(ultimosVendedores && ultimosVendedores.length){
+    var criticos = ultimosVendedores.filter(function(v){
+      if(!v.meta||v.meta===0) return false;
+      var pct = v.g_val/v.meta*100;
+      return pct < 60;
+    });
+    var tabBat = document.querySelector('.tab[data-tab="batedores"]');
+    if(tabBat && criticos.length){
+      var dot = document.createElement('span');
+      dot.className = 'tab-dot';
+      tabBat.appendChild(dot);
+    }
+  }
+
+  // Projeção Meta: meta em risco
+  var tabProj = document.querySelector('.tab[data-tab="projecao-meta"]');
+  if(tabProj && metaTotal > 0){
+    var dot2 = document.createElement('span');
+    dot2.className = 'tab-dot '+(pctMeta>=70?'warn':'');
+    if(pctMeta < 100) tabProj.appendChild(dot2);
+  }
+
+  // Projeção Venda: alerta se algum segmento está crítico
+  var temCritico = met.some(function(r){
+    if(!r.meta||r.meta===0) return false;
+    return r.pct_meta < 50;
+  });
+  var tabPV = document.querySelector('.tab[data-tab="projecao"]');
+  if(tabPV && temCritico){
+    var dot3 = document.createElement('span');
+    dot3.className = 'tab-dot';
+    tabPV.appendChild(dot3);
+  }
+}
+
 // ── ANÁLISE EQUIPAMENTO ──
 function renderEquipamentos(){
   var box = document.getElementById('equip-content');
@@ -3680,35 +3817,37 @@ function renderEquipamentos(){
 
     var nomeS = seg.replace('Blips - ','').replace('Ideal - ','');
 
-    var cards = top8.map(function(item, i){
+    var maxQtd = top8[0] ? top8[0].qtd : 1;
+    var linhas = top8.map(function(item, i){
       var pct = item.qtd ? Math.round(item.vendas/item.qtd*100) : 0;
       var cor = pct>=50?'#4ade80':pct>=25?'#fbbf24':'#f87171';
-      var barW = Math.round(item.vendas/item.qtd*100);
-      return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:200px;flex:1">'+
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
-          '<span style="font-size:.68rem;font-weight:700;color:#64748b;background:#1e2535;border-radius:20px;padding:2px 8px">#'+(i+1)+'</span>'+
-          '<span style="font-size:.82rem;font-weight:700;color:#e2e8f0;line-height:1.3">'+item.eq+'</span>'+
-        '</div>'+
-        '<div style="display:flex;gap:20px;margin-bottom:10px">'+
-          '<div><div style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Quantidade</div>'+
-               '<div style="font-size:1.4rem;font-weight:800;color:#60a5fa">'+item.qtd+'</div></div>'+
-          '<div><div style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Venda</div>'+
-               '<div style="font-size:1.4rem;font-weight:800;color:'+cor+'">'+item.vendas+'</div></div>'+
-          '<div><div style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Conv.</div>'+
-               '<div style="font-size:1.4rem;font-weight:800;color:'+cor+'">'+pct+'%</div></div>'+
-        '</div>'+
-        '<div style="height:5px;background:#1e2535;border-radius:4px;overflow:hidden">'+
-          '<div style="height:100%;width:'+barW+'%;background:'+cor+';border-radius:4px;transition:width .4s"></div>'+
-        '</div>'+
-      '</div>';
+      var barW = Math.round(item.qtd/maxQtd*100);
+      return '<tr>'+
+        '<td><span class="equip-rank">#'+(i+1)+'</span></td>'+
+        '<td style="font-weight:600;color:var(--text-hi)">'+item.eq+
+          '<span class="equip-bar-mini" style="width:'+barW+'px;max-width:80px;background:#1e3a5f"></span>'+
+        '</td>'+
+        '<td style="color:#60a5fa;font-weight:700">'+item.qtd+'</td>'+
+        '<td style="color:'+cor+';font-weight:700">'+item.vendas+'</td>'+
+        '<td>'+
+          '<span style="font-weight:700;color:'+cor+'">'+pct+'%</span>'+
+          '<div style="margin-top:3px;height:4px;width:60px;background:var(--bg3);border-radius:2px;display:inline-block;vertical-align:middle;margin-left:6px">'+
+            '<div style="height:100%;width:'+pct+'%;background:'+cor+';border-radius:2px"></div>'+
+          '</div>'+
+        '</td>'+
+      '</tr>';
     }).join('');
 
     html +=
-      '<div>'+
-        '<div style="font-size:.78rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-left:2px">'+
-          '📦 '+nomeS+' <span style="color:#475569;font-weight:500;font-size:.7rem">— top 8 equipamentos</span>'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden">'+
+        '<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">'+
+          '<span style="font-size:.82rem;font-weight:700;color:#a78bfa">📦 '+nomeS+'</span>'+
+          '<span style="font-size:.7rem;color:#475569">top 8 equipamentos por volume</span>'+
         '</div>'+
-        '<div style="display:flex;flex-wrap:wrap;gap:12px">'+cards+'</div>'+
+        '<table class="equip-seg-table">'+
+          '<thead><tr><th>#</th><th>Equipamento</th><th>Quantidade</th><th>Vendas</th><th>Conversão</th></tr></thead>'+
+          '<tbody>'+linhas+'</tbody>'+
+        '</table>'+
       '</div>';
   });
 
