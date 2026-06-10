@@ -15,11 +15,34 @@
   --text-hi:  #f8fafc;
 }
 body.light-mode{
-  --bg:       #f0f4f8; --bg2:      #ffffff; --bg3:      #e8edf4;
-  --border:   #d1dae8; --border2:  #b8c5d8;
-  --text:     #1e293b; --text2:    #475569; --text3:    #94a3b8;
-  --text-hi:  #0f172a;
+  --bg:       #eef2f7; --bg2:      #ffffff; --bg3:      #dde5f0;
+  --border:   #c4cfdf; --border2:  #aabace;
+  --text:     #0f172a; --text2:    #334155; --text3:    #64748b;
+  --text-hi:  #020617;
 }
+/* Cores de destaque mais escuras no modo claro para legibilidade */
+body.light-mode .kc{color:#1d4ed8}
+body.light-mode .kp{color:#7c3aed}
+body.light-mode .kg{color:#15803d}
+body.light-mode .kv{color:#b45309}
+body.light-mode .ko{color:#c2410c}
+body.light-mode .kpi-lbl{color:#334155}
+body.light-mode .kpi-sub{color:#475569}
+body.light-mode .kpi{box-shadow:0 1px 4px rgba(0,0,0,.08)}
+body.light-mode thead th{background:#dde5f0;color:#1e293b}
+body.light-mode tbody tr:hover td{background:#eef2f7}
+body.light-mode .tbl-hd{color:#0f172a}
+body.light-mode .tag-seg{color:#1d4ed8;background:#dbeafe;border-color:#bfdbfe}
+body.light-mode .pill{background:#1e3a5f;color:#93c5fd}
+body.light-mode .pill-b{background:#1e3a5f;color:#93c5fd}
+body.light-mode .badge{background:#dde5f0;color:#334155;border-color:#c4cfdf}
+body.light-mode .tabs{border-color:#c4cfdf}
+body.light-mode .tab{color:#475569}
+body.light-mode .tab.active{color:#1d4ed8;border-color:#1d4ed8}
+body.light-mode .tab:hover:not(.active){color:#0f172a;background:#eef2f7}
+body.light-mode .month-btn{background:#dde5f0;color:#334155;border-color:#c4cfdf}
+body.light-mode .month-btn.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+body.light-mode tfoot tr td{background:#dde5f0;color:#0f172a;font-weight:700}
 
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:28px 16px 60px;transition:background .25s,color .25s}
