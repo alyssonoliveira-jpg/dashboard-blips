@@ -3595,9 +3595,8 @@ function aplicarBloqueioSegmento(){
     }
   });
 
-  // 3. Aplica filtro global e re-processa
+  // 3. Garante filtro global definido (render inicial já aplicou na carga)
   filtroGlobal.segmento = _userSegmento;
-  aplicarFiltroGlobal();
 }
 
 // ── CARREGA METAS DO SUPABASE ──
