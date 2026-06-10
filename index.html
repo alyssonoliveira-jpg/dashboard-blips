@@ -794,7 +794,11 @@ async function gerarDashboard(){
         cl: cl, cv: cv,
         dataObj: dt,
         dataTs:  dt ? dt.getTime() : null,
-        isN1v: cv==='N1'||cv==='N2'||cv==='N3'||cv==='N4',
+        isN1v: cv==='N1',
+        isN2v: cv==='N2',
+        isN3v: cv==='N3',
+        isN4v: cv==='N4',
+        isAprovV: cv==='N1'||cv==='N2'||cv==='N3'||cv==='N4',
         isN1l: cl==='N1',
         isCQL: int_==='VENDA' || int_==='LOCACAO'
       };
@@ -835,17 +839,23 @@ async function gerarDashboard(){
       var vd   = s.filter(function(r){return r.interesse==='VENDA';});
       var lc   = s.filter(function(r){return r.interesse==='LOCACAO';});
       var cql  = vd.concat(lc);                                    // CQL = VENDA + LOCACAO apenas
-      var n1v  = vd.filter(function(r){return r.isN1v;});          // N1 Venda = cv=N1/N2/N3/N4
-      var n1l  = lc.filter(function(r){return r.isN1l;});          // N1 Loc   = cl=N1
-      var n1   = n1v.concat(n1l);                                  // N1 Total = N1v + N1l
+      var n1v  = vd.filter(function(r){return r.isN1v;});
+      var n2v  = vd.filter(function(r){return r.isN2v;});
+      var n3v  = vd.filter(function(r){return r.isN3v;});
+      var n4v  = vd.filter(function(r){return r.isN4v;});
+      var aprovV = vd.filter(function(r){return r.isAprovV;});
+      var n1l  = lc.filter(function(r){return r.isN1l;});
+      var n1   = aprovV.concat(n1l);
       var gs   = ganhos.filter(function(r){return r.funil===seg;});
-      var ct=soma(cql),cv2=soma(vd),cl2=soma(lc),nt=soma(n1),nv=soma(n1v),nl=soma(n1l),gv=soma(gs);
+      var ct=soma(cql),cv2=soma(vd),cl2=soma(lc),gv=soma(gs);
+      var nv1=soma(n1v),nv2=soma(n2v),nv3=soma(n3v),nv4=soma(n4v);
+      var navV=soma(aprovV),nl=soma(n1l),nt=navV+nl;
       return{
         funilOrig: seg,
         nome: seg.replace('Blips - ','').replace('Ideal - ',''),
         cql_t:ct,cql_v:cv2,cql_l:cl2,
-        n1_t:nt,n1_vv:nv,n1_ll:nl,
-        pct_t: ct?nt/ct*100:0, pct_v:cv2?nv/cv2*100:0, pct_l:cl2?nl/cl2*100:0,
+        n1_t:nt, n1_vv:nv1, n2_vv:nv2, n3_vv:nv3, n4_vv:nv4, aprov_vv:navV, n1_ll:nl,
+        pct_t: ct?nt/ct*100:0, pct_v:cv2?navV/cv2*100:0, pct_l:cl2?nl/cl2*100:0,
         g_val:gv, g_qtd:gs.length, conv_g:nt?gv/nt*100:0,
         conv_alvo: CONV_ALVO[seg] || 0,
         meta: META_SEG[seg] || 0,
@@ -1463,19 +1473,24 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
     var vd  = s.filter(function(r){return r.interesse==='VENDA';});
     var lc  = s.filter(function(r){return r.interesse==='LOCACAO';});
     var cql = vd.concat(lc);
-    var n1v = vd.filter(function(r){return r.isN1v;});
-    var n1l = lc.filter(function(r){return r.isN1l;});
-    var n1  = n1v.concat(n1l);
+    var n1v    = vd.filter(function(r){return r.isN1v;});
+    var n2v    = vd.filter(function(r){return r.isN2v;});
+    var n3v    = vd.filter(function(r){return r.isN3v;});
+    var n4v    = vd.filter(function(r){return r.isN4v;});
+    var aprovV = vd.filter(function(r){return r.isAprovV;});
+    var n1l    = lc.filter(function(r){return r.isN1l;});
+    var n1     = aprovV.concat(n1l);
     var gv  = soma(v.ganhos);
     var ct  = soma(cql), cv2 = soma(vd), cl2 = soma(lc);
-    var nt  = soma(n1),  nv  = soma(n1v),nl  = soma(n1l);
+    var nv1=soma(n1v),nv2=soma(n2v),nv3=soma(n3v),nv4=soma(n4v);
+    var navV=soma(aprovV), nl=soma(n1l), nt=navV+nl;
     var metaV = META_VEND[k] !== undefined ? META_VEND[k] : null;
     return {
       nome: v.nome,
       seg:  v.seg,
       cql_t:ct, cql_v:cv2, cql_l:cl2,
-      n1_t:nt,  n1_vv:nv,  n1_ll:nl,
-      pct_t: ct?nt/ct*100:0, pct_v:cv2?nv/cv2*100:0, pct_l:cl2?nl/cl2*100:0,
+      n1_t:nt, n1_vv:nv1, n2_vv:nv2, n3_vv:nv3, n4_vv:nv4, aprov_vv:navV, n1_ll:nl,
+      pct_t: ct?nt/ct*100:0, pct_v:cv2?navV/cv2*100:0, pct_l:cl2?nl/cl2*100:0,
       g_val:gv, g_qtd:v.ganhos.length, conv_g:nt?gv/nt*100:0,
       meta: metaV,
       pct_meta: (metaV && metaV>0) ? gv/metaV*100 : 0
@@ -1524,7 +1539,13 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
       return '<tr>'+
         '<td>'+r.nome+'</td>'+
         '<td>'+fmtBRL(r.cql_t)+'</td><td>'+fmtBRL(r.n1_t)+'</td><td><span class="pill">'+fmtPct(r.pct_t)+'</span></td>'+
-        '<td class="sep">'+fmtBRL(r.cql_v)+'</td><td>'+fmtBRL(r.n1_vv)+'</td><td><span class="pill-b">'+fmtPct(r.pct_v)+'</span></td>'+
+        '<td class="sep">'+fmtBRL(r.cql_v)+'</td>'+
+        '<td style="color:#4ade80">'+fmtBRL(r.n1_vv)+'</td>'+
+        '<td style="color:#a3e635">'+fmtBRL(r.n2_vv)+'</td>'+
+        '<td style="color:#fbbf24">'+fmtBRL(r.n3_vv)+'</td>'+
+        '<td style="color:#fb923c">'+fmtBRL(r.n4_vv)+'</td>'+
+        '<td style="color:#c084fc">'+fmtBRL(r.aprov_vv)+'</td>'+
+        '<td><span class="pill-b">'+fmtPct(r.pct_v)+'</span></td>'+
         '<td class="sep">'+fmtBRL(r.cql_l)+'</td><td>'+fmtBRL(r.n1_ll)+'</td><td><span class="pill-b">'+fmtPct(r.pct_l)+'</span></td>'+
         '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="pill-g">'+fmtPct(r.conv_g)+'</span></td>'+
         '<td class="sep">'+metaTxt+'</td><td><span class="'+metaPctCls+'">'+metaPctTxt+'</span></td>'+
@@ -1533,7 +1554,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
 
     var sumF = function(f){return sub.reduce(function(a,r){return a+r[f];},0);};
     var sumMeta = sub.reduce(function(a,r){return a+(r.meta||0);},0);
-    var tct=sumF('cql_t'),tnt=sumF('n1_t'),tgv=sumF('g_val'),tnv=sumF('n1_vv'),tnl=sumF('n1_ll');
+    var tct=sumF('cql_t'),tnt=sumF('n1_t'),tgv=sumF('g_val'),tnv=sumF('aprov_vv'),tnl=sumF('n1_ll');
     var tcv=sumF('cql_v'),tcl=sumF('cql_l');
     var tpt=tct?tnt/tct*100:0, tpv=tcv?tnv/tcv*100:0, tpl=tcl?tnl/tcl*100:0, tcg=tnt?tgv/tnt*100:0;
     var tpMeta = sumMeta ? tgv/sumMeta*100 : 0;
@@ -1545,15 +1566,15 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
         '<thead>'+
           '<tr>'+
             '<th rowspan="2" style="text-align:left;vertical-align:bottom;padding:8px 10px;min-width:200px">Vendedor</th>'+
-            '<th colspan="3" class="th-group" style="color:#f87171">CQL/N1 Total</th>'+
-            '<th colspan="3" class="th-group th-v" style="border-left:1px solid #1e2535">Venda</th>'+
+            '<th colspan="3" class="th-group" style="color:#f87171">CQL/Aprov Total</th>'+
+            '<th colspan="7" class="th-group th-v" style="border-left:1px solid #1e2535">Venda</th>'+
             '<th colspan="3" class="th-group th-l" style="border-left:1px solid #1e2535">Locação</th>'+
             '<th colspan="2" class="th-group th-g" style="border-left:1px solid #1e2535">Ganhos</th>'+
             '<th colspan="2" class="th-group th-meta" style="border-left:1px solid #1e2535">Meta</th>'+
           '</tr>'+
           '<tr>'+
-            '<th style="color:#60a5fa">CQL Total</th><th style="color:#c084fc">N1 Total</th><th>% N1</th>'+
-            '<th class="sep">CQL Venda</th><th>N1 Venda</th><th>% N1</th>'+
+            '<th style="color:#60a5fa">CQL Total</th><th style="color:#c084fc">Aprov Total</th><th>% Aprov</th>'+
+            '<th class="sep">CQL Venda</th><th style="color:#4ade80">N1</th><th style="color:#a3e635">N2</th><th style="color:#fbbf24">N3</th><th style="color:#fb923c">N4</th><th style="color:#c084fc">Total</th><th>% Aprov</th>'+
             '<th class="sep">CQL Loc</th><th>N1 Loc</th><th>% N1</th>'+
             '<th class="sep">Resultado</th><th>Conv</th>'+
             '<th class="sep">Meta R$</th><th>% Meta</th>'+
@@ -1564,7 +1585,13 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
           '<tr>'+
             '<td>TOTAL</td>'+
             '<td>'+fmtBRL(tct)+'</td><td>'+fmtBRL(tnt)+'</td><td><span class="pill">'+fmtPct(tpt)+'</span></td>'+
-            '<td class="sep">'+fmtBRL(tcv)+'</td><td>'+fmtBRL(tnv)+'</td><td><span class="pill">'+fmtPct(tpv)+'</span></td>'+
+            '<td class="sep">'+fmtBRL(tcv)+'</td>'+
+            '<td style="color:#4ade80">'+fmtBRL(sumF('n1_vv'))+'</td>'+
+            '<td style="color:#a3e635">'+fmtBRL(sumF('n2_vv'))+'</td>'+
+            '<td style="color:#fbbf24">'+fmtBRL(sumF('n3_vv'))+'</td>'+
+            '<td style="color:#fb923c">'+fmtBRL(sumF('n4_vv'))+'</td>'+
+            '<td style="color:#c084fc">'+fmtBRL(tnv)+'</td>'+
+            '<td><span class="pill">'+fmtPct(tpv)+'</span></td>'+
             '<td class="sep">'+fmtBRL(tcl)+'</td><td>'+fmtBRL(tnl)+'</td><td><span class="pill">'+fmtPct(tpl)+'</span></td>'+
             '<td class="sep hi">'+fmtBRL(tgv)+'</td><td><span class="pill-g">'+fmtPct(tcg)+'</span></td>'+
             '<td class="sep">'+fmtBRL(sumMeta)+'</td><td><span class="'+tpMetaCls+'">'+fmtPct(tpMeta)+'</span></td>'+
@@ -3152,7 +3179,7 @@ function filtrarVendSeg(seg){
 function renderizar(met,totalLeads){
   ultimosSegmentos = met;   // guarda pra usar na aba Projecao
   var s=function(f){return met.reduce(function(a,r){return a+r[f];},0);};
-  var tc=s('cql_t'),tn=s('n1_t'),tg=s('g_val'),tv=s('n1_vv'),tl=s('n1_ll');
+  var tc=s('cql_t'),tn=s('n1_t'),tg=s('g_val'),tv=s('aprov_vv'),tl=s('n1_ll');
   var tcv=s('cql_v'),tcl=s('cql_l');
   var pg=tc?tn/tc*100:0, pv=tcv?tv/tcv*100:0, pl=tcl?tl/tcl*100:0, cg=tn?tg/tn*100:0;
   var metaTotal = s('meta');
@@ -3190,7 +3217,13 @@ function renderizar(met,totalLeads){
     return '<tr>'+
       '<td><span class="tag-seg">'+r.nome+'</span></td>'+
       '<td>'+fmtBRL(r.cql_t)+'</td><td>'+fmtBRL(r.n1_t)+'</td><td><span class="pill">'+fmtPct(r.pct_t)+'</span></td>'+
-      '<td class="sep">'+fmtBRL(r.cql_v)+'</td><td>'+fmtBRL(r.n1_vv)+'</td><td><span class="pill-b">'+fmtPct(r.pct_v)+'</span></td>'+
+      '<td class="sep">'+fmtBRL(r.cql_v)+'</td>'+
+      '<td style="color:#4ade80">'+fmtBRL(r.n1_vv)+'</td>'+
+      '<td style="color:#a3e635">'+fmtBRL(r.n2_vv)+'</td>'+
+      '<td style="color:#fbbf24">'+fmtBRL(r.n3_vv)+'</td>'+
+      '<td style="color:#fb923c">'+fmtBRL(r.n4_vv)+'</td>'+
+      '<td style="color:#c084fc">'+fmtBRL(r.aprov_vv)+'</td>'+
+      '<td><span class="pill-b">'+fmtPct(r.pct_v)+'</span></td>'+
       '<td class="sep">'+fmtBRL(r.cql_l)+'</td><td>'+fmtBRL(r.n1_ll)+'</td><td><span class="pill-b">'+fmtPct(r.pct_l)+'</span></td>'+
       '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="'+convClass+'">'+fmtPct(r.conv_g)+'</span></td>'+
       '<td><span class="pill-alvo">'+alvoTxt+'</span></td>'+
@@ -3208,14 +3241,14 @@ function renderizar(met,totalLeads){
     '<tr>'+
       '<th rowspan="2" style="text-align:left;vertical-align:bottom;padding:8px 10px">Segmento</th>'+
       '<th colspan="3" class="th-group" style="color:#f87171">CQL/N1 Total</th>'+
-      '<th colspan="3" class="th-group th-v" style="border-left:1px solid #1e2535">Venda</th>'+
+      '<th colspan="7" class="th-group th-v" style="border-left:1px solid #1e2535">Venda</th>'+
       '<th colspan="3" class="th-group th-l" style="border-left:1px solid #1e2535">Locação</th>'+
       '<th colspan="3" class="th-group th-g" style="border-left:1px solid #1e2535">Ganhos</th>'+
       '<th colspan="2" class="th-group th-meta" style="border-left:1px solid #1e2535">Meta</th>'+
     '</tr>'+
     '<tr>'+
-      '<th style="color:#60a5fa">CQL Total</th><th style="color:#c084fc">N1 Total</th><th>% N1</th>'+
-      '<th class="sep">CQL Venda</th><th>N1 Venda</th><th>% N1</th>'+
+      '<th style="color:#60a5fa">CQL Total</th><th style="color:#c084fc">Aprov Total</th><th>% Aprov</th>'+
+      '<th class="sep">CQL Venda</th><th style="color:#4ade80">N1</th><th style="color:#a3e635">N2</th><th style="color:#fbbf24">N3</th><th style="color:#fb923c">N4</th><th style="color:#c084fc">Total</th><th>% Aprov</th>'+
       '<th class="sep">CQL Loc</th><th>N1 Loc</th><th>% N1</th>'+
       '<th class="sep">Resultado</th><th>Conv</th><th>Alvo</th>'+
       '<th class="sep">Meta R$</th><th>% Meta</th>'+
@@ -3224,7 +3257,9 @@ function renderizar(met,totalLeads){
     '<tfoot><tr>'+
       '<td>TOTAL</td>'+
       '<td>'+fmtBRL(tc)+'</td><td>'+fmtBRL(tn)+'</td><td><span class="pill">'+fmtPct(pg)+'</span></td>'+
-      '<td class="sep">'+fmtBRL(tcv)+'</td><td>'+fmtBRL(tv)+'</td><td><span class="pill">'+fmtPct(pv)+'</span></td>'+
+      '<td class="sep">'+fmtBRL(tcv)+'</td>'+
+      '<td>'+fmtBRL(s('n1_vv'))+'</td><td>'+fmtBRL(s('n2_vv'))+'</td><td>'+fmtBRL(s('n3_vv'))+'</td><td>'+fmtBRL(s('n4_vv'))+'</td>'+
+      '<td>'+fmtBRL(tv)+'</td><td><span class="pill">'+fmtPct(pv)+'</span></td>'+
       '<td class="sep">'+fmtBRL(tcl)+'</td><td>'+fmtBRL(tl)+'</td><td><span class="pill">'+fmtPct(pl)+'</span></td>'+
       '<td class="sep hi">'+fmtBRL(tg)+'</td><td><span class="pill-g">'+fmtPct(cg)+'</span></td><td>—</td>'+
       '<td class="sep">'+fmtBRL(metaTotal)+'</td><td><span class="'+metaTotalClass+'">'+fmtPct(pctMetaTotal)+'</span></td>'+
