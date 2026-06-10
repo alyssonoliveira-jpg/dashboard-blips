@@ -897,7 +897,8 @@ async function gerarDashboard(){
         g_val:gv, g_qtd:gs.length, conv_g:nt?gv/nt*100:0,
         conv_alvo: CONV_ALVO[seg] || 0,
         meta: META_SEG[seg] || 0,
-        pct_meta: (META_SEG[seg] && META_SEG[seg]>0) ? gv/META_SEG[seg]*100 : 0
+        pct_meta: (META_SEG[seg] && META_SEG[seg]>0) ? gv/META_SEG[seg]*100 : 0,
+        qtd_leads: s.length
       };
     });
 
@@ -1438,7 +1439,8 @@ function reprocessar(leads, ganhos){
       g_val:gv, g_qtd:gs.length, conv_g:nt?gv/nt*100:0,
       conv_alvo: CONV_ALVO[seg] || 0,
       meta: META_SEG[seg] || 0,
-      pct_meta: (META_SEG[seg] && META_SEG[seg]>0) ? gv/META_SEG[seg]*100 : 0
+      pct_meta: (META_SEG[seg] && META_SEG[seg]>0) ? gv/META_SEG[seg]*100 : 0,
+      qtd_leads: s.length
     };
   });
 
@@ -3344,6 +3346,7 @@ function renderizar(met,totalLeads){
     var metaTxt    = r.meta > 0 ? fmtBRL(r.meta) : '—';
     return '<tr>'+
       '<td><span class="tag-seg">'+r.nome+'</span></td>'+
+      '<td style="color:#94a3b8;text-align:right">'+r.qtd_leads.toLocaleString('pt-BR')+'</td>'+
       '<td>'+fmtBRL(r.cql_t)+'</td><td>'+fmtBRL(r.n1_t)+'</td><td><span class="pill">'+fmtPct(r.pct_t)+'</span></td>'+
       '<td class="sep">'+fmtBRL(r.cql_v)+'</td>'+
       '<td style="color:#4ade80">'+fmtBRL(r.n1_vv)+'</td>'+
@@ -3368,6 +3371,7 @@ function renderizar(met,totalLeads){
     '<table><thead>'+
     '<tr>'+
       '<th rowspan="2" style="text-align:left;vertical-align:bottom;padding:8px 10px">Segmento</th>'+
+      '<th rowspan="2" style="vertical-align:bottom;padding:8px 10px;color:#94a3b8">Qtd Leads</th>'+
       '<th colspan="3" class="th-group" style="color:#f87171">CQL/N1 Total</th>'+
       '<th colspan="7" class="th-group th-v" style="border-left:1px solid #1e2535">Venda</th>'+
       '<th colspan="3" class="th-group th-l" style="border-left:1px solid #1e2535">Locação</th>'+
@@ -3384,6 +3388,7 @@ function renderizar(met,totalLeads){
     '<tbody>'+linhas+'</tbody>'+
     '<tfoot><tr>'+
       '<td>TOTAL</td>'+
+      '<td style="color:#94a3b8;text-align:right">'+met.reduce(function(a,r){return a+r.qtd_leads;},0).toLocaleString('pt-BR')+'</td>'+
       '<td>'+fmtBRL(tc)+'</td><td>'+fmtBRL(tn)+'</td><td><span class="pill">'+fmtPct(pg)+'</span></td>'+
       '<td class="sep">'+fmtBRL(tcv)+'</td>'+
       '<td>'+fmtBRL(s('n1_vv'))+'</td><td>'+fmtBRL(s('n2_vv'))+'</td><td>'+fmtBRL(s('n3_vv'))+'</td><td>'+fmtBRL(s('n4_vv'))+'</td>'+
