@@ -794,7 +794,7 @@ async function gerarDashboard(){
         cl: cl, cv: cv,
         dataObj: dt,
         dataTs:  dt ? dt.getTime() : null,
-        isN1v: cv==='N1',
+        isN1v: cv==='N1'||cv==='N2'||cv==='N3'||cv==='N4',
         isN1l: cl==='N1',
         isCQL: int_==='VENDA' || int_==='LOCACAO'
       };
@@ -835,7 +835,7 @@ async function gerarDashboard(){
       var vd   = s.filter(function(r){return r.interesse==='VENDA';});
       var lc   = s.filter(function(r){return r.interesse==='LOCACAO';});
       var cql  = vd.concat(lc);                                    // CQL = VENDA + LOCACAO apenas
-      var n1v  = vd.filter(function(r){return r.isN1v;});          // N1 Venda = cv=N1
+      var n1v  = vd.filter(function(r){return r.isN1v;});          // N1 Venda = cv=N1/N2/N3/N4
       var n1l  = lc.filter(function(r){return r.isN1l;});          // N1 Loc   = cl=N1
       var n1   = n1v.concat(n1l);                                  // N1 Total = N1v + N1l
       var gs   = ganhos.filter(function(r){return r.funil===seg;});
@@ -2371,7 +2371,7 @@ function renderCredito(){
     var d=r.dataObj.getFullYear()+'-'+String(r.dataObj.getMonth()+1).padStart(2,'0')+'-'+String(r.dataObj.getDate()).padStart(2,'0');
     if(!dias[d])dias[d]={dia:d,total:0,n1:0,rep:0,outros:0};
     dias[d].total++;
-    if(r.cl==='N1'||r.cv==='N1')dias[d].n1++;
+    if(r.cl==='N1'||(r.cv==='N1'||r.cv==='N2'||r.cv==='N3'||r.cv==='N4'))dias[d].n1++;
     else if(r.cl==='Reprovado'||r.cv==='Reprovado')dias[d].rep++;
     else dias[d].outros++;
   });
@@ -2436,7 +2436,7 @@ function renderCredito(){
     var key=d+'|'+seg;
     if(!diasSegs[key])diasSegs[key]={dia:d,seg:seg,n1:0,rep:0,out:0,total:0};
     diasSegs[key].total++;
-    if(r.cl==='N1'||r.cv==='N1')diasSegs[key].n1++;
+    if(r.cl==='N1'||(r.cv==='N1'||r.cv==='N2'||r.cv==='N3'||r.cv==='N4'))diasSegs[key].n1++;
     else if(r.cl==='Reprovado'||r.cv==='Reprovado')diasSegs[key].rep++;
     else diasSegs[key].out++;
   });
