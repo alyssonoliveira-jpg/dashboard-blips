@@ -3476,7 +3476,7 @@ function toggleTheme(){
   });
 })();
 
-function validarUsuario(user){
+async function validarUsuario(user){
   const email = (user.email || '').toLowerCase();
   if(!email.endsWith('@' + DOMINIO_OK)){
     sb.auth.signOut();
