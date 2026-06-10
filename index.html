@@ -1984,6 +1984,7 @@ function renderClassificacoes(){
 
   var segOrdem = SEGMENTOS.filter(function(s){return segData[s];})
     .concat(Object.keys(segData).filter(function(s){return SEGMENTOS.indexOf(s)===-1;}));
+  if(_userSegmento) segOrdem = segOrdem.filter(function(s){return s===_userSegmento;});
 
   // KPI totais geral
   var totalN1V=0,totalN1L=0,totalRepV=0,totalRepL=0;
@@ -2493,7 +2494,8 @@ function renderCredito(){
 
   // Filtro segmento
   var segsP=[...new Set(leadsAll.map(function(r){return r.funil;}).filter(function(f){return f&&(f==='Ideal - Suprimentos'||!f.includes('Ideal'))&&SEGMENTOS_SEM_CREDITO.indexOf(f)===-1;}))].sort();
-  var segBtns='<button class="fseg'+(segFiltro==='all'?' active':'')+'" onclick="creditoFiltrar(\'all\')">Todos</button>';
+  if(_userSegmento) segsP = segsP.filter(function(s){return s===_userSegmento;});
+  var segBtns = _userSegmento ? '' : '<button class="fseg'+(segFiltro==='all'?' active':'')+'" onclick="creditoFiltrar(\'all\')">Todos</button>';
   segsP.forEach(function(s){segBtns+='<button class="fseg'+(segFiltro===s?' active':'')+'" onclick="creditoFiltrar(\''+s+'\')">'+s.replace('Blips - ','')+'</button>';});
 
   // Filtro modalidade
@@ -2907,7 +2909,8 @@ function renderBatedores(vendArr, segsVend){
 
   // Agrupa por segmento (mesma ordem da aba Vendedores)
   var html = '';
-  segsVend.forEach(function(seg){
+  var segsVendBat = _userSegmento ? segsVend.filter(function(s){return s===_userSegmento;}) : segsVend;
+  segsVendBat.forEach(function(seg){
     var sub = batedores.filter(function(v){return v.seg===seg;})
                        .sort(function(a,b){return b.pct_meta - a.pct_meta;});
     if(!sub.length) return;
@@ -3073,7 +3076,8 @@ function renderProjecao(){
 
   // Blocos por segmento (colapsavel)
   var html = '';
-  ultimosSegmentos.forEach(function(seg){
+  var segsProj = _userSegmento ? ultimosSegmentos.filter(function(seg){return seg.funilOrig===_userSegmento;}) : ultimosSegmentos;
+  segsProj.forEach(function(seg){
     if(!seg.meta || seg.meta === 0) return;  // ignora segmentos sem meta
     var falta = Math.max(0, seg.meta - seg.g_val);
     var ritmoSeg         = isMesAtual && diasUteisRestantes>0    ? falta/diasUteisRestantes    : 0;
