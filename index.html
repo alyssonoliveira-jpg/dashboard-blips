@@ -3444,7 +3444,7 @@ function renderizar(met,totalLeads){
   kpis.style.display='grid';
   kpis.innerHTML=
     '<div class="kpi"><div class="kpi-lbl">Meta Geral</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(47161564)+'</div><div class="kpi-sub">todos os segmentos</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">Meta do Segmento</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">'+met.length+' segmento'+(met.length!==1?'s':'')+'</div></div>'+
+    (SEM_META_SEG.includes(usuarioAtual&&usuarioAtual.email) ? '' : '<div class="kpi"><div class="kpi-lbl">Meta do Segmento</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">'+met.length+' segmento'+(met.length!==1?'s':'')+'</div></div>')+
     '<div class="kpi"><div class="kpi-lbl">Leads CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+trend(tc,prev&&prev.tc)+'</div><div class="kpi-sub">'+totalLeads.toLocaleString('pt-BR')+' negócios</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+trend(tn,prev&&prev.tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val ko">'+fmtBRL(tv)+trend(tv,prev&&prev.tv)+'</div><div class="kpi-sub">Conv: '+fmtPct(pv)+'</div></div>'+
@@ -3555,6 +3555,7 @@ const SUPABASE_URL  = 'https://puepvfrguniecdwgawmy.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_PKQUsBS3oWy6hFzmlYdR_g_oVz1mvnK';
 const DOMINIO_OK    = 'blips.com.br';
 const ADMIN_EMAILS  = ['alysson.oliveira@blips.com.br'];
+const SEM_META_SEG  = ['alysson.oliveira@blips.com.br','larissa.leal@blips.com.br','larissa.pereira@blips.com.br'];
 
 // Lista de emails autorizados a acessar o dashboard
 const EMAILS_PERMITIDOS = [
