@@ -4082,6 +4082,19 @@ async function salvarBaseNoSupabase(arquivoLeads, arquivoGanhos){
       mesRef = dataMax.getFullYear() + '-' + String(dataMax.getMonth()+1).padStart(2,'0');
     }
 
+    // Remove bases antigas do mesmo mês antes de inserir a nova
+    if(mesRef){
+      const { data: antigas } = await sb.from('bases_uploads').select('id,leads_path,ganhos_path').eq('mes_referencia', mesRef);
+      if(antigas && antigas.length){
+        for(var i=0;i<antigas.length;i++){
+          var old = antigas[i];
+          await sb.storage.from(BUCKET).remove([old.leads_path]);
+          await sb.storage.from(BUCKET).remove([old.ganhos_path]);
+          await sb.from('bases_uploads').delete().eq('id', old.id);
+        }
+      }
+    }
+
     // Insere registro na tabela
     const { data, error } = await sb.from('bases_uploads').insert({
       uploaded_by: usuarioAtual.email,
