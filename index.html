@@ -945,8 +945,8 @@ async function gerarDashboard(){
     leadsAtivos = leads;
 
     // Para o render inicial aplica filtro de segmento se restrito
-    var leadsR  = (filtroGlobal.segmento && filtroGlobal.segmento!=='all') ? leads.filter(function(r){return r.funil===filtroGlobal.segmento;}) : leads;
-    var ganhosR = (filtroGlobal.segmento && filtroGlobal.segmento!=='all') ? ganhos.filter(function(r){return r.funil===filtroGlobal.segmento;}) : ganhos;
+    var leadsR  = _userSegmentos ? leads.filter(function(r){return _temAcesso(r.funil);}) : leads;
+    var ganhosR = _userSegmentos ? ganhos.filter(function(r){return _temAcesso(r.funil);}) : ganhos;
 
     var segPresentes = leadsR.map(function(r){return r.funil;})
       .filter(function(f,i,a){return f&&(f==='Ideal - Suprimentos'||!f.includes('Ideal'))&&a.indexOf(f)===i;});
@@ -1505,13 +1505,17 @@ function limparFiltroData(){
 
 function reprocessar(leads, ganhos){
   // Aplica filtros globais
-  if(filtroGlobal.segmento !== 'all')
+  if(_userSegmentos)
+    leads  = leads.filter(function(r){return _temAcesso(r.funil);});
+  else if(filtroGlobal.segmento !== 'all')
     leads  = leads.filter(function(r){return r.funil===filtroGlobal.segmento;});
   if(filtroGlobal.interesse !== 'all')
     leads  = leads.filter(function(r){return r.interesse===filtroGlobal.interesse;});
   if(filtroGlobal.vendedor !== '')
     leads  = leads.filter(function(r){return r.propKey && r.propKey.includes(filtroGlobal.vendedor);});
-  if(filtroGlobal.segmento !== 'all')
+  if(_userSegmentos)
+    ganhos = ganhos.filter(function(r){return _temAcesso(r.funil);});
+  else if(filtroGlobal.segmento !== 'all')
     ganhos = ganhos.filter(function(r){return r.funil===filtroGlobal.segmento;});
   if(filtroGlobal.vendedor !== '')
     ganhos = ganhos.filter(function(r){return r.propKey && r.propKey.includes(filtroGlobal.vendedor);});
@@ -1665,8 +1669,8 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
 
   // Renderiza filtro
   var fBox = document.getElementById('filter-segs');
-  if(_userSegmento){
-    var nomeS = _userSegmento.replace('Blips - ','').replace('Ideal - ','');
+  if(_userSegmentos){
+    var nomeS = _userSegmentos.map(function(s){return s.replace('Blips - ','').replace('Ideal - ','');}).join(' + ');
     fBox.innerHTML = '<span class="badge" style="font-size:.82rem;padding:6px 14px;color:#a78bfa;background:#1e1040;border:1px solid #7c3aed">🔒 '+nomeS+'</span>';
   } else {
     var btnsHtml = '<button class="fseg active" data-seg="all" onclick="filtrarVendSeg(\'all\')">Todos</button>';
@@ -1680,7 +1684,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
   // Renderiza blocos por segmento
   var box = document.getElementById('vend-blocks');
   var html = '';
-  var segsVendFilt = _userSegmento ? segsVend.filter(function(s){return s===_userSegmento;}) : segsVend;
+  var segsVendFilt = _userSegmentos ? segsVend.filter(function(s){return _temAcesso(s);}) : segsVend;
   segsVendFilt.forEach(function(seg){
     var sub = arr.filter(function(v){return v.seg===seg;})
                  .sort(function(a,b){return b.cql_t - a.cql_t;});
@@ -2101,7 +2105,7 @@ function renderClassificacoes(){
 
   var segOrdem = SEGMENTOS.filter(function(s){return segData[s];})
     .concat(Object.keys(segData).filter(function(s){return SEGMENTOS.indexOf(s)===-1;}));
-  if(_userSegmento) segOrdem = segOrdem.filter(function(s){return s===_userSegmento;});
+  if(_userSegmentos) segOrdem = segOrdem.filter(function(s){return _temAcesso(s);});
 
   // KPI totais geral
   var totalN1V=0,totalN1L=0,totalRepV=0,totalRepL=0;
@@ -2611,8 +2615,8 @@ function renderCredito(){
 
   // Filtro segmento
   var segsP=[...new Set(leadsAll.map(function(r){return r.funil;}).filter(function(f){return f&&(f==='Ideal - Suprimentos'||!f.includes('Ideal'))&&SEGMENTOS_SEM_CREDITO.indexOf(f)===-1;}))].sort();
-  if(_userSegmento) segsP = segsP.filter(function(s){return s===_userSegmento;});
-  var segBtns = _userSegmento ? '' : '<button class="fseg'+(segFiltro==='all'?' active':'')+'" onclick="creditoFiltrar(\'all\')">Todos</button>';
+  if(_userSegmentos) segsP = segsP.filter(function(s){return _temAcesso(s);});
+  var segBtns = _userSegmentos ? '' : '<button class="fseg'+(segFiltro==='all'?' active':'')+'" onclick="creditoFiltrar(\'all\')">Todos</button>';
   segsP.forEach(function(s){segBtns+='<button class="fseg'+(segFiltro===s?' active':'')+'" onclick="creditoFiltrar(\''+s+'\')">'+s.replace('Blips - ','')+'</button>';});
 
   // Filtro modalidade
@@ -3026,7 +3030,7 @@ function renderBatedores(vendArr, segsVend){
 
   // Agrupa por segmento (mesma ordem da aba Vendedores)
   var html = '';
-  var segsVendBat = _userSegmento ? segsVend.filter(function(s){return s===_userSegmento;}) : segsVend;
+  var segsVendBat = _userSegmentos ? segsVend.filter(function(s){return _temAcesso(s);}) : segsVend;
   segsVendBat.forEach(function(seg){
     var sub = batedores.filter(function(v){return v.seg===seg;})
                        .sort(function(a,b){return b.pct_meta - a.pct_meta;});
@@ -3193,7 +3197,7 @@ function renderProjecao(){
 
   // Blocos por segmento (colapsavel)
   var html = '';
-  var segsProj = _userSegmento ? ultimosSegmentos.filter(function(seg){return seg.funilOrig===_userSegmento;}) : ultimosSegmentos;
+  var segsProj = _userSegmentos ? ultimosSegmentos.filter(function(seg){return _temAcesso(seg.funilOrig);}) : ultimosSegmentos;
   segsProj.forEach(function(seg){
     if(!seg.meta || seg.meta === 0) return;  // ignora segmentos sem meta
     var falta = Math.max(0, seg.meta - seg.g_val);
@@ -3589,7 +3593,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var usuarioAtual    = null;
 var isAdmin         = false;
 var appInicializado = false;
-var _userSegmento   = null;   // null = acesso total; 'Blips - Construcao' etc = restrito
+var _userSegmento   = null;   // null = acesso total; string = 1 segmento (legado)
+var _userSegmentos  = null;   // null = acesso total; array = multiplos segmentos permitidos
+function _temAcesso(seg){ return !_userSegmentos || _userSegmentos.includes(seg); }
 
 // ── DARK / LIGHT MODE ──
 (function initTheme(){
@@ -3659,12 +3665,15 @@ async function validarUsuario(user){
 
   // Busca segmento permitido na tabela user_permissions
   try {
-    const { data: perm, error: permErr } = await sb.from('user_permissions').select('segmento').eq('email', email).maybeSingle();
-    console.log('[RBAC] email:', email, '| perm:', perm, '| error:', permErr);
-    _userSegmento = (perm && perm.segmento) ? perm.segmento : null;
-    console.log('[RBAC] _userSegmento definido como:', _userSegmento);
-  } catch(e) { console.error('[RBAC] catch:', e); _userSegmento = null; }
-  // Aplica filtro global imediatamente se restrito
+    const { data: perms, error: permErr } = await sb.from('user_permissions').select('segmento').eq('email', email);
+    console.log('[RBAC] email:', email, '| perms:', perms, '| error:', permErr);
+    var segsPermitidos = (perms||[]).map(function(p){return p.segmento;}).filter(function(s){return s;});
+    if(segsPermitidos.length === 0){ _userSegmentos = null; _userSegmento = null; }
+    else if(segsPermitidos.length === 1){ _userSegmentos = segsPermitidos; _userSegmento = segsPermitidos[0]; }
+    else { _userSegmentos = segsPermitidos; _userSegmento = segsPermitidos[0]; }
+    console.log('[RBAC] _userSegmentos:', _userSegmentos);
+  } catch(e) { console.error('[RBAC] catch:', e); _userSegmento = null; _userSegmentos = null; }
+  // Aplica filtro global imediatamente se restrito (usa primeiro segmento como referência inicial)
   if(_userSegmento) filtroGlobal.segmento = _userSegmento;
 
   // Autorizado!
@@ -3712,22 +3721,21 @@ async function validarUsuario(user){
   // Carrega metas e depois a ultima base
   carregarMetasConfig().then(function(){
     carregarUltimaBase().then(function(){
-      if(_userSegmento) aplicarBloqueioSegmento();
+      if(_userSegmentos) aplicarBloqueioSegmento();
     });
   });
 }
 
 // ── BLOQUEIO DE SEGMENTO POR USUÁRIO ──
 function aplicarBloqueioSegmento(){
-  if(!_userSegmento) return;
-  var nomeS = _userSegmento.replace('Blips - ','').replace('Ideal - ','');
+  if(!_userSegmentos) return;
+  var nomeS = _userSegmentos.map(function(s){return s.replace('Blips - ','').replace('Ideal - ','');}).join(' + ');
 
-  // 1. Bloqueia select principal (aba Segmentos)
+  // 1. Bloqueia select principal (aba Segmentos) — só para 1 segmento
   var sel = document.getElementById('fg-segmento');
-  if(sel){
-    // Garante que a opção existe e seleciona
-    var opt = Array.from(sel.options).find(function(o){return o.value===_userSegmento;});
-    if(opt) sel.value = _userSegmento;
+  if(sel && _userSegmentos.length === 1){
+    var opt = Array.from(sel.options).find(function(o){return o.value===_userSegmentos[0];});
+    if(opt) sel.value = _userSegmentos[0];
     sel.disabled = true;
     sel.title = '🔒 Acesso restrito a '+nomeS;
   }
@@ -3735,18 +3743,18 @@ function aplicarBloqueioSegmento(){
   // 2. Bloqueia botões de segmento da aba Performance
   document.querySelectorAll('[data-pseg]').forEach(function(btn){
     var seg = btn.getAttribute('data-pseg');
-    if(seg === 'all' || seg === _userSegmento){
-      if(seg === _userSegmento){
+    if(seg === 'all' || _temAcesso(seg)){
+      if(_temAcesso(seg) && _userSegmentos.length === 1){
         btn.classList.add('active');
-        filtrarPerf('seg', _userSegmento);
+        filtrarPerf('seg', _userSegmentos[0]);
       }
     } else {
       btn.style.display = 'none';
     }
   });
 
-  // 3. Garante filtro global definido (render inicial já aplicou na carga)
-  filtroGlobal.segmento = _userSegmento;
+  // 3. Garante filtro global (1 segmento = filtra; múltiplos = acesso total mas filtrado no render)
+  if(_userSegmentos.length === 1) filtroGlobal.segmento = _userSegmentos[0];
 }
 
 // ── TAB DOTS ──
