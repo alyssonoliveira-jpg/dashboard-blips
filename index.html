@@ -3961,7 +3961,22 @@ async function aplicarBaseDoSupabase(base){
     mostrarLoading('Processando dados...');
     // Le os blobs como ArrayBuffer e parseia
     dadosLeads  = await blobParaJson(leadsBlob);
-    dadosGanhos = await blobParaJson(ganhosBlob);
+    var rawGanhos = await blobParaJson(ganhosBlob);
+    // Agrega ganhos por proprietario+funil (suporte a export individual e acumulado)
+    var gMap2={}, gOrder2=[];
+    rawGanhos.forEach(function(r){
+      var rk=Object.keys(r);
+      var kF=rk.find(function(k){return k.toLowerCase().includes('funil');})||'';
+      var kP=rk.find(function(k){return k.toLowerCase().includes('propriet');})||'';
+      var kV=rk.find(function(k){return k.toLowerCase().includes('sum_')&&k.toLowerCase().includes('valor');})||
+             rk.find(function(k){return k.toLowerCase().includes('valor do neg');})||
+             rk.find(function(k){return k.toLowerCase().includes('valor');})||'';
+      var key=String(r[kF]||'')+'|'+String(r[kP]||'');
+      var val=parseFloat(String(r[kV]||'0').replace(/[^\d.-]/g,''))||0;
+      if(!gMap2[key]){gMap2[key]=Object.assign({},r);gOrder2.push(key);if(kV)gMap2[key][kV]=0;}
+      if(kV)gMap2[key][kV]+=val;
+    });
+    dadosGanhos = gOrder2.map(function(k){return gMap2[k];});
 
     // Atualiza UI
     atualizarIndicadorBase(base);
