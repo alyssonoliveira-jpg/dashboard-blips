@@ -1315,17 +1315,21 @@ async function aplicarMultiplasBases(bases, ym){
       });
     }
 
-    // Deduplica ganhos por proprietario+funil (soma acumulada pode duplicar)
-    var gVistos = {};
-    todosGanhos = todosGanhos.filter(function(r){
-      var gKeys = Object.keys(r);
-      var kFunil = gKeys.find(function(k){return k.toLowerCase().includes('funil');}) || '';
-      var kProp  = gKeys.find(function(k){return k.toLowerCase().includes('propriet');}) || '';
-      var key = String(r[kFunil]||'') + '|' + String(r[kProp]||'');
-      if(gVistos[key]) return false;
-      gVistos[key] = true;
-      return true;
+    // Agrega ganhos por proprietario+funil (soma todos os deals — compatível com export individual e acumulado)
+    var gMap = {}, gOrder = [];
+    todosGanhos.forEach(function(r){
+      var rk = Object.keys(r);
+      var kFunil = rk.find(function(k){return k.toLowerCase().includes('funil');}) || '';
+      var kProp  = rk.find(function(k){return k.toLowerCase().includes('propriet');}) || '';
+      var kValor = rk.find(function(k){return k.toLowerCase().includes('sum_')&&k.toLowerCase().includes('valor');})||
+                   rk.find(function(k){return k.toLowerCase().includes('valor do neg');})||
+                   rk.find(function(k){return k.toLowerCase().includes('valor');})||'';
+      var key = String(r[kFunil]||'')+'|'+String(r[kProp]||'');
+      var val = parseFloat(String(r[kValor]||'0').replace(/[^\d.-]/g,''))||0;
+      if(!gMap[key]){ gMap[key] = Object.assign({},r); gOrder.push(key); if(kValor) gMap[key][kValor]=0; }
+      if(kValor) gMap[key][kValor] += val;
     });
+    todosGanhos = gOrder.map(function(k){return gMap[k];});
 
     dadosLeads  = todosLeads;
     dadosGanhos = todosGanhos;
