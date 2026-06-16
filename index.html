@@ -3456,7 +3456,15 @@ function renderizar(met,totalLeads){
   kpis.style.display='grid';
   kpis.innerHTML=
     '<div class="kpi"><div class="kpi-lbl">Meta Geral</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(47161564)+'</div><div class="kpi-sub">todos os segmentos</div></div>'+
-    (SEM_META_SEG.includes(usuarioAtual&&usuarioAtual.email) ? '' : '<div class="kpi"><div class="kpi-lbl">Meta do Segmento</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">'+met.length+' segmento'+(met.length!==1?'s':'')+'</div></div>')+
+    (SEM_META_SEG.includes(usuarioAtual&&usuarioAtual.email) ? '' :
+      (_userSegmentos && _userSegmentos.length > 1
+        ? met.filter(function(r){return r.meta>0;}).map(function(r){
+            var cls = r.pct_meta>=100?'#4ade80':r.pct_meta>=70?'#fbbf24':'#f87171';
+            return '<div class="kpi"><div class="kpi-lbl">Meta '+r.nome+'</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(r.meta)+'</div><div class="kpi-sub">Vendido: '+fmtBRL(r.g_val)+' &middot; <strong style="color:'+cls+'">'+fmtPct(r.pct_meta)+'</strong></div></div>';
+          }).join('')
+        : '<div class="kpi"><div class="kpi-lbl">Meta do Segmento</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">'+met.length+' segmento'+(met.length!==1?'s':'')+'</div></div>'
+      )
+    )+
     '<div class="kpi"><div class="kpi-lbl">Leads CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+trend(tc,prev&&prev.tc)+'</div><div class="kpi-sub">'+totalLeads.toLocaleString('pt-BR')+' negócios</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+trend(tn,prev&&prev.tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val ko">'+fmtBRL(tv)+trend(tv,prev&&prev.tv)+'</div><div class="kpi-sub">Conv: '+fmtPct(pv)+'</div></div>'+
