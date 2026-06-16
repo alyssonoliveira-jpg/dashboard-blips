@@ -1708,7 +1708,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
         '<td style="color:#c084fc">'+fmtBRL(r.aprov_vv)+'</td>'+
         '<td><span class="pill-b">'+fmtPct(r.pct_v)+'</span></td>'+
         '<td class="sep">'+fmtBRL(r.cql_l)+'</td><td>'+fmtBRL(r.n1_ll)+'</td><td><span class="pill-b">'+fmtPct(r.pct_l)+'</span></td>'+
-        '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="pill-g">'+fmtPct(r.conv_g)+'</span></td>'+
+        '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="pill-g">'+fmtPct(r.conv_g)+'</span></td><td style="color:#94a3b8;font-size:.72rem">'+(CONV_ALVO[r.seg]>0?fmtPct(CONV_ALVO[r.seg]):'—')+'</td>'+
         '<td class="sep">'+metaTxt+'</td><td><span class="'+metaPctCls+'">'+metaPctTxt+'</span></td>'+
       '</tr>';
     }).join('');
@@ -1730,14 +1730,14 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
             '<th colspan="3" class="th-group" style="color:#f87171">CQL/Aprov Total</th>'+
             '<th colspan="7" class="th-group th-v" style="border-left:1px solid #1e2535">Venda</th>'+
             '<th colspan="3" class="th-group th-l" style="border-left:1px solid #1e2535">Locação</th>'+
-            '<th colspan="2" class="th-group th-g" style="border-left:1px solid #1e2535">Ganhos</th>'+
+            '<th colspan="3" class="th-group th-g" style="border-left:1px solid #1e2535">Ganhos</th>'+
             '<th colspan="2" class="th-group th-meta" style="border-left:1px solid #1e2535">Meta</th>'+
           '</tr>'+
           '<tr>'+
             '<th style="color:#60a5fa">CQL Total</th><th style="color:#c084fc">Aprov Total</th><th>% Aprov</th>'+
             '<th class="sep">CQL Venda</th><th style="color:#4ade80">N1</th><th style="color:#a3e635">N2</th><th style="color:#fbbf24">N3</th><th style="color:#fb923c">N4</th><th style="color:#c084fc">Total</th><th>% Aprov</th>'+
             '<th class="sep">CQL Loc</th><th>N1 Loc</th><th>% N1</th>'+
-            '<th class="sep">Resultado</th><th>Conv</th>'+
+            '<th class="sep">Resultado</th><th>Conv</th><th>Alvo</th>'+
             '<th class="sep">Meta R$</th><th>% Meta</th>'+
           '</tr>'+
         '</thead>'+
@@ -1754,7 +1754,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
             '<td style="color:#c084fc">'+fmtBRL(tnv)+'</td>'+
             '<td><span class="pill">'+fmtPct(tpv)+'</span></td>'+
             '<td class="sep">'+fmtBRL(tcl)+'</td><td>'+fmtBRL(tnl)+'</td><td><span class="pill">'+fmtPct(tpl)+'</span></td>'+
-            '<td class="sep hi">'+fmtBRL(tgv)+'</td><td><span class="pill-g">'+fmtPct(tcg)+'</span></td>'+
+            '<td class="sep hi">'+fmtBRL(tgv)+'</td><td><span class="pill-g">'+fmtPct(tcg)+'</span></td><td>—</td>'+
             '<td class="sep">'+fmtBRL(sumMeta)+'</td><td><span class="'+tpMetaCls+'">'+fmtPct(tpMeta)+'</span></td>'+
           '</tr>'+
         '</tfoot>'+
