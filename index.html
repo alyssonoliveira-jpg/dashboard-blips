@@ -3435,8 +3435,7 @@ async function renderGestaoVendedores(){
       var idFim   = 'dt-fim-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
       var pausaIni = db.meta_pausa_inicio || '';
       var pausaFim = db.meta_pausa_fim    || '';
-      var pausaConfigurada = db.pausa_configurada === true;
-      var mostrarDatas = !metaAtiva && !desligado && !pausaConfigurada;
+      var mostrarDatas = false;
       return '<tr>'+
         '<td><div style="display:flex;align-items:center;gap:10px">'+
           '<div style="width:28px;height:28px;border-radius:50%;'+avatarCls+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0">'+iniciais+'</div>'+
