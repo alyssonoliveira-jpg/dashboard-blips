@@ -2540,8 +2540,10 @@ function renderRankingVenda(){
       '</tr></thead>'+
       '<tbody>'+topLinhas+'</tbody>'+
     '</table></div>'+
-    '<div style="font-size:.8rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;padding:0 4px">Por Segmento</div>'+
-    segBlocks;
+    (segs.length > 1 ?
+      '<div style="font-size:.8rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;padding:0 4px">Por Segmento</div>'+
+      segBlocks
+    : '');
 }
 
 
