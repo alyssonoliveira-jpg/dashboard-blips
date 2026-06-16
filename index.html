@@ -3456,23 +3456,33 @@ async function renderGestaoVendedores(){
             '<span style="font-size:11px;color:#64748b" id="lbl-'+idDeslig+'">'+(desligado?'Sim':'Não')+'</span>'+
           '</div>'+
         '</td>'+
-        '<td id="cell-datas-'+idMeta+'" style="min-width:280px;'+(mostrarDatas?'':'display:none')+'">'+
-          '<div style="display:flex;flex-direction:column;gap:4px">'+
-            '<div style="display:flex;align-items:center;gap:8px">'+
-              '<div style="display:flex;flex-direction:column;gap:2px">'+
-                '<span style="font-size:10px;color:#64748b">De</span>'+
-                '<input type="date" id="'+idIni+'" value="'+pausaIni+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this)">'+
-              '</div>'+
-              '<div style="display:flex;flex-direction:column;gap:2px">'+
-                '<span style="font-size:10px;color:#64748b">Até</span>'+
-                '<input type="date" id="'+idFim+'" value="'+pausaFim+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this)">'+
-              '</div>'+
-            '</div>'+
-            '<span id="dias-'+idIni+'" style="font-size:11px;font-weight:600;color:#fbbf24">'+
-              (pausaIni&&pausaFim ? (Math.max(0,Math.round((new Date(pausaFim)-new Date(pausaIni))/(86400000)))+' dias de pausa') : '')+
+        '<td id="cell-datas-'+idMeta+'" style="min-width:220px">'+
+          // Exibição read-only das datas salvas
+          '<div id="cell-display-'+idMeta+'" style="'+((!metaAtiva&&!desligado&&pausaIni&&pausaFim)?'':'display:none')+'">'+
+            '<span style="font-size:12px;color:#94a3b8">'+pausaIni+' → '+pausaFim+'</span><br>'+
+            '<span style="font-size:11px;color:#fbbf24;font-weight:600">'+
+              (pausaIni&&pausaFim?Math.max(0,Math.round((new Date(pausaFim)-new Date(pausaIni))/86400000))+' dias':'')+
             '</span>'+
-            '<button id="btn-salvar-'+idIni+'" onclick="gvSalvarPausa(\''+idIni+'\',\''+idFim+'\',\''+pk+'\',\''+seg+'\')" style="margin-top:2px;padding:4px 12px;border-radius:7px;border:none;background:#1d4ed8;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Salvar</button>'+
           '</div>'+
+          // Form de edição (sempre oculto no carregamento)
+          '<div id="cell-form-'+idMeta+'" style="display:none">'+
+            '<div style="display:flex;flex-direction:column;gap:4px">'+
+              '<div style="display:flex;align-items:center;gap:8px">'+
+                '<div style="display:flex;flex-direction:column;gap:2px">'+
+                  '<span style="font-size:10px;color:#64748b">De</span>'+
+                  '<input type="date" id="'+idIni+'" value="'+pausaIni+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this)">'+
+                '</div>'+
+                '<div style="display:flex;flex-direction:column;gap:2px">'+
+                  '<span style="font-size:10px;color:#64748b">Até</span>'+
+                  '<input type="date" id="'+idFim+'" value="'+pausaFim+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this)">'+
+                '</div>'+
+              '</div>'+
+              '<span id="dias-'+idIni+'" style="font-size:11px;font-weight:600;color:#fbbf24"></span>'+
+              '<button id="btn-salvar-'+idIni+'" onclick="gvSalvarPausa(\''+idIni+'\',\''+idFim+'\',\''+pk+'\',\''+seg+'\')" style="margin-top:2px;padding:4px 12px;border-radius:7px;border:none;background:#1d4ed8;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Salvar</button>'+
+            '</div>'+
+          '</div>'+
+          // Se meta ativa ou desligado e sem datas: traço
+          (metaAtiva||desligado?'<span style="color:#334155;font-size:13px">—</span>':(!pausaIni&&!pausaFim?'':''  ))+
         '</td>'+
       '</tr>';
     }).join('');
@@ -3591,17 +3601,18 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
   if(lbl) lbl.textContent = cb.checked ? 'Sim' : 'Não';
 
   if(tipo === 'meta'){
-    var cellDatas = document.getElementById('cell-datas-'+cb.id);
-    // Se reativando meta, salva histórico de pausa antes de esconder o campo
-    if(cb.checked && cellDatas){
-      var dInputs = cellDatas.querySelectorAll('input[type=date]');
-      var dIni = dInputs[0] && dInputs[0].value;
-      var dFim = dInputs[1] && dInputs[1].value;
-      if(dIni && dFim){
-        await sb.from('historico_pausas').insert({prop_key:propKey, segmento:seg, pausa_inicio:dIni, pausa_fim:dFim});
-      }
+    var cellForm    = document.getElementById('cell-form-'+cb.id);
+    var cellDisplay = document.getElementById('cell-display-'+cb.id);
+    var cellDash    = cb.closest('tr') && cb.closest('tr').querySelector('[id^="cell-datas-"] span[style*="334155"]');
+    if(cb.checked){
+      // Reativando: esconde form e display de pausa
+      if(cellForm)    cellForm.style.display    = 'none';
+      if(cellDisplay) cellDisplay.style.display = 'none';
+    } else {
+      // Desativando: mostra form de edição, esconde display
+      if(cellForm)    cellForm.style.display    = '';
+      if(cellDisplay) cellDisplay.style.display = 'none';
     }
-    if(cellDatas) cellDatas.style.display = cb.checked ? 'none' : '';
     var statusEl = cb.closest('tr').querySelector('td:nth-child(2) span');
     if(statusEl){
       if(cb.checked){
@@ -3689,12 +3700,23 @@ window.gvSalvarPausa = async function(idIni, idFim, propKey, seg){
   if(btn){ btn.textContent='Salvando...'; btn.disabled=true; }
 
   await sb.from('historico_pausas').insert({prop_key:propKey, segmento:seg, pausa_inicio:ini, pausa_fim:fim});
-  await sb.from('gestao_vendedores').update({meta_pausa_inicio:null, meta_pausa_fim:null, pausa_configurada:true}).eq('prop_key',propKey).eq('segmento',seg);
+  await sb.from('gestao_vendedores').update({meta_pausa_inicio:ini, meta_pausa_fim:fim, pausa_configurada:true}).eq('prop_key',propKey).eq('segmento',seg);
 
   if(btn){ btn.textContent='✓ Salvo'; btn.style.background='#16a34a'; }
   setTimeout(function(){
-    var cell = inputIni && inputIni.closest('td');
-    if(cell) cell.style.display = 'none';
+    // Esconde form, mostra display com as datas salvas
+    var metaId = idIni.replace('dt-ini-','tg-meta-');
+    var cellForm    = document.getElementById('cell-form-'+metaId);
+    var cellDisplay = document.getElementById('cell-display-'+metaId);
+    if(cellForm)    cellForm.style.display = 'none';
+    if(cellDisplay){
+      cellDisplay.innerHTML =
+        '<span style="font-size:12px;color:#94a3b8">'+ini+' → '+fim+'</span><br>'+
+        '<span style="font-size:11px;color:#fbbf24;font-weight:600">'+
+          Math.max(0,Math.round((new Date(fim)-new Date(ini))/86400000))+' dias'+
+        '</span>';
+      cellDisplay.style.display = '';
+    }
   }, 800);
 };
 
