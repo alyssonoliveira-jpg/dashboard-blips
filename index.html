@@ -3319,7 +3319,24 @@ async function renderGestaoVendedores(){
   // Agrupa por segmento
   var segs = vends.map(function(v){return v.seg;}).filter(function(s,i,a){return a.indexOf(s)===i;}).sort();
 
-  var totalAtivos=0, totalMeta=0, totalDeslig=0;
+  // Auto-ativar meta se data de fim expirou
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var autoAtivados = [];
+  (rows||[]).forEach(function(r){
+    if(!r.meta_ativa && !r.desligado && r.meta_pausa_fim){
+      var fim = new Date(r.meta_pausa_fim); fim.setHours(0,0,0,0);
+      if(hoje > fim) autoAtivados.push({prop_key: r.prop_key, segmento: r.segmento});
+    }
+  });
+  if(autoAtivados.length){
+    for(var ai=0;ai<autoAtivados.length;ai++){
+      var av=autoAtivados[ai];
+      await sb.from('gestao_vendedores').update({meta_ativa:true}).eq('prop_key',av.prop_key).eq('segmento',av.segmento);
+      if(dbMap[av.prop_key+'|'+av.segmento]) dbMap[av.prop_key+'|'+av.segmento].meta_ativa = true;
+    }
+  }
+
+  var totalAtivos=0, totalMeta=0, totalDeslig=0, totalPausada=0;
   var blocos = segs.map(function(seg){
     var lista = vends.filter(function(v){return v.seg===seg;});
     var linhas = lista.map(function(v){
@@ -3331,11 +3348,14 @@ async function renderGestaoVendedores(){
       var iniciais = v.nome.split(' ').slice(0,2).map(function(p){return p[0]||'';}).join('').toUpperCase();
       if(!desligado) totalAtivos++; else totalDeslig++;
       if(metaAtiva && !desligado) totalMeta++;
+      if(!metaAtiva && !desligado) totalPausada++;
       var avatarCls = desligado ? 'background:#3f1f1f;color:#f87171' : 'background:#1e3a5f;color:#60a5fa';
       var nomeCls = desligado ? 'text-decoration:line-through;color:#64748b' : '';
       var statusHtml = desligado
         ? '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#3f1f1f;color:#f87171;font-weight:500">Desligado</span>'
-        : '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#1a3a2a;color:#4ade80;font-weight:500">Ativo</span>';
+        : (metaAtiva
+          ? '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#1a3a2a;color:#4ade80;font-weight:500">Ativo</span>'
+          : '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#3f1f1f;color:#f87171;font-weight:500">Meta pausada</span>');
       var idMeta  = 'tg-meta-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
       var idDeslig= 'tg-des-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
       var idIni   = 'dt-ini-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
@@ -3364,17 +3384,19 @@ async function renderGestaoVendedores(){
           '</div>'+
         '</td>'+
         '<td id="cell-datas-'+idMeta+'" style="min-width:280px">'+
-          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap">'+
-            '<div style="display:flex;flex-direction:column;gap:2px">'+
-              '<span style="font-size:10px;color:#64748b">De</span>'+
-              '<input type="date" id="'+idIni+'" value="'+pausaIni+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'inicio\',\''+pk+'\',\''+seg+'\')">'+
+          '<div style="display:flex;flex-direction:column;gap:4px">'+
+            '<div style="display:flex;align-items:center;gap:8px">'+
+              '<div style="display:flex;flex-direction:column;gap:2px">'+
+                '<span style="font-size:10px;color:#64748b">De</span>'+
+                '<input type="date" id="'+idIni+'" value="'+pausaIni+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'inicio\',\''+pk+'\',\''+seg+'\')">'+
+              '</div>'+
+              '<div style="display:flex;flex-direction:column;gap:2px">'+
+                '<span style="font-size:10px;color:#64748b">Até</span>'+
+                '<input type="date" id="'+idFim+'" value="'+pausaFim+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'fim\',\''+pk+'\',\''+seg+'\')">'+
+              '</div>'+
             '</div>'+
-            '<div style="display:flex;flex-direction:column;gap:2px">'+
-              '<span style="font-size:10px;color:#64748b">Até</span>'+
-              '<input type="date" id="'+idFim+'" value="'+pausaFim+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'fim\',\''+pk+'\',\''+seg+'\')">'+
-            '</div>'+
-            '<span id="dias-'+idIni+'" style="font-size:11px;font-weight:600;color:#fbbf24;white-space:nowrap;margin-top:14px">'+
-              (pausaIni&&pausaFim ? (Math.max(0,Math.round((new Date(pausaFim)-new Date(pausaIni))/(86400000)))+' dias') : '')+
+            '<span id="dias-'+idIni+'" style="font-size:11px;font-weight:600;color:#fbbf24">'+
+              (pausaIni&&pausaFim ? (Math.max(0,Math.round((new Date(pausaFim)-new Date(pausaIni))/(86400000)))+' dias de pausa') : '')+
             '</span>'+
           '</div>'+
         '</td>'+
@@ -3403,9 +3425,10 @@ async function renderGestaoVendedores(){
   }).join('');
 
   var summaryHtml =
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">'+
       '<div class="kpi"><div class="kpi-lbl">Total vendedores</div><div class="kpi-val kc" id="gv-total">'+totalAtivos+'</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">Com meta ativa</div><div class="kpi-val kg" id="gv-meta">'+totalMeta+'</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Meta pausada</div><div class="kpi-val" style="color:#fbbf24" id="gv-pausada">'+totalPausada+'</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">Desligados</div><div class="kpi-val ko" id="gv-deslig">'+totalDeslig+'</div></div>'+
     '</div>';
 
@@ -3480,7 +3503,7 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
   await sb.from('gestao_vendedores').update(update).eq('prop_key', propKey).eq('segmento', seg);
 
   var allRows = document.querySelectorAll('.gv-block tbody tr');
-  var ativos=0, meta=0, deslig=0;
+  var ativos=0, meta=0, deslig=0, pausada=0;
   allRows.forEach(function(r){
     var cbs = r.querySelectorAll('input[type=checkbox]');
     var isDeslig = cbs[1] && cbs[1].checked;
@@ -3488,9 +3511,11 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
     if(isGestor) return;
     if(!isDeslig) ativos++; else deslig++;
     if(cbs[0] && cbs[0].checked && !isDeslig) meta++;
+    if(cbs[0] && !cbs[0].checked && !isDeslig) pausada++;
   });
   var el=document.getElementById('gv-total'); if(el) el.textContent=ativos;
   var el2=document.getElementById('gv-meta'); if(el2) el2.textContent=meta;
+  var el4=document.getElementById('gv-pausada'); if(el4) el4.textContent=pausada;
   var el3=document.getElementById('gv-deslig'); if(el3) el3.textContent=deslig;
 };
 
