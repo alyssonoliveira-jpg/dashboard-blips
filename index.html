@@ -556,6 +556,8 @@ tfoot td.sep{border-left:1px solid #1e2535}
   </div>
 </div>
 
+<div id="seg-filter-multi" style="display:none;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border)"></div>
+
 <div class="kpis" id="kpis"></div>
 
 <!-- ABAS -->
@@ -1504,6 +1506,10 @@ function limparFiltroData(){
 }
 
 function reprocessar(leads, ganhos){
+  // Guarda dados brutos para refiltro via botão de segmento
+  window._leadsAllRaw  = leads;
+  window._ganhosAllRaw = ganhos;
+
   // Aplica filtros globais
   if(_userSegmentos)
     leads  = leads.filter(function(r){return _temAcesso(r.funil);});
@@ -1519,6 +1525,12 @@ function reprocessar(leads, ganhos){
     ganhos = ganhos.filter(function(r){return r.funil===filtroGlobal.segmento;});
   if(filtroGlobal.vendedor !== '')
     ganhos = ganhos.filter(function(r){return r.propKey && r.propKey.includes(filtroGlobal.vendedor);});
+
+  // Filtro de segmento ativo para gestores multi-segmento
+  if(_segmentoAtivoMulti){
+    leads  = leads.filter(function(r){return r.funil===_segmentoAtivoMulti;});
+    ganhos = ganhos.filter(function(r){return r.funil===_segmentoAtivoMulti;});
+  }
 
   var soma = function(arr){return arr.reduce(function(a,r){return a+r.valor;},0);};
   var segPresentes = leads.map(function(r){return r.funil;})
@@ -3456,15 +3468,7 @@ function renderizar(met,totalLeads){
   kpis.style.display='grid';
   kpis.innerHTML=
     '<div class="kpi"><div class="kpi-lbl">Meta Geral</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(47161564)+'</div><div class="kpi-sub">todos os segmentos</div></div>'+
-    (SEM_META_SEG.includes(usuarioAtual&&usuarioAtual.email) ? '' :
-      (_userSegmentos && _userSegmentos.length > 1
-        ? met.filter(function(r){return r.meta>0;}).map(function(r){
-            var cls = r.pct_meta>=100?'#4ade80':r.pct_meta>=70?'#fbbf24':'#f87171';
-            return '<div class="kpi"><div class="kpi-lbl">Meta '+r.nome+'</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(r.meta)+'</div><div class="kpi-sub">Vendido: '+fmtBRL(r.g_val)+' &middot; <strong style="color:'+cls+'">'+fmtPct(r.pct_meta)+'</strong></div></div>';
-          }).join('')
-        : '<div class="kpi"><div class="kpi-lbl">Meta do Segmento</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">'+met.length+' segmento'+(met.length!==1?'s':'')+'</div></div>'
-      )
-    )+
+    (SEM_META_SEG.includes(usuarioAtual&&usuarioAtual.email) ? '' : '<div class="kpi"><div class="kpi-lbl">Meta do Segmento</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">'+met.length+' segmento'+(met.length!==1?'s':'')+'</div></div>')+
     '<div class="kpi"><div class="kpi-lbl">Leads CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+trend(tc,prev&&prev.tc)+'</div><div class="kpi-sub">'+totalLeads.toLocaleString('pt-BR')+' negócios</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+trend(tn,prev&&prev.tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val ko">'+fmtBRL(tv)+trend(tv,prev&&prev.tv)+'</div><div class="kpi-sub">Conv: '+fmtPct(pv)+'</div></div>'+
@@ -3605,9 +3609,35 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var usuarioAtual    = null;
 var isAdmin         = false;
 var appInicializado = false;
-var _userSegmento   = null;   // null = acesso total; string = 1 segmento (legado)
-var _userSegmentos  = null;   // null = acesso total; array = multiplos segmentos permitidos
+var _userSegmento        = null;
+var _userSegmentos       = null;
+var _segmentoAtivoMulti  = null; // null = todos; string = segmento selecionado pelo gestor multi-seg
 function _temAcesso(seg){ return !_userSegmentos || _userSegmentos.includes(seg); }
+
+function renderFiltroMultiSeg(){
+  var el = document.getElementById('seg-filter-multi');
+  if(!el) return;
+  if(!_userSegmentos || _userSegmentos.length <= 1){ el.style.display='none'; return; }
+  el.style.display='block';
+  var ativo = _segmentoAtivoMulti;
+  var btns = [null].concat(_userSegmentos).map(function(seg){
+    var lbl = seg ? seg.replace('Blips - ','').replace('Ideal - ','') : 'Todos';
+    var isAtivo = seg === ativo;
+    return '<button onclick="selecionarSegMulti('+(seg?'"'+seg+'"':'null')+')" style="'+
+      'padding:5px 14px;border-radius:20px;border:1px solid '+(isAtivo?'#818cf8':'#334155')+';'+
+      'background:'+(isAtivo?'#818cf8':'transparent')+';color:'+(isAtivo?'#fff':'#94a3b8')+';'+
+      'font-size:.75rem;font-weight:600;cursor:pointer;transition:.15s">'+lbl+'</button>';
+  }).join('');
+  el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+    '<span style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.6px;margin-right:4px">Segmento</span>'+
+    btns+'</div>';
+}
+
+window.selecionarSegMulti = function(seg){
+  _segmentoAtivoMulti = seg;
+  renderFiltroMultiSeg();
+  if(window._leadsAllRaw && window._ganhosAllRaw) reprocessar(window._leadsAllRaw, window._ganhosAllRaw);
+};
 
 // ── DARK / LIGHT MODE ──
 (function initTheme(){
@@ -3686,7 +3716,8 @@ async function validarUsuario(user){
     console.log('[RBAC] _userSegmentos:', _userSegmentos);
   } catch(e) { console.error('[RBAC] catch:', e); _userSegmento = null; _userSegmentos = null; }
   // Aplica filtro global imediatamente se restrito (usa primeiro segmento como referência inicial)
-  if(_userSegmento) filtroGlobal.segmento = _userSegmento;
+  if(_userSegmento && (!_userSegmentos || _userSegmentos.length <= 1)) filtroGlobal.segmento = _userSegmento;
+  renderFiltroMultiSeg();
 
   // Autorizado!
   document.getElementById('login-screen').classList.add('hidden');
