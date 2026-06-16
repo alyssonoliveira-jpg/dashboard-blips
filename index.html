@@ -571,6 +571,7 @@ tfoot td.sep{border-left:1px solid #1e2535}
   <button class="tab"        data-tab="ranking-venda" onclick="trocarAba('ranking-venda')">🏆 Ranking Venda</button>
   <button class="tab"        data-tab="batedores"    onclick="trocarAba('batedores')">⭐ Batedores de Meta</button>
   <button class="tab" data-tab="equipamentos" onclick="trocarAba('equipamentos')">🔧 Análise Equipamento</button>
+  <button class="tab" data-tab="gestao-vendedores" onclick="trocarAba('gestao-vendedores')">👥 Gestão Vendedores</button>
   <button class="tab" id="tab-config" data-tab="config" onclick="trocarAba('config')" style="display:none">⚙️ Configurações</button>
 </div>
 
@@ -641,6 +642,10 @@ tfoot td.sep{border-left:1px solid #1e2535}
 <!-- PAGINA ANALISE EQUIPAMENTO -->
 <div class="page" id="page-equipamentos" style="display:none">
   <div id="equip-content" style="max-width:1300px;margin:0 auto;padding:0 4px"></div>
+</div>
+
+<div class="page" id="page-gestao-vendedores" style="display:none">
+  <div id="gestao-vendedores-content" style="max-width:1300px;margin:0 auto;padding:0 4px"></div>
 </div>
 
 <!-- PAGINA BATEDORES DE META -->
@@ -1586,6 +1591,7 @@ function trocarAba(nome){
   document.getElementById('page-projecao').style.display   = nome==='projecao'   ? '' : 'none';
   document.getElementById('page-config').style.display       = nome==='config'       ? '' : 'none';
   document.getElementById('page-equipamentos').style.display = nome==='equipamentos' ? '' : 'none';
+  document.getElementById('page-gestao-vendedores').style.display = nome==='gestao-vendedores' ? '' : 'none';
 
   if(nome==='projecao')        renderProjecao();
   if(nome==='equipamentos')    renderEquipamentos();
@@ -1596,6 +1602,7 @@ function trocarAba(nome){
   if(nome==='ranking-n1')   renderRankingN1();
   if(nome==='ranking-venda') renderRankingVenda();
   if(nome==='config' && isAdmin) renderConfig();
+  if(nome==='gestao-vendedores') renderGestaoVendedores();
 }
 
 // ── VENDEDORES ──
@@ -3280,6 +3287,179 @@ function renderProjecao(){
 
   document.getElementById('proj-blocks').innerHTML = html;
 }
+
+// ────────────────────────────────────────────────
+//  ABA GESTÃO VENDEDORES
+// ────────────────────────────────────────────────
+async function renderGestaoVendedores(){
+  var box = document.getElementById('gestao-vendedores-content');
+  if(!ultimosVendedores || !ultimosVendedores.length){
+    box.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">Carregue uma base primeiro.</div>';
+    return;
+  }
+  box.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">Carregando...</div>';
+
+  // Filtra por RBAC
+  var vends = ultimosVendedores.filter(function(v){ return _temAcesso(v.seg); });
+
+  // Upsert novos vendedores no banco (sem sobrescrever toggles)
+  var upserts = vends.map(function(v){
+    return { prop_key: v.key||v.nome.toLowerCase(), segmento: v.seg, nome: v.nome, meta_ativa: true, desligado: false, is_gestor: false };
+  });
+  await sb.from('gestao_vendedores').upsert(upserts, { onConflict: 'prop_key,segmento', ignoreDuplicates: true });
+
+  // Carrega estados do banco
+  var { data: rows } = await sb.from('gestao_vendedores')
+    .select('*')
+    .in('segmento', vends.map(function(v){return v.seg;}).filter(function(s,i,a){return a.indexOf(s)===i;}));
+
+  var dbMap = {};
+  (rows||[]).forEach(function(r){ dbMap[r.prop_key+'|'+r.segmento] = r; });
+
+  // Agrupa por segmento
+  var segs = vends.map(function(v){return v.seg;}).filter(function(s,i,a){return a.indexOf(s)===i;}).sort();
+
+  var totalAtivos=0, totalMeta=0, totalDeslig=0;
+  var blocos = segs.map(function(seg){
+    var lista = vends.filter(function(v){return v.seg===seg;});
+    var linhas = lista.map(function(v){
+      var pk = v.key||v.nome.toLowerCase();
+      var db = dbMap[pk+'|'+seg] || {};
+      if(db.is_gestor) return '';
+      var metaAtiva = db.meta_ativa !== false;
+      var desligado = db.desligado === true;
+      var iniciais = v.nome.split(' ').slice(0,2).map(function(p){return p[0]||'';}).join('').toUpperCase();
+      if(!desligado) totalAtivos++; else totalDeslig++;
+      if(metaAtiva && !desligado) totalMeta++;
+      var avatarCls = desligado ? 'background:#3f1f1f;color:#f87171' : 'background:#1e3a5f;color:#60a5fa';
+      var nomeCls = desligado ? 'text-decoration:line-through;color:#64748b' : '';
+      var statusHtml = desligado
+        ? '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#3f1f1f;color:#f87171;font-weight:500">Desligado</span>'
+        : '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#1a3a2a;color:#4ade80;font-weight:500">Ativo</span>';
+      var idMeta  = 'tg-meta-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
+      var idDeslig= 'tg-des-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
+      return '<tr>'+
+        '<td><div style="display:flex;align-items:center;gap:10px">'+
+          '<div style="width:28px;height:28px;border-radius:50%;'+avatarCls+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0">'+iniciais+'</div>'+
+          '<span style="font-size:13px;'+nomeCls+'">'+v.nome+'</span>'+
+        '</div></td>'+
+        '<td style="text-align:center">'+statusHtml+'</td>'+
+        '<td style="text-align:center">'+
+          '<div style="display:flex;align-items:center;justify-content:center;gap:6px">'+
+            '<label class="gv-toggle"><input type="checkbox" id="'+idMeta+'" '+(metaAtiva&&!desligado?'checked':'')+' onchange="gvToggle(this,\'meta\',\''+pk+'\',\''+seg+'\')" '+(desligado?'disabled':'')+'>'+
+            '<span class="gv-slider"></span></label>'+
+            '<span style="font-size:11px;color:#64748b" id="lbl-'+idMeta+'">'+(metaAtiva&&!desligado?'Sim':'Não')+'</span>'+
+          '</div>'+
+        '</td>'+
+        '<td style="text-align:center">'+
+          '<div style="display:flex;align-items:center;justify-content:center;gap:6px">'+
+            '<label class="gv-toggle"><input type="checkbox" id="'+idDeslig+'" '+(desligado?'checked':'')+' onchange="gvToggle(this,\'desligado\',\''+pk+'\',\''+seg+'\')">'+
+            '<span class="gv-slider gv-danger"></span></label>'+
+            '<span style="font-size:11px;color:#64748b" id="lbl-'+idDeslig+'">'+(desligado?'Sim':'Não')+'</span>'+
+          '</div>'+
+        '</td>'+
+        (isAdmin?'<td style="text-align:center"><label class="gv-toggle"><input type="checkbox" onchange="gvToggle(this,\'gestor\',\''+pk+'\',\''+seg+'\')"><span class="gv-slider gv-gray"></span></label></td>':'')+
+      '</tr>';
+    }).join('');
+    if(!linhas.trim()) return '';
+    var count = lista.filter(function(v){var db=dbMap[(v.key||v.nome.toLowerCase())+'|'+seg];return !db||!db.is_gestor;}).length;
+    return '<div class="gv-block">'+
+      '<div class="gv-head">'+
+        '<span>'+seg.replace('Blips - ','')+'</span>'+
+        '<span class="vbadge">'+count+' vendedor(es)</span>'+
+      '</div>'+
+      '<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr>'+
+          '<th style="text-align:left;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535">Vendedor</th>'+
+          '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Status</th>'+
+          '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Meta ativa</th>'+
+          '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Desligado</th>'+
+          (isAdmin?'<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:90px">É gestor</th>':'')+
+        '</tr></thead>'+
+        '<tbody>'+linhas+'</tbody>'+
+      '</table>'+
+    '</div>';
+  }).join('');
+
+  var summaryHtml =
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+
+      '<div class="kpi"><div class="kpi-lbl">Total vendedores</div><div class="kpi-val kc" id="gv-total">'+totalAtivos+'</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Com meta ativa</div><div class="kpi-val kg" id="gv-meta">'+totalMeta+'</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Desligados</div><div class="kpi-val ko" id="gv-deslig">'+totalDeslig+'</div></div>'+
+    '</div>';
+
+  box.innerHTML =
+    '<style>'+
+      '.gv-block{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden}'+
+      '.gv-block td{padding:10px 12px;border-bottom:1px solid #0f1623;font-size:13px;color:var(--text)}'+
+      '.gv-block tr:last-child td{border-bottom:none}'+
+      '.gv-head{background:var(--bg3);padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:#818cf8}'+
+      '.gv-toggle{position:relative;width:36px;height:20px;display:inline-block}'+
+      '.gv-toggle input{opacity:0;width:0;height:0;position:absolute}'+
+      '.gv-slider{position:absolute;cursor:pointer;inset:0;background:#334155;border-radius:20px;transition:.2s}'+
+      '.gv-slider:before{content:"";position:absolute;height:14px;width:14px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s}'+
+      '.gv-toggle input:checked+.gv-slider{background:#16a34a}'+
+      '.gv-toggle input:checked+.gv-slider.gv-danger{background:#dc2626}'+
+      '.gv-toggle input:checked+.gv-slider.gv-gray{background:#6366f1}'+
+      '.gv-toggle input:checked+.gv-slider:before{transform:translateX(16px)}'+
+      '.gv-toggle input:disabled+.gv-slider{opacity:.4;cursor:not-allowed}'+
+    '</style>'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+      '<span style="font-size:.85rem;font-weight:700;color:var(--text-hi)">Gestão Vendedores</span>'+
+    '</div>'+
+    summaryHtml+
+    blocos;
+}
+
+window.gvToggle = async function(cb, tipo, propKey, seg){
+  var lbl = document.getElementById('lbl-'+cb.id);
+  if(lbl) lbl.textContent = cb.checked ? 'Sim' : 'Não';
+
+  if(tipo === 'desligado'){
+    // ao desligar: desativa meta também
+    var row = cb.closest('tr');
+    var metaCb = row.querySelector('input[type=checkbox]');
+    var metaLbl = row.querySelector('[id^="lbl-tg-meta"]');
+    var nomeEl = row.querySelector('td:first-child span');
+    var avatarEl = row.querySelector('td:first-child div div');
+    var statusEl = row.querySelector('td:nth-child(2) span');
+    if(cb.checked){
+      if(metaCb){ metaCb.checked=false; metaCb.disabled=true; }
+      if(metaLbl) metaLbl.textContent='Não';
+      if(nomeEl){ nomeEl.style.textDecoration='line-through'; nomeEl.style.color='#64748b'; }
+      if(avatarEl){ avatarEl.style.background='#3f1f1f'; avatarEl.style.color='#f87171'; }
+      if(statusEl){ statusEl.style.background='#3f1f1f'; statusEl.style.color='#f87171'; statusEl.textContent='Desligado'; }
+    } else {
+      if(metaCb){ metaCb.disabled=false; }
+      if(nomeEl){ nomeEl.style.textDecoration=''; nomeEl.style.color=''; }
+      if(avatarEl){ avatarEl.style.background='#1e3a5f'; avatarEl.style.color='#60a5fa'; }
+      if(statusEl){ statusEl.style.background='#1a3a2a'; statusEl.style.color='#4ade80'; statusEl.textContent='Ativo'; }
+    }
+  }
+
+  var update = {};
+  if(tipo==='meta')      update = { meta_ativa: cb.checked };
+  if(tipo==='desligado') update = { desligado: cb.checked, meta_ativa: cb.checked ? false : undefined };
+  if(tipo==='gestor')    update = { is_gestor: cb.checked };
+  if(tipo==='desligado' && update.meta_ativa===undefined) delete update.meta_ativa;
+
+  await sb.from('gestao_vendedores').update(update).eq('prop_key', propKey).eq('segmento', seg);
+
+  // Atualiza contadores
+  var allRows = document.querySelectorAll('.gv-block tbody tr');
+  var ativos=0, meta=0, deslig=0;
+  allRows.forEach(function(r){
+    var cbs = r.querySelectorAll('input[type=checkbox]');
+    var isDeslig = cbs[1] && cbs[1].checked;
+    var isGestor = cbs[3] && cbs[3].checked;
+    if(isGestor) return;
+    if(!isDeslig) ativos++; else deslig++;
+    if(cbs[0] && cbs[0].checked && !isDeslig) meta++;
+  });
+  var el=document.getElementById('gv-total'); if(el) el.textContent=ativos;
+  var el2=document.getElementById('gv-meta'); if(el2) el2.textContent=meta;
+  var el3=document.getElementById('gv-deslig'); if(el3) el3.textContent=deslig;
+};
 
 // ────────────────────────────────────────────────
 //  ABA CONFIGURACOES (admin)
