@@ -3363,8 +3363,8 @@ async function renderGestaoVendedores(){
             '<span style="font-size:11px;color:#64748b" id="lbl-'+idDeslig+'">'+(desligado?'Sim':'Não')+'</span>'+
           '</div>'+
         '</td>'+
-        '<td id="cell-datas-'+idMeta+'" style="'+(mostrarDatas?'':'display:none')+';min-width:220px">'+
-          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
+        '<td id="cell-datas-'+idMeta+'" style="min-width:280px">'+
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap">'+
             '<div style="display:flex;flex-direction:column;gap:2px">'+
               '<span style="font-size:10px;color:#64748b">De</span>'+
               '<input type="date" id="'+idIni+'" value="'+pausaIni+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'inicio\',\''+pk+'\',\''+seg+'\')">'+
@@ -3373,6 +3373,9 @@ async function renderGestaoVendedores(){
               '<span style="font-size:10px;color:#64748b">Até</span>'+
               '<input type="date" id="'+idFim+'" value="'+pausaFim+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'fim\',\''+pk+'\',\''+seg+'\')">'+
             '</div>'+
+            '<span id="dias-'+idIni+'" style="font-size:11px;font-weight:600;color:#fbbf24;white-space:nowrap;margin-top:14px">'+
+              (pausaIni&&pausaFim ? (Math.max(0,Math.round((new Date(pausaFim)-new Date(pausaIni))/(86400000)))+' dias') : '')+
+            '</span>'+
           '</div>'+
         '</td>'+
         (isAdmin?'<td style="text-align:center"><label class="gv-toggle"><input type="checkbox" onchange="gvToggle(this,\'gestor\',\''+pk+'\',\''+seg+'\')"><span class="gv-slider gv-gray"></span></label></td>':'')+
@@ -3434,9 +3437,6 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
   if(lbl) lbl.textContent = cb.checked ? 'Sim' : 'Não';
 
   if(tipo === 'meta'){
-    var cellId = 'cell-datas-'+cb.id;
-    var cell = document.getElementById(cellId);
-    if(cell) cell.style.display = cb.checked ? 'none' : '';
     var statusEl = cb.closest('tr').querySelector('td:nth-child(2) span');
     if(statusEl){
       if(cb.checked){
@@ -3499,6 +3499,21 @@ window.gvData = async function(input, campo, propKey, seg){
   var update = {};
   update[col] = input.value || null;
   await sb.from('gestao_vendedores').update(update).eq('prop_key', propKey).eq('segmento', seg);
+
+  // Recalcula dias
+  var cell = input.closest('td');
+  var inputs = cell.querySelectorAll('input[type=date]');
+  var ini = inputs[0] && inputs[0].value;
+  var fim = inputs[1] && inputs[1].value;
+  var diasEl = cell.querySelector('[id^="dias-"]');
+  if(diasEl){
+    if(ini && fim){
+      var diff = Math.round((new Date(fim) - new Date(ini)) / 86400000);
+      diasEl.textContent = diff > 0 ? diff + ' dias' : (diff === 0 ? '1 dia' : '');
+    } else {
+      diasEl.textContent = '';
+    }
+  }
 };
 
 // ────────────────────────────────────────────────
