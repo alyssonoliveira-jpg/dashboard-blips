@@ -2107,13 +2107,15 @@ function renderClassificacoes(){
     .concat(Object.keys(segData).filter(function(s){return SEGMENTOS.indexOf(s)===-1;}));
   if(_userSegmentos) segOrdem = segOrdem.filter(function(s){return _temAcesso(s);});
 
-  // KPI totais geral
-  var totalN1V=0,totalN1L=0,totalRepV=0,totalRepL=0;
-  Object.values(segData).forEach(function(d){
+  // KPI totais — apenas segmentos visíveis (respeitando RBAC)
+  var totalN1V=0,totalN1L=0,totalRepV=0,totalRepL=0,totalLeadsKpi=0;
+  segOrdem.forEach(function(s){
+    var d=segData[s];
     totalN1V  += d.venda['N1']||0;
     totalRepV += d.venda['Reprovado']||0;
     totalN1L  += d.locacao['N1']||0;
     totalRepL += d.locacao['Reprovado']||0;
+    totalLeadsKpi += Object.values(d.venda).reduce(function(a,b){return a+b;},0);
   });
 
   // Botoes de filtro por segmento
@@ -2234,7 +2236,7 @@ function renderClassificacoes(){
       (mesLabel?'<span class="badge">'+mesLabel+'</span>':'')+
     '</div>'+
     '<div class="kpis" style="display:grid;max-width:1300px;margin:0 auto 10px">'+
-      '<div class="kpi"><div class="kpi-lbl">Leads Total</div><div class="kpi-val kc">'+leadsAll.length+'</div><div class="kpi-sub">base carregada</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Leads Total</div><div class="kpi-val kc">'+totalLeadsKpi+'</div><div class="kpi-sub">base carregada</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val" style="color:#4ade80">'+totalN1V+'</div><div class="kpi-sub">classificação venda</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">N1 Locação</div><div class="kpi-val" style="color:#4ade80">'+totalN1L+'</div><div class="kpi-sub">classificação locação</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">Reprovado Venda</div><div class="kpi-val" style="color:#f87171">'+totalRepV+'</div><div class="kpi-sub">classificação venda</div></div>'+
