@@ -556,8 +556,6 @@ tfoot td.sep{border-left:1px solid #1e2535}
   </div>
 </div>
 
-<div id="seg-filter-multi" style="display:none;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border)"></div>
-
 <div class="kpis" id="kpis"></div>
 
 <!-- ABAS -->
@@ -1507,9 +1505,6 @@ function limparFiltroData(){
 
 function reprocessar(leads, ganhos){
   // Guarda dados brutos para refiltro via botão de segmento
-  window._leadsAllRaw  = leads;
-  window._ganhosAllRaw = ganhos;
-
   // Aplica filtros globais
   if(_userSegmentos)
     leads  = leads.filter(function(r){return _temAcesso(r.funil);});
@@ -1525,12 +1520,6 @@ function reprocessar(leads, ganhos){
     ganhos = ganhos.filter(function(r){return r.funil===filtroGlobal.segmento;});
   if(filtroGlobal.vendedor !== '')
     ganhos = ganhos.filter(function(r){return r.propKey && r.propKey.includes(filtroGlobal.vendedor);});
-
-  // Filtro de segmento ativo para gestores multi-segmento
-  if(_segmentoAtivoMulti){
-    leads  = leads.filter(function(r){return r.funil===_segmentoAtivoMulti;});
-    ganhos = ganhos.filter(function(r){return r.funil===_segmentoAtivoMulti;});
-  }
 
   var soma = function(arr){return arr.reduce(function(a,r){return a+r.valor;},0);};
   var segPresentes = leads.map(function(r){return r.funil;})
@@ -3609,35 +3598,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var usuarioAtual    = null;
 var isAdmin         = false;
 var appInicializado = false;
-var _userSegmento        = null;
-var _userSegmentos       = null;
-var _segmentoAtivoMulti  = null; // null = todos; string = segmento selecionado pelo gestor multi-seg
+var _userSegmento   = null;
+var _userSegmentos  = null;
 function _temAcesso(seg){ return !_userSegmentos || _userSegmentos.includes(seg); }
-
-function renderFiltroMultiSeg(){
-  var el = document.getElementById('seg-filter-multi');
-  if(!el) return;
-  if(!_userSegmentos || _userSegmentos.length <= 1){ el.style.display='none'; return; }
-  el.style.display='block';
-  var ativo = _segmentoAtivoMulti;
-  var btns = [null].concat(_userSegmentos).map(function(seg){
-    var lbl = seg ? seg.replace('Blips - ','').replace('Ideal - ','') : 'Todos';
-    var isAtivo = seg === ativo;
-    return '<button onclick="selecionarSegMulti('+(seg?"'"+seg+"'":'null')+')" style="'+
-      'padding:5px 14px;border-radius:20px;border:1px solid '+(isAtivo?'#818cf8':'#334155')+';'+
-      'background:'+(isAtivo?'#818cf8':'transparent')+';color:'+(isAtivo?'#fff':'#94a3b8')+';'+
-      'font-size:.75rem;font-weight:600;cursor:pointer;transition:.15s">'+lbl+'</button>';
-  }).join('');
-  el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
-    '<span style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.6px;margin-right:4px">Segmento</span>'+
-    btns+'</div>';
-}
-
-window.selecionarSegMulti = function(seg){
-  _segmentoAtivoMulti = seg;
-  renderFiltroMultiSeg();
-  if(window._leadsAllRaw && window._ganhosAllRaw) reprocessar(window._leadsAllRaw, window._ganhosAllRaw);
-};
 
 // ── DARK / LIGHT MODE ──
 (function initTheme(){
@@ -3716,8 +3679,7 @@ async function validarUsuario(user){
     console.log('[RBAC] _userSegmentos:', _userSegmentos);
   } catch(e) { console.error('[RBAC] catch:', e); _userSegmento = null; _userSegmentos = null; }
   // Aplica filtro global imediatamente se restrito (usa primeiro segmento como referência inicial)
-  if(_userSegmento && (!_userSegmentos || _userSegmentos.length <= 1)) filtroGlobal.segmento = _userSegmento;
-  renderFiltroMultiSeg();
+  if(_userSegmento) filtroGlobal.segmento = _userSegmento;
 
   // Autorizado!
   document.getElementById('login-screen').classList.add('hidden');
