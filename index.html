@@ -1708,7 +1708,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
         '<td style="color:#c084fc">'+fmtBRL(r.aprov_vv)+'</td>'+
         '<td><span class="pill-b">'+fmtPct(r.pct_v)+'</span></td>'+
         '<td class="sep">'+fmtBRL(r.cql_l)+'</td><td>'+fmtBRL(r.n1_ll)+'</td><td><span class="pill-b">'+fmtPct(r.pct_l)+'</span></td>'+
-        '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="pill-g">'+fmtPct(r.conv_g)+'</span></td><td style="color:#94a3b8;font-size:.72rem">'+(CONV_ALVO[r.seg]>0?fmtPct(CONV_ALVO[r.seg]):'—')+'</td>'+
+        '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="'+(CONV_ALVO[r.seg]>0?(r.conv_g>=CONV_ALVO[r.seg]?'pill-g':'pill-miss'):'pill-g')+'">'+fmtPct(r.conv_g)+'</span></td><td style="color:#94a3b8;font-size:.72rem">'+(CONV_ALVO[r.seg]>0?fmtPct(CONV_ALVO[r.seg]):'—')+'</td>'+
         '<td class="sep">'+metaTxt+'</td><td><span class="'+metaPctCls+'">'+metaPctTxt+'</span></td>'+
       '</tr>';
     }).join('');
