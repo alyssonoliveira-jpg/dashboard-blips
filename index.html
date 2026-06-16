@@ -3383,7 +3383,7 @@ async function renderGestaoVendedores(){
             '<span style="font-size:11px;color:#64748b" id="lbl-'+idDeslig+'">'+(desligado?'Sim':'Não')+'</span>'+
           '</div>'+
         '</td>'+
-        '<td id="cell-datas-'+idMeta+'" style="min-width:280px">'+
+        '<td id="cell-datas-'+idMeta+'" style="min-width:280px;'+(mostrarDatas?'':'display:none')+'">'+
           '<div style="display:flex;flex-direction:column;gap:4px">'+
             '<div style="display:flex;align-items:center;gap:8px">'+
               '<div style="display:flex;flex-direction:column;gap:2px">'+
@@ -3460,6 +3460,8 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
   if(lbl) lbl.textContent = cb.checked ? 'Sim' : 'Não';
 
   if(tipo === 'meta'){
+    var cellDatas = document.getElementById('cell-datas-'+cb.id);
+    if(cellDatas) cellDatas.style.display = cb.checked ? 'none' : '';
     var statusEl = cb.closest('tr').querySelector('td:nth-child(2) span');
     if(statusEl){
       if(cb.checked){
