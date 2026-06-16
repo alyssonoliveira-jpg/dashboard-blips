@@ -3546,6 +3546,7 @@ async function renderGestaoVendedores(){
         '<div style="display:flex;background:#0f1623;border:1px solid #334155;border-radius:8px;overflow:hidden">'+
           '<button id="gv-btn-vend" onclick="gvMostrarView(\'vendedores\')" style="padding:5px 14px;font-size:12px;font-weight:600;border:none;background:#1d4ed8;color:#fff;cursor:pointer">Vendedores</button>'+
           '<button id="gv-btn-hist" onclick="gvMostrarView(\'historico\')" style="padding:5px 14px;font-size:12px;font-weight:600;border:none;background:transparent;color:#64748b;cursor:pointer">Histórico</button>'+
+          ((usuarioAtual&&usuarioAtual.email==='alysson.oliveira@blips.com.br')?'<button id="gv-btn-resumo" onclick="gvMostrarView(\'resumo\')" style="padding:5px 14px;font-size:12px;font-weight:600;border:none;background:transparent;color:#64748b;cursor:pointer">Meu Resumo</button>':'')+
         '</div>'+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:10px">'+
@@ -3556,29 +3557,28 @@ async function renderGestaoVendedores(){
     '</div>'+
     summaryHtml+
     '<div id="gv-view-vendedores">'+blocos+'</div>'+
-    '<div id="gv-view-historico" style="display:none"><div id="gv-historico-box"></div></div>';
+    '<div id="gv-view-historico" style="display:none"><div id="gv-historico-box"></div></div>'+
+    '<div id="gv-view-resumo" style="display:none"><div id="gv-resumo-box"></div></div>';
 }
 
 window.gvMostrarView = function(view){
-  var vVend = document.getElementById('gv-view-vendedores');
-  var vHist = document.getElementById('gv-view-historico');
-  var bVend = document.getElementById('gv-btn-vend');
-  var bHist = document.getElementById('gv-btn-hist');
-  var busca = document.getElementById('gv-busca');
-  if(view === 'historico'){
-    if(vVend) vVend.style.display = 'none';
-    if(vHist) vHist.style.display = '';
-    if(bVend){ bVend.style.background='transparent'; bVend.style.color='#64748b'; }
-    if(bHist){ bHist.style.background='#1d4ed8'; bHist.style.color='#fff'; }
-    if(busca) busca.style.display = 'none';
-    renderHistoricoGV();
-  } else {
-    if(vVend) vVend.style.display = '';
-    if(vHist) vHist.style.display = 'none';
-    if(bVend){ bVend.style.background='#1d4ed8'; bVend.style.color='#fff'; }
-    if(bHist){ bHist.style.background='transparent'; bHist.style.color='#64748b'; }
-    if(busca) busca.style.display = '';
-  }
+  var vVend   = document.getElementById('gv-view-vendedores');
+  var vHist   = document.getElementById('gv-view-historico');
+  var vResumo = document.getElementById('gv-view-resumo');
+  var bVend   = document.getElementById('gv-btn-vend');
+  var bHist   = document.getElementById('gv-btn-hist');
+  var bResumo = document.getElementById('gv-btn-resumo');
+  var busca   = document.getElementById('gv-busca');
+  var off = 'transparent', offC = '#64748b', on = '#1d4ed8', onC = '#fff';
+  if(vVend)   vVend.style.display   = view==='vendedores' ? '' : 'none';
+  if(vHist)   vHist.style.display   = view==='historico'  ? '' : 'none';
+  if(vResumo) vResumo.style.display = view==='resumo'     ? '' : 'none';
+  if(bVend){   bVend.style.background   = view==='vendedores'?on:off; bVend.style.color   = view==='vendedores'?onC:offC; }
+  if(bHist){   bHist.style.background   = view==='historico' ?on:off; bHist.style.color   = view==='historico' ?onC:offC; }
+  if(bResumo){ bResumo.style.background = view==='resumo'    ?on:off; bResumo.style.color = view==='resumo'    ?onC:offC; }
+  if(busca) busca.style.display = view==='vendedores' ? '' : 'none';
+  if(view==='historico') renderHistoricoGV();
+  if(view==='resumo')    renderResumoGV();
 };
 
 window.gvFiltrar = function(val){
@@ -3787,6 +3787,72 @@ window.renderHistoricoGV = async function(){
         '<tbody>'+linhas+'</tbody>'+
       '</table>'+
     '</div>';
+};
+
+// ── Meu Resumo (alysson only) ────────────────────────────
+window.renderResumoGV = async function(){
+  var box = document.getElementById('gv-resumo-box');
+  if(!box) return;
+  box.innerHTML = '<div style="text-align:center;padding:30px;color:#64748b;font-size:13px">Carregando resumo...</div>';
+
+  var {data: rows} = await sb.from('gestao_vendedores').select('*').or('meta_ativa.eq.false,desligado.eq.true');
+
+  if(!rows || !rows.length){
+    box.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;font-size:13px">Nenhum vendedor com meta pausada ou desligado.</div>';
+    return;
+  }
+
+  var pausados  = rows.filter(function(r){ return !r.meta_ativa && !r.desligado; });
+  var desligados = rows.filter(function(r){ return r.desligado; });
+
+  function tabelaCard(titulo, cor, linhas){
+    if(!linhas.length) return '';
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">'+
+      '<div style="padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:13px;font-weight:600;color:'+cor+'">'+titulo+'</span>'+
+        '<span style="font-size:11px;background:'+cor+'22;color:'+cor+';padding:2px 8px;border-radius:20px;font-weight:600">'+linhas.length+'</span>'+
+      '</div>'+
+      '<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid #1e2535">Vendedor</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid #1e2535">Segmento</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid #1e2535">Data desativação</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid #1e2535">Data retorno</th>'+
+        '</tr></thead>'+
+        '<tbody>'+linhas.join('')+'</tbody>'+
+      '</table>'+
+    '</div>';
+  }
+
+  function linha(r){
+    var seg = (r.segmento||'').replace('Blips - ','');
+    var ini = r.meta_pausa_inicio ? r.meta_pausa_inicio.split('T')[0] : '<span style="color:#475569">—</span>';
+    var fim = r.meta_pausa_fim    ? r.meta_pausa_fim.split('T')[0]    : '<span style="color:#475569">—</span>';
+    return '<tr style="border-bottom:1px solid #0f1623">'+
+      '<td style="padding:10px 14px;font-size:13px;color:#e2e8f0;font-weight:500">'+r.nome+'</td>'+
+      '<td style="padding:10px 14px;font-size:12px;color:#818cf8">'+seg+'</td>'+
+      '<td style="padding:10px 14px;font-size:12px;color:#f87171">'+ini+'</td>'+
+      '<td style="padding:10px 14px;font-size:12px;color:#4ade80">'+fim+'</td>'+
+    '</tr>';
+  }
+
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var atrasados = pausados.filter(function(r){
+    if(!r.meta_pausa_fim) return false;
+    var fim = new Date(r.meta_pausa_fim); fim.setHours(0,0,0,0);
+    return hoje > fim;
+  });
+
+  var alertaHtml = atrasados.length
+    ? '<div style="background:#3f1f1f;border:1px solid #7f1d1d;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">'+
+        '<span style="font-size:18px">⚠️</span>'+
+        '<span style="font-size:13px;color:#fca5a5"><strong>'+atrasados.length+' vendedor(es)</strong> com data de retorno vencida e meta ainda pausada.</span>'+
+      '</div>'
+    : '';
+
+  box.innerHTML = alertaHtml +
+    tabelaCard('Metas pausadas', '#fbbf24', pausados.map(linha)) +
+    tabelaCard('Desligados', '#f87171', desligados.map(linha));
 };
 
 // ────────────────────────────────────────────────
