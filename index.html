@@ -2107,6 +2107,8 @@ function renderClassificacoes(){
   var segOrdem = SEGMENTOS.filter(function(s){return segData[s];})
     .concat(Object.keys(segData).filter(function(s){return SEGMENTOS.indexOf(s)===-1;}));
   if(_userSegmentos) segOrdem = segOrdem.filter(function(s){return _temAcesso(s);});
+  window._classifSegData = segData;
+  window._classifSegOrdem = segOrdem;
 
   // KPI totais — apenas segmentos visíveis (respeitando RBAC)
   var totalN1V=0,totalN1L=0,totalRepV=0,totalRepL=0,totalLeadsKpi=0;
@@ -2237,11 +2239,11 @@ function renderClassificacoes(){
       (mesLabel?'<span class="badge">'+mesLabel+'</span>':'')+
     '</div>'+
     '<div class="kpis" style="display:grid;max-width:1300px;margin:0 auto 10px">'+
-      '<div class="kpi"><div class="kpi-lbl">Leads Total</div><div class="kpi-val kc">'+totalLeadsKpi+'</div><div class="kpi-sub">base carregada</div></div>'+
-      '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val" style="color:#4ade80">'+totalN1V+'</div><div class="kpi-sub">classificação venda</div></div>'+
-      '<div class="kpi"><div class="kpi-lbl">N1 Locação</div><div class="kpi-val" style="color:#4ade80">'+totalN1L+'</div><div class="kpi-sub">classificação locação</div></div>'+
-      '<div class="kpi"><div class="kpi-lbl">Reprovado Venda</div><div class="kpi-val" style="color:#f87171">'+totalRepV+'</div><div class="kpi-sub">classificação venda</div></div>'+
-      '<div class="kpi"><div class="kpi-lbl">Reprovado Locação</div><div class="kpi-val" style="color:#f87171">'+totalRepL+'</div><div class="kpi-sub">classificação locação</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Leads Total</div><div class="kpi-val kc" id="ck-leads">'+totalLeadsKpi+'</div><div class="kpi-sub">base carregada</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val" style="color:#4ade80" id="ck-n1v">'+totalN1V+'</div><div class="kpi-sub">classificação venda</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">N1 Locação</div><div class="kpi-val" style="color:#4ade80" id="ck-n1l">'+totalN1L+'</div><div class="kpi-sub">classificação locação</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Reprovado Venda</div><div class="kpi-val" style="color:#f87171" id="ck-repv">'+totalRepV+'</div><div class="kpi-sub">classificação venda</div></div>'+
+      '<div class="kpi"><div class="kpi-lbl">Reprovado Locação</div><div class="kpi-val" style="color:#f87171" id="ck-repl">'+totalRepL+'</div><div class="kpi-sub">classificação locação</div></div>'+
     '</div>'+
     '<div class="filter-segs" id="classif-filter" style="max-width:1300px;margin:0 auto 14px">'+filterBtns+'</div>'+
     '<div id="classif-blocos" style="max-width:1300px;margin:0 auto">'+blocos+'</div>';
@@ -2254,6 +2256,21 @@ window.filtrarClassif = function(seg){
   document.querySelectorAll('#classif-blocos .v-block').forEach(function(b){
     b.style.display = (seg==='all' || b.dataset.seg===seg) ? '' : 'none';
   });
+  // Recalcula KPIs conforme segmento selecionado
+  var sd = window._classifSegData, so = window._classifSegOrdem;
+  if(!sd || !so) return;
+  var segs = seg==='all' ? so : (sd[seg] ? [seg] : []);
+  var n1v=0,n1l=0,repv=0,repl=0,leads=0;
+  segs.forEach(function(s){
+    var d=sd[s];
+    n1v   += d.venda['N1']||0;
+    repv  += d.venda['Reprovado']||0;
+    n1l   += d.locacao['N1']||0;
+    repl  += d.locacao['Reprovado']||0;
+    leads += Object.values(d.venda).reduce(function(a,b){return a+b;},0);
+  });
+  var set=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
+  set('ck-leads',leads); set('ck-n1v',n1v); set('ck-n1l',n1l); set('ck-repv',repv); set('ck-repl',repl);
 };
 
 // ── PROJEÇÃO DE META ──
