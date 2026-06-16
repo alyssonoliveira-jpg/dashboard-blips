@@ -3461,16 +3461,17 @@ async function renderGestaoVendedores(){
             '<div style="display:flex;align-items:center;gap:8px">'+
               '<div style="display:flex;flex-direction:column;gap:2px">'+
                 '<span style="font-size:10px;color:#64748b">De</span>'+
-                '<input type="date" id="'+idIni+'" value="'+pausaIni+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'inicio\',\''+pk+'\',\''+seg+'\')">'+
+                '<input type="date" id="'+idIni+'" value="'+pausaIni+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this)">'+
               '</div>'+
               '<div style="display:flex;flex-direction:column;gap:2px">'+
                 '<span style="font-size:10px;color:#64748b">Até</span>'+
-                '<input type="date" id="'+idFim+'" value="'+pausaFim+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'fim\',\''+pk+'\',\''+seg+'\')">'+
+                '<input type="date" id="'+idFim+'" value="'+pausaFim+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this)">'+
               '</div>'+
             '</div>'+
             '<span id="dias-'+idIni+'" style="font-size:11px;font-weight:600;color:#fbbf24">'+
               (pausaIni&&pausaFim ? (Math.max(0,Math.round((new Date(pausaFim)-new Date(pausaIni))/(86400000)))+' dias de pausa') : '')+
             '</span>'+
+            '<button id="btn-salvar-'+idIni+'" onclick="gvSalvarPausa(\''+idIni+'\',\''+idFim+'\',\''+pk+'\',\''+seg+'\')" style="margin-top:2px;padding:4px 12px;border-radius:7px;border:none;background:#1d4ed8;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Salvar</button>'+
           '</div>'+
         '</td>'+
         (isAdmin?'<td style="text-align:center"><label class="gv-toggle"><input type="checkbox" onchange="gvToggle(this,\'gestor\',\''+pk+'\',\''+seg+'\')"><span class="gv-slider gv-gray"></span></label></td>':'')+
@@ -3635,13 +3636,8 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
   var el3=document.getElementById('gv-deslig'); if(el3) el3.textContent=deslig;
 };
 
-window.gvData = async function(input, campo, propKey, seg){
-  var col = campo === 'inicio' ? 'meta_pausa_inicio' : 'meta_pausa_fim';
-  var update = {};
-  update[col] = input.value || null;
-  await sb.from('gestao_vendedores').update(update).eq('prop_key', propKey).eq('segmento', seg);
-
-  // Recalcula dias
+window.gvData = function(input){
+  // Apenas recalcula exibição de dias — o banco é salvo pelo botão Salvar
   var cell = input.closest('td');
   var inputs = cell.querySelectorAll('input[type=date]');
   var ini = inputs[0] && inputs[0].value;
@@ -3650,11 +3646,28 @@ window.gvData = async function(input, campo, propKey, seg){
   if(diasEl){
     if(ini && fim){
       var diff = Math.round((new Date(fim) - new Date(ini)) / 86400000);
-      diasEl.textContent = diff > 0 ? diff + ' dias' : (diff === 0 ? '1 dia' : '');
+      diasEl.textContent = diff > 0 ? diff + ' dias de pausa' : (diff === 0 ? '1 dia de pausa' : '');
     } else {
       diasEl.textContent = '';
     }
   }
+};
+
+window.gvSalvarPausa = async function(idIni, idFim, propKey, seg){
+  var inputIni = document.getElementById(idIni);
+  var inputFim = document.getElementById(idFim);
+  var ini = inputIni && inputIni.value;
+  var fim = inputFim && inputFim.value;
+  if(!ini || !fim){ alert('Preencha as duas datas antes de salvar.'); return; }
+
+  var btn = document.getElementById('btn-salvar-'+idIni);
+  if(btn){ btn.textContent='Salvando...'; btn.disabled=true; }
+
+  await sb.from('gestao_vendedores').update({meta_pausa_inicio:ini, meta_pausa_fim:fim}).eq('prop_key',propKey).eq('segmento',seg);
+  await sb.from('historico_pausas').insert({prop_key:propKey, segmento:seg, pausa_inicio:ini, pausa_fim:fim});
+
+  if(btn){ btn.textContent='✓ Salvo'; btn.style.background='#16a34a'; }
+  setTimeout(function(){ if(btn){ btn.textContent='Salvar'; btn.style.background='#1d4ed8'; btn.disabled=false; } }, 2000);
 };
 
 // ────────────────────────────────────────────────
