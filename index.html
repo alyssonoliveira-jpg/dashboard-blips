@@ -3475,7 +3475,6 @@ async function renderGestaoVendedores(){
           '</div>'+
         '</td>'+
         (isAdmin?'<td style="text-align:center"><label class="gv-toggle"><input type="checkbox" onchange="gvToggle(this,\'gestor\',\''+pk+'\',\''+seg+'\')"><span class="gv-slider gv-gray"></span></label></td>':'')+
-        '<td style="text-align:center"><button onclick="gvHistorico(\''+pk+'\',\''+seg+'\',\''+v.nome+'\')" style="background:transparent;border:1px solid #334155;color:#64748b;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer" title="Ver histórico de pausas">📋 Histórico</button></td>'+
       '</tr>';
     }).join('');
     if(!linhas.trim()) return '';
@@ -3493,7 +3492,6 @@ async function renderGestaoVendedores(){
           '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Desligado</th>'+
           '<th style="font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535">Período pausa</th>'+
           (isAdmin?'<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:90px">É gestor</th>':'')+
-          '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:100px"></th>'+
         '</tr></thead>'+
         '<tbody>'+linhas+'</tbody>'+
       '</table>'+
@@ -3528,7 +3526,13 @@ async function renderGestaoVendedores(){
       '.gv-toggle input:disabled+.gv-slider{opacity:.4;cursor:not-allowed}'+
     '</style>'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">'+
-      '<span style="font-size:.85rem;font-weight:700;color:var(--text-hi)">Gestão Vendedores</span>'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:.85rem;font-weight:700;color:var(--text-hi)">Gestão Vendedores</span>'+
+        '<div style="display:flex;background:#0f1623;border:1px solid #334155;border-radius:8px;overflow:hidden">'+
+          '<button id="gv-btn-vend" onclick="gvMostrarView(\'vendedores\')" style="padding:5px 14px;font-size:12px;font-weight:600;border:none;background:#1d4ed8;color:#fff;cursor:pointer">Vendedores</button>'+
+          '<button id="gv-btn-hist" onclick="gvMostrarView(\'historico\')" style="padding:5px 14px;font-size:12px;font-weight:600;border:none;background:transparent;color:#64748b;cursor:pointer">Histórico</button>'+
+        '</div>'+
+      '</div>'+
       '<div style="display:flex;align-items:center;gap:10px">'+
         '<input id="gv-busca" type="text" placeholder="🔍  Buscar vendedor..." oninput="gvFiltrar(this.value)" style="font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid #334155;background:#0f1623;color:#e2e8f0;width:190px;outline:none">'+
         '<span style="font-size:11px;color:#475569">Atualizado às '+horaStr+'</span>'+
@@ -3536,8 +3540,31 @@ async function renderGestaoVendedores(){
       '</div>'+
     '</div>'+
     summaryHtml+
-    blocos;
+    '<div id="gv-view-vendedores">'+blocos+'</div>'+
+    '<div id="gv-view-historico" style="display:none"><div id="gv-historico-box"></div></div>';
 }
+
+window.gvMostrarView = function(view){
+  var vVend = document.getElementById('gv-view-vendedores');
+  var vHist = document.getElementById('gv-view-historico');
+  var bVend = document.getElementById('gv-btn-vend');
+  var bHist = document.getElementById('gv-btn-hist');
+  var busca = document.getElementById('gv-busca');
+  if(view === 'historico'){
+    if(vVend) vVend.style.display = 'none';
+    if(vHist) vHist.style.display = '';
+    if(bVend){ bVend.style.background='transparent'; bVend.style.color='#64748b'; }
+    if(bHist){ bHist.style.background='#1d4ed8'; bHist.style.color='#fff'; }
+    if(busca) busca.style.display = 'none';
+    renderHistoricoGV();
+  } else {
+    if(vVend) vVend.style.display = '';
+    if(vHist) vHist.style.display = 'none';
+    if(bVend){ bVend.style.background='#1d4ed8'; bVend.style.color='#fff'; }
+    if(bHist){ bHist.style.background='transparent'; bHist.style.color='#64748b'; }
+    if(busca) busca.style.display = '';
+  }
+};
 
 window.gvFiltrar = function(val){
   var v = val.toLowerCase().trim();
@@ -3667,7 +3694,68 @@ window.gvSalvarPausa = async function(idIni, idFim, propKey, seg){
   await sb.from('historico_pausas').insert({prop_key:propKey, segmento:seg, pausa_inicio:ini, pausa_fim:fim});
 
   if(btn){ btn.textContent='✓ Salvo'; btn.style.background='#16a34a'; }
-  setTimeout(function(){ if(btn){ btn.textContent='Salvar'; btn.style.background='#1d4ed8'; btn.disabled=false; } }, 2000);
+  setTimeout(function(){
+    var cell = inputIni && inputIni.closest('td');
+    if(cell) cell.style.display = 'none';
+  }, 800);
+};
+
+// ── Aba Histórico de Gestão Vendedores ───────────────────
+window.renderHistoricoGV = async function(){
+  var box = document.getElementById('gv-historico-box');
+  if(!box) return;
+  box.innerHTML = '<div style="text-align:center;padding:30px;color:#64748b;font-size:13px">Carregando histórico...</div>';
+
+  var segsFiltro = ultimosVendedores
+    ? ultimosVendedores.filter(function(v){return _temAcesso(v.seg);}).map(function(v){return v.seg;}).filter(function(s,i,a){return a.indexOf(s)===i;})
+    : [];
+
+  var query = sb.from('historico_pausas').select('*').order('reativado_em',{ascending:false});
+  if(segsFiltro.length) query = query.in('segmento', segsFiltro);
+  var {data, error} = await query;
+
+  if(error || !data || !data.length){
+    box.innerHTML='<div style="text-align:center;padding:40px;color:#64748b;font-size:13px">Nenhuma movimentação registrada ainda.</div>';
+    return;
+  }
+
+  // Busca nomes do banco
+  var nameMap = {};
+  var {data: gvRows} = await sb.from('gestao_vendedores').select('prop_key,segmento,nome').in('segmento', segsFiltro.length?segsFiltro:['']);
+  (gvRows||[]).forEach(function(r){ nameMap[r.prop_key+'|'+r.segmento] = r.nome; });
+
+  var linhas = data.map(function(h){
+    var nome = nameMap[h.prop_key+'|'+h.segmento] || h.prop_key;
+    var ini  = h.pausa_inicio ? h.pausa_inicio.split('T')[0] : '—';
+    var fim  = h.pausa_fim    ? h.pausa_fim.split('T')[0]    : '—';
+    var dias = (h.pausa_inicio&&h.pausa_fim) ? Math.max(0,Math.round((new Date(h.pausa_fim)-new Date(h.pausa_inicio))/86400000)) : null;
+    var diasTxt = dias !== null ? (dias===0?'1 dia':dias+' dias') : '—';
+    var quando = h.reativado_em ? new Date(h.reativado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    var seg = (h.segmento||'').replace('Blips - ','');
+    return '<tr style="border-bottom:1px solid #0f1623">'+
+      '<td style="padding:10px 12px;font-size:13px;color:#e2e8f0;font-weight:500">'+nome+'</td>'+
+      '<td style="padding:10px 12px;font-size:12px;color:#818cf8">'+seg+'</td>'+
+      '<td style="padding:10px 12px;font-size:12px;color:#e2e8f0">'+ini+'</td>'+
+      '<td style="padding:10px 12px;font-size:12px;color:#e2e8f0">'+fim+'</td>'+
+      '<td style="padding:10px 12px;font-size:12px;font-weight:600;color:#fbbf24">'+diasTxt+'</td>'+
+      '<td style="padding:10px 12px;font-size:11px;color:#475569">'+quando+'</td>'+
+    '</tr>';
+  }).join('');
+
+  box.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden">'+
+      '<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr style="border-bottom:1px solid #1e2535">'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:10px 12px">Vendedor</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:10px 12px">Segmento</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:10px 12px">Início pausa</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:10px 12px">Fim pausa</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:10px 12px">Duração</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:10px 12px">Registrado em</th>'+
+        '</tr></thead>'+
+        '<tbody>'+linhas+'</tbody>'+
+      '</table>'+
+    '</div>';
 };
 
 // ────────────────────────────────────────────────
