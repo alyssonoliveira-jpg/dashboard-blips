@@ -3338,6 +3338,11 @@ async function renderGestaoVendedores(){
         : '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#1a3a2a;color:#4ade80;font-weight:500">Ativo</span>';
       var idMeta  = 'tg-meta-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
       var idDeslig= 'tg-des-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
+      var idIni   = 'dt-ini-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
+      var idFim   = 'dt-fim-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
+      var pausaIni = db.meta_pausa_inicio || '';
+      var pausaFim = db.meta_pausa_fim    || '';
+      var mostrarDatas = !metaAtiva && !desligado;
       return '<tr>'+
         '<td><div style="display:flex;align-items:center;gap:10px">'+
           '<div style="width:28px;height:28px;border-radius:50%;'+avatarCls+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0">'+iniciais+'</div>'+
@@ -3349,6 +3354,18 @@ async function renderGestaoVendedores(){
             '<label class="gv-toggle"><input type="checkbox" id="'+idMeta+'" '+(metaAtiva&&!desligado?'checked':'')+' onchange="gvToggle(this,\'meta\',\''+pk+'\',\''+seg+'\')" '+(desligado?'disabled':'')+'>'+
             '<span class="gv-slider"></span></label>'+
             '<span style="font-size:11px;color:#64748b" id="lbl-'+idMeta+'">'+(metaAtiva&&!desligado?'Sim':'Não')+'</span>'+
+          '</div>'+
+        '</td>'+
+        '<td id="cell-datas-'+idMeta+'" style="'+(mostrarDatas?'':'display:none')+';min-width:220px">'+
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
+            '<div style="display:flex;flex-direction:column;gap:2px">'+
+              '<span style="font-size:10px;color:#64748b">De</span>'+
+              '<input type="date" id="'+idIni+'" value="'+pausaIni+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'inicio\',\''+pk+'\',\''+seg+'\')">'+
+            '</div>'+
+            '<div style="display:flex;flex-direction:column;gap:2px">'+
+              '<span style="font-size:10px;color:#64748b">Até</span>'+
+              '<input type="date" id="'+idFim+'" value="'+pausaFim+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'fim\',\''+pk+'\',\''+seg+'\')">'+
+            '</div>'+
           '</div>'+
         '</td>'+
         '<td style="text-align:center">'+
@@ -3373,6 +3390,7 @@ async function renderGestaoVendedores(){
           '<th style="text-align:left;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535">Vendedor</th>'+
           '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Status</th>'+
           '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Meta ativa</th>'+
+          '<th style="font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535">Período pausa</th>'+
           '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Desligado</th>'+
           (isAdmin?'<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:90px">É gestor</th>':'')+
         '</tr></thead>'+
@@ -3415,17 +3433,26 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
   var lbl = document.getElementById('lbl-'+cb.id);
   if(lbl) lbl.textContent = cb.checked ? 'Sim' : 'Não';
 
+  if(tipo === 'meta'){
+    // mostra/oculta célula de período pausa
+    var cellId = 'cell-datas-'+cb.id;
+    var cell = document.getElementById(cellId);
+    if(cell) cell.style.display = cb.checked ? 'none' : '';
+  }
+
   if(tipo === 'desligado'){
-    // ao desligar: desativa meta também
     var row = cb.closest('tr');
     var metaCb = row.querySelector('input[type=checkbox]');
     var metaLbl = row.querySelector('[id^="lbl-tg-meta"]');
     var nomeEl = row.querySelector('td:first-child span');
     var avatarEl = row.querySelector('td:first-child div div');
     var statusEl = row.querySelector('td:nth-child(2) span');
+    var metaId = metaCb && metaCb.id;
+    var dataCel = metaId ? document.getElementById('cell-datas-'+metaId) : null;
     if(cb.checked){
       if(metaCb){ metaCb.checked=false; metaCb.disabled=true; }
       if(metaLbl) metaLbl.textContent='Não';
+      if(dataCel) dataCel.style.display='none';
       if(nomeEl){ nomeEl.style.textDecoration='line-through'; nomeEl.style.color='#64748b'; }
       if(avatarEl){ avatarEl.style.background='#3f1f1f'; avatarEl.style.color='#f87171'; }
       if(statusEl){ statusEl.style.background='#3f1f1f'; statusEl.style.color='#f87171'; statusEl.textContent='Desligado'; }
@@ -3445,7 +3472,6 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
 
   await sb.from('gestao_vendedores').update(update).eq('prop_key', propKey).eq('segmento', seg);
 
-  // Atualiza contadores
   var allRows = document.querySelectorAll('.gv-block tbody tr');
   var ativos=0, meta=0, deslig=0;
   allRows.forEach(function(r){
@@ -3459,6 +3485,13 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
   var el=document.getElementById('gv-total'); if(el) el.textContent=ativos;
   var el2=document.getElementById('gv-meta'); if(el2) el2.textContent=meta;
   var el3=document.getElementById('gv-deslig'); if(el3) el3.textContent=deslig;
+};
+
+window.gvData = async function(input, campo, propKey, seg){
+  var col = campo === 'inicio' ? 'meta_pausa_inicio' : 'meta_pausa_fim';
+  var update = {};
+  update[col] = input.value || null;
+  await sb.from('gestao_vendedores').update(update).eq('prop_key', propKey).eq('segmento', seg);
 };
 
 // ────────────────────────────────────────────────
