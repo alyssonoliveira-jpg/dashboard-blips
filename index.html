@@ -2557,7 +2557,7 @@ function renderCredito(){
   if(!leadsAll||!leadsAll.length){box.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">Carregue uma base primeiro.</div>';return;}
   var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var mesLabel=mesSelecionado?(function(){var p=mesSelecionado.split('-');return nomesMes[+p[1]-1]+'/'+p[0].slice(2);}()):'';
-  var segFiltro=_userSegmento||window._creditoSeg||'all';
+  var segFiltro=(_userSegmentos&&_userSegmentos.length>1)?(window._creditoSeg||'all'):(_userSegmento||window._creditoSeg||'all');
   var modFiltro=window._creditoMod||'all'; // 'all' | 'venda' | 'locacao'
 
   // Agrega por dia com breakdown completo
