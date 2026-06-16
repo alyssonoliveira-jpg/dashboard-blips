@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dashboard Comercial · Blips</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
@@ -37,9 +38,10 @@ body.light-mode .pill{background:#1e3a5f;color:#93c5fd}
 body.light-mode .pill-b{background:#1e3a5f;color:#93c5fd}
 body.light-mode .badge{background:#dde5f0;color:#334155;border-color:#c4cfdf}
 body.light-mode .tabs{border-color:#c4cfdf}
-body.light-mode .tab{color:#475569}
-body.light-mode .tab.active{color:#1d4ed8;border-color:#1d4ed8}
-body.light-mode .tab:hover:not(.active){color:#0f172a;background:#eef2f7}
+body.light-mode .tab{color:#64748b}
+body.light-mode .tab.active{background:#e8edfb;color:#1d4ed8}
+body.light-mode .tab:hover:not(.active){background:#f1f5f9;color:#0f172a}
+body.light-mode .tab-sep{background:#c4cfdf}
 body.light-mode .month-btn{background:#dde5f0;color:#334155;border-color:#c4cfdf}
 body.light-mode .month-btn.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
 body.light-mode tfoot tr td{background:#dde5f0;color:#0f172a;font-weight:700}
@@ -305,11 +307,13 @@ tfoot td.sep{border-left:1px solid #1e2535}
 .df-info strong{color:#7dd3fc}
 
 /* ABAS */
-.tabs{max-width:1300px;margin:0 auto 18px;display:none;gap:6px;border-bottom:1px solid #1e2535;padding:0 4px}
+.tabs{max-width:1300px;margin:0 auto 18px;display:none;gap:2px;border-bottom:1px solid #1e2535;padding:6px 12px;align-items:center}
 .tabs.active-tabs{display:flex}
-.tab{padding:10px 22px;border:none;background:transparent;color:#475569;font-size:.84rem;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.2px}
-.tab:hover{color:#cbd5e1}
-.tab.active{color:#60a5fa;border-bottom-color:#60a5fa}
+.tab{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:none;background:transparent;color:#475569;font-size:.8rem;font-weight:500;cursor:pointer;border-radius:8px;transition:background .15s,color .15s;white-space:nowrap}
+.tab i{font-size:15px}
+.tab:hover:not(.active){background:#1e2535;color:#94a3b8}
+.tab.active{background:#1e2a4a;color:#818cf8;font-weight:600}
+.tab-sep{width:1px;height:20px;background:#1e2535;margin:0 4px;flex-shrink:0}
 
 /* PROJECAO */
 .proj-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;max-width:1300px;margin:0 auto 20px}
@@ -560,19 +564,22 @@ tfoot td.sep{border-left:1px solid #1e2535}
 
 <!-- ABAS -->
 <div class="tabs" id="tabs">
-  <button class="tab active" data-tab="segmentos"    onclick="trocarAba('segmentos')">Segmentos</button>
-  <button class="tab"        data-tab="vendedores"   onclick="trocarAba('vendedores')">Vendedores</button>
-  <button class="tab"        data-tab="credito"      onclick="trocarAba('credito')">💳 Crédito</button>
-  <button class="tab"        data-tab="performance"  onclick="trocarAba('performance')">⚡ Performance</button>
-  <button class="tab"        data-tab="projecao"     onclick="trocarAba('projecao')">📈 Projeção Venda</button>
-  <button class="tab"        data-tab="projecao-meta" onclick="trocarAba('projecao-meta')">🎯 Projeção de Meta</button>
-  <button class="tab"        data-tab="classificacoes" onclick="trocarAba('classificacoes')">✅ Visão Aprovação</button>
-  <button class="tab"        data-tab="ranking-n1"   onclick="trocarAba('ranking-n1')">🏅 Ranking N1</button>
-  <button class="tab"        data-tab="ranking-venda" onclick="trocarAba('ranking-venda')">🏆 Ranking Venda</button>
-  <button class="tab"        data-tab="batedores"    onclick="trocarAba('batedores')">⭐ Batedores de Meta</button>
-  <button class="tab" data-tab="equipamentos" onclick="trocarAba('equipamentos')">🔧 Análise Equipamento</button>
-  <button class="tab" data-tab="gestao-vendedores" onclick="trocarAba('gestao-vendedores')">👥 Gestão Vendedores</button>
-  <button class="tab" id="tab-config" data-tab="config" onclick="trocarAba('config')" style="display:none">⚙️ Configurações</button>
+  <button class="tab active" data-tab="segmentos"     onclick="trocarAba('segmentos')"><i class="ti ti-layout-grid" aria-hidden="true"></i>Segmentos</button>
+  <button class="tab"        data-tab="vendedores"    onclick="trocarAba('vendedores')"><i class="ti ti-users" aria-hidden="true"></i>Vendedores</button>
+  <button class="tab"        data-tab="credito"       onclick="trocarAba('credito')"><i class="ti ti-credit-card" aria-hidden="true"></i>Crédito</button>
+  <div class="tab-sep"></div>
+  <button class="tab"        data-tab="performance"   onclick="trocarAba('performance')"><i class="ti ti-bolt" aria-hidden="true"></i>Performance</button>
+  <button class="tab"        data-tab="projecao"      onclick="trocarAba('projecao')"><i class="ti ti-trending-up" aria-hidden="true"></i>Projeção Venda</button>
+  <button class="tab"        data-tab="projecao-meta" onclick="trocarAba('projecao-meta')"><i class="ti ti-target" aria-hidden="true"></i>Projeção Meta</button>
+  <button class="tab"        data-tab="classificacoes" onclick="trocarAba('classificacoes')"><i class="ti ti-circle-check" aria-hidden="true"></i>Aprovação</button>
+  <div class="tab-sep"></div>
+  <button class="tab"        data-tab="ranking-n1"    onclick="trocarAba('ranking-n1')"><i class="ti ti-medal" aria-hidden="true"></i>Ranking N1</button>
+  <button class="tab"        data-tab="ranking-venda" onclick="trocarAba('ranking-venda')"><i class="ti ti-trophy" aria-hidden="true"></i>Ranking Venda</button>
+  <button class="tab"        data-tab="batedores"     onclick="trocarAba('batedores')"><i class="ti ti-star" aria-hidden="true"></i>Batedores</button>
+  <div class="tab-sep"></div>
+  <button class="tab"        data-tab="equipamentos"  onclick="trocarAba('equipamentos')"><i class="ti ti-tool" aria-hidden="true"></i>Equipamento</button>
+  <button class="tab"        data-tab="gestao-vendedores" onclick="trocarAba('gestao-vendedores')"><i class="ti ti-users-group" aria-hidden="true"></i>Gestão</button>
+  <button class="tab" id="tab-config" data-tab="config" onclick="trocarAba('config')" style="display:none"><i class="ti ti-settings" aria-hidden="true"></i>Configurações</button>
 </div>
 
 <!-- PAGINA SEGMENTOS -->
