@@ -3291,13 +3291,83 @@ function renderProjecao(){
 // ────────────────────────────────────────────────
 //  ABA GESTÃO VENDEDORES
 // ────────────────────────────────────────────────
+// ── Confirmação estilizada ──────────────────────────────
+window.gvConfirm = function(msg, confirmLabel, confirmColor){
+  return new Promise(function(resolve){
+    var ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center';
+    ov.innerHTML='<div style="background:#1a2035;border:1px solid #334155;border-radius:14px;padding:28px 24px;max-width:370px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.6)">'+
+      '<div style="font-size:15px;font-weight:700;color:#e2e8f0;margin-bottom:8px">Confirmar ação</div>'+
+      '<div style="font-size:13px;color:#94a3b8;line-height:1.5;margin-bottom:22px">'+msg+'</div>'+
+      '<div style="display:flex;gap:8px;justify-content:flex-end">'+
+        '<button id="gvc-no" style="padding:7px 18px;border-radius:8px;border:1px solid #334155;background:transparent;color:#94a3b8;cursor:pointer;font-size:13px">Cancelar</button>'+
+        '<button id="gvc-yes" style="padding:7px 18px;border-radius:8px;border:none;background:'+(confirmColor||'#dc2626')+';color:#fff;cursor:pointer;font-size:13px;font-weight:600">'+(confirmLabel||'Confirmar')+'</button>'+
+      '</div>'+
+    '</div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#gvc-no').onclick=function(){document.body.removeChild(ov);resolve(false);};
+    ov.querySelector('#gvc-yes').onclick=function(){document.body.removeChild(ov);resolve(true);};
+  });
+};
+
+// ── Modal histórico de pausas ────────────────────────────
+window.gvHistorico = async function(propKey, seg, nome){
+  var {data} = await sb.from('historico_pausas').select('*').eq('prop_key',propKey).eq('segmento',seg).order('reativado_em',{ascending:false});
+  var linhas = (data&&data.length) ? data.map(function(h){
+    var ini = h.pausa_inicio ? h.pausa_inicio.split('T')[0] : '—';
+    var fim = h.pausa_fim    ? h.pausa_fim.split('T')[0]    : '—';
+    var dias = (h.pausa_inicio&&h.pausa_fim) ? Math.max(0,Math.round((new Date(h.pausa_fim)-new Date(h.pausa_inicio))/86400000)) : '—';
+    var rat = h.reativado_em ? new Date(h.reativado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    return '<tr style="border-bottom:1px solid #1e2535">'+
+      '<td style="padding:8px 12px;font-size:12px;color:#e2e8f0">'+ini+'</td>'+
+      '<td style="padding:8px 12px;font-size:12px;color:#e2e8f0">'+fim+'</td>'+
+      '<td style="padding:8px 12px;font-size:12px;color:#fbbf24;font-weight:600">'+dias+(typeof dias==='number'?' dias':'')+'</td>'+
+      '<td style="padding:8px 12px;font-size:11px;color:#64748b">'+rat+'</td>'+
+    '</tr>';
+  }).join('') : '<tr><td colspan="4" style="padding:24px;text-align:center;color:#64748b;font-size:13px">Nenhuma pausa registrada</td></tr>';
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML='<div style="background:#1a2035;border:1px solid #334155;border-radius:14px;padding:0;max-width:620px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden">'+
+    '<div style="background:#1e2a45;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #334155">'+
+      '<div>'+
+        '<div style="font-size:14px;font-weight:700;color:#e2e8f0">Histórico de Pausas</div>'+
+        '<div style="font-size:12px;color:#64748b;margin-top:2px">'+nome+'</div>'+
+      '</div>'+
+      '<button id="gvh-close" style="background:transparent;border:none;color:#64748b;cursor:pointer;font-size:18px;line-height:1">✕</button>'+
+    '</div>'+
+    '<div style="padding:16px 20px;max-height:380px;overflow-y:auto">'+
+      '<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #1e2535">Início</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #1e2535">Fim</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #1e2535">Duração</th>'+
+          '<th style="text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #1e2535">Reativado em</th>'+
+        '</tr></thead>'+
+        '<tbody>'+linhas+'</tbody>'+
+      '</table>'+
+    '</div>'+
+  '</div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#gvh-close').onclick=function(){document.body.removeChild(ov);};
+  ov.addEventListener('click',function(e){if(e.target===ov){document.body.removeChild(ov);}});
+};
+
 async function renderGestaoVendedores(){
   var box = document.getElementById('gestao-vendedores-content');
   if(!ultimosVendedores || !ultimosVendedores.length){
     box.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">Carregue uma base primeiro.</div>';
     return;
   }
-  box.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">Carregando...</div>';
+  // Skeleton animado
+  var skelRow='<tr>'+['38%','11%','9%','9%','18%','6%'].map(function(w){return '<td style="padding:10px 12px"><div class="gv-skel-line" style="height:13px;border-radius:6px;width:'+w+'"></div></td>';}).join('')+'</tr>';
+  box.innerHTML=
+    '<style>.gv-skel-line{background:linear-gradient(90deg,#1e2535 25%,#253050 50%,#1e2535 75%);background-size:400% 100%;animation:gvShimmer 1.4s infinite linear}@keyframes gvShimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}</style>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">'+
+      [1,2,3,4].map(function(){return '<div class="kpi"><div class="gv-skel-line" style="height:11px;border-radius:4px;width:65%;margin-bottom:10px"></div><div class="gv-skel-line" style="height:26px;border-radius:6px;width:38%"></div></div>';}).join('')+
+    '</div>'+
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden">'+
+      '<table style="width:100%;border-collapse:collapse"><tbody>'+Array(7).fill(skelRow).join('')+'</tbody></table>'+
+    '</div>';
 
   // Filtra por RBAC
   var vends = ultimosVendedores.filter(function(v){ return _temAcesso(v.seg); });
@@ -3325,13 +3395,16 @@ async function renderGestaoVendedores(){
   (rows||[]).forEach(function(r){
     if(!r.meta_ativa && !r.desligado && r.meta_pausa_fim){
       var fim = new Date(r.meta_pausa_fim); fim.setHours(0,0,0,0);
-      if(hoje > fim) autoAtivados.push({prop_key: r.prop_key, segmento: r.segmento});
+      if(hoje > fim) autoAtivados.push({prop_key: r.prop_key, segmento: r.segmento, pausa_inicio: r.meta_pausa_inicio, pausa_fim: r.meta_pausa_fim});
     }
   });
   if(autoAtivados.length){
     for(var ai=0;ai<autoAtivados.length;ai++){
       var av=autoAtivados[ai];
       await sb.from('gestao_vendedores').update({meta_ativa:true}).eq('prop_key',av.prop_key).eq('segmento',av.segmento);
+      if(av.pausa_inicio && av.pausa_fim){
+        await sb.from('historico_pausas').insert({prop_key:av.prop_key, segmento:av.segmento, pausa_inicio:av.pausa_inicio, pausa_fim:av.pausa_fim});
+      }
       if(dbMap[av.prop_key+'|'+av.segmento]) dbMap[av.prop_key+'|'+av.segmento].meta_ativa = true;
     }
   }
@@ -3401,6 +3474,7 @@ async function renderGestaoVendedores(){
           '</div>'+
         '</td>'+
         (isAdmin?'<td style="text-align:center"><label class="gv-toggle"><input type="checkbox" onchange="gvToggle(this,\'gestor\',\''+pk+'\',\''+seg+'\')"><span class="gv-slider gv-gray"></span></label></td>':'')+
+        '<td style="text-align:center"><button onclick="gvHistorico(\''+pk+'\',\''+seg+'\',\''+v.nome+'\')" style="background:transparent;border:1px solid #334155;color:#64748b;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer" title="Ver histórico de pausas">📋 Histórico</button></td>'+
       '</tr>';
     }).join('');
     if(!linhas.trim()) return '';
@@ -3418,6 +3492,7 @@ async function renderGestaoVendedores(){
           '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Desligado</th>'+
           '<th style="font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535">Período pausa</th>'+
           (isAdmin?'<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:90px">É gestor</th>':'')+
+          '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:100px"></th>'+
         '</tr></thead>'+
         '<tbody>'+linhas+'</tbody>'+
       '</table>'+
@@ -3431,6 +3506,9 @@ async function renderGestaoVendedores(){
       '<div class="kpi"><div class="kpi-lbl">Meta pausada</div><div class="kpi-val" style="color:#fbbf24" id="gv-pausada">'+totalPausada+'</div></div>'+
       '<div class="kpi"><div class="kpi-lbl">Desligados</div><div class="kpi-val ko" id="gv-deslig">'+totalDeslig+'</div></div>'+
     '</div>';
+
+  var agora = new Date();
+  var horaStr = agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 
   box.innerHTML =
     '<style>'+
@@ -3448,19 +3526,55 @@ async function renderGestaoVendedores(){
       '.gv-toggle input:checked+.gv-slider:before{transform:translateX(16px)}'+
       '.gv-toggle input:disabled+.gv-slider{opacity:.4;cursor:not-allowed}'+
     '</style>'+
-    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">'+
       '<span style="font-size:.85rem;font-weight:700;color:var(--text-hi)">Gestão Vendedores</span>'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<input id="gv-busca" type="text" placeholder="🔍  Buscar vendedor..." oninput="gvFiltrar(this.value)" style="font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid #334155;background:#0f1623;color:#e2e8f0;width:190px;outline:none">'+
+        '<span style="font-size:11px;color:#475569">Atualizado às '+horaStr+'</span>'+
+        '<button onclick="renderGestaoVendedores()" title="Recarregar" style="background:transparent;border:1px solid #334155;color:#64748b;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:14px">🔄</button>'+
+      '</div>'+
     '</div>'+
     summaryHtml+
     blocos;
 }
 
+window.gvFiltrar = function(val){
+  var v = val.toLowerCase().trim();
+  document.querySelectorAll('.gv-block').forEach(function(bloco){
+    var algumVisivel = false;
+    bloco.querySelectorAll('tbody tr').forEach(function(tr){
+      var nomeEl = tr.querySelector('td:first-child span');
+      var nome = nomeEl ? nomeEl.textContent.toLowerCase() : '';
+      var vis = !v || nome.includes(v);
+      tr.style.display = vis ? '' : 'none';
+      if(vis) algumVisivel = true;
+    });
+    bloco.style.display = algumVisivel ? '' : 'none';
+  });
+};
+
 window.gvToggle = async function(cb, tipo, propKey, seg){
+  if(tipo === 'desligado' && cb.checked){
+    var nomeVend = cb.closest('tr').querySelector('td:first-child span');
+    var nomeTexto = nomeVend ? nomeVend.textContent : 'este vendedor';
+    var ok = await gvConfirm('Deseja realmente desligar <strong style="color:#f87171">'+nomeTexto+'</strong>?<br><span style="font-size:11px">Esta ação pode ser revertida a qualquer momento.</span>','Desligar','#dc2626');
+    if(!ok){ cb.checked = false; return; }
+  }
+
   var lbl = document.getElementById('lbl-'+cb.id);
   if(lbl) lbl.textContent = cb.checked ? 'Sim' : 'Não';
 
   if(tipo === 'meta'){
     var cellDatas = document.getElementById('cell-datas-'+cb.id);
+    // Se reativando meta, salva histórico de pausa antes de esconder o campo
+    if(cb.checked && cellDatas){
+      var dInputs = cellDatas.querySelectorAll('input[type=date]');
+      var dIni = dInputs[0] && dInputs[0].value;
+      var dFim = dInputs[1] && dInputs[1].value;
+      if(dIni && dFim){
+        await sb.from('historico_pausas').insert({prop_key:propKey, segmento:seg, pausa_inicio:dIni, pausa_fim:dFim});
+      }
+    }
     if(cellDatas) cellDatas.style.display = cb.checked ? 'none' : '';
     var statusEl = cb.closest('tr').querySelector('td:nth-child(2) span');
     if(statusEl){
