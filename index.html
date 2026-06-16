@@ -3356,6 +3356,13 @@ async function renderGestaoVendedores(){
             '<span style="font-size:11px;color:#64748b" id="lbl-'+idMeta+'">'+(metaAtiva&&!desligado?'Sim':'Não')+'</span>'+
           '</div>'+
         '</td>'+
+        '<td style="text-align:center">'+
+          '<div style="display:flex;align-items:center;justify-content:center;gap:6px">'+
+            '<label class="gv-toggle"><input type="checkbox" id="'+idDeslig+'" '+(desligado?'checked':'')+' onchange="gvToggle(this,\'desligado\',\''+pk+'\',\''+seg+'\')">'+
+            '<span class="gv-slider gv-danger"></span></label>'+
+            '<span style="font-size:11px;color:#64748b" id="lbl-'+idDeslig+'">'+(desligado?'Sim':'Não')+'</span>'+
+          '</div>'+
+        '</td>'+
         '<td id="cell-datas-'+idMeta+'" style="'+(mostrarDatas?'':'display:none')+';min-width:220px">'+
           '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
             '<div style="display:flex;flex-direction:column;gap:2px">'+
@@ -3366,13 +3373,6 @@ async function renderGestaoVendedores(){
               '<span style="font-size:10px;color:#64748b">Até</span>'+
               '<input type="date" id="'+idFim+'" value="'+pausaFim+'" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid #1e2535;background:#0f1623;color:#e2e8f0;width:120px" onchange="gvData(this,\'fim\',\''+pk+'\',\''+seg+'\')">'+
             '</div>'+
-          '</div>'+
-        '</td>'+
-        '<td style="text-align:center">'+
-          '<div style="display:flex;align-items:center;justify-content:center;gap:6px">'+
-            '<label class="gv-toggle"><input type="checkbox" id="'+idDeslig+'" '+(desligado?'checked':'')+' onchange="gvToggle(this,\'desligado\',\''+pk+'\',\''+seg+'\')">'+
-            '<span class="gv-slider gv-danger"></span></label>'+
-            '<span style="font-size:11px;color:#64748b" id="lbl-'+idDeslig+'">'+(desligado?'Sim':'Não')+'</span>'+
           '</div>'+
         '</td>'+
         (isAdmin?'<td style="text-align:center"><label class="gv-toggle"><input type="checkbox" onchange="gvToggle(this,\'gestor\',\''+pk+'\',\''+seg+'\')"><span class="gv-slider gv-gray"></span></label></td>':'')+
@@ -3390,8 +3390,8 @@ async function renderGestaoVendedores(){
           '<th style="text-align:left;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535">Vendedor</th>'+
           '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Status</th>'+
           '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Meta ativa</th>'+
-          '<th style="font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535">Período pausa</th>'+
           '<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:110px">Desligado</th>'+
+          '<th style="font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535">Período pausa</th>'+
           (isAdmin?'<th style="text-align:center;font-size:11px;font-weight:500;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid #1e2535;width:90px">É gestor</th>':'')+
         '</tr></thead>'+
         '<tbody>'+linhas+'</tbody>'+
