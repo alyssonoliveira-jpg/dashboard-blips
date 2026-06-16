@@ -3712,8 +3712,12 @@ window.renderHistoricoGV = async function(){
   if(segsFiltro.length) query = query.in('segmento', segsFiltro);
   var {data, error} = await query;
 
-  if(error || !data || !data.length){
-    box.innerHTML='<div style="text-align:center;padding:40px;color:#64748b;font-size:13px">Nenhuma movimentação registrada ainda.</div>';
+  if(error){
+    box.innerHTML='<div style="text-align:center;padding:40px;color:#f87171;font-size:13px">Erro: '+JSON.stringify(error)+'</div>';
+    return;
+  }
+  if(!data || !data.length){
+    box.innerHTML='<div style="text-align:center;padding:40px;color:#64748b;font-size:13px">Nenhuma movimentação registrada ainda. Salve uma pausa para aparecer aqui.</div>';
     return;
   }
 
