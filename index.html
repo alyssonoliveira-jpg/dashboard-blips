@@ -3435,7 +3435,8 @@ async function renderGestaoVendedores(){
       var idFim   = 'dt-fim-'+pk.replace(/[^a-z0-9]/g,'_')+'_'+seg.replace(/[^a-z0-9]/g,'_');
       var pausaIni = db.meta_pausa_inicio || '';
       var pausaFim = db.meta_pausa_fim    || '';
-      var mostrarDatas = !metaAtiva && !desligado;
+      var pausaConfigurada = db.pausa_configurada === true;
+      var mostrarDatas = !metaAtiva && !desligado && !pausaConfigurada;
       return '<tr>'+
         '<td><div style="display:flex;align-items:center;gap:10px">'+
           '<div style="width:28px;height:28px;border-radius:50%;'+avatarCls+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0">'+iniciais+'</div>'+
@@ -3637,7 +3638,7 @@ window.gvToggle = async function(cb, tipo, propKey, seg){
   }
 
   var update = {};
-  if(tipo==='meta')      update = { meta_ativa: cb.checked };
+  if(tipo==='meta')      update = { meta_ativa: cb.checked, pausa_configurada: false };
   if(tipo==='desligado') update = { desligado: cb.checked, meta_ativa: cb.checked ? false : undefined };
   if(tipo==='gestor')    update = { is_gestor: cb.checked };
   if(tipo==='desligado' && update.meta_ativa===undefined) delete update.meta_ativa;
@@ -3689,7 +3690,7 @@ window.gvSalvarPausa = async function(idIni, idFim, propKey, seg){
   if(btn){ btn.textContent='Salvando...'; btn.disabled=true; }
 
   await sb.from('historico_pausas').insert({prop_key:propKey, segmento:seg, pausa_inicio:ini, pausa_fim:fim});
-  await sb.from('gestao_vendedores').update({meta_pausa_inicio:null, meta_pausa_fim:null}).eq('prop_key',propKey).eq('segmento',seg);
+  await sb.from('gestao_vendedores').update({meta_pausa_inicio:null, meta_pausa_fim:null, pausa_configurada:true}).eq('prop_key',propKey).eq('segmento',seg);
 
   if(btn){ btn.textContent='✓ Salvo'; btn.style.background='#16a34a'; }
   setTimeout(function(){
