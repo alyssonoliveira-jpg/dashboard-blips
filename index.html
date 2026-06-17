@@ -1421,7 +1421,7 @@ function filtrarPorMesLocal(ym){
     window._kpiPrevData = null;
   }
   var temDataGanho = ganhosAll.some(function(r){return r.dataTs;});
-  var ganhosF = temDataGanho ? ganhosAll.filter(function(r){return r.dataTs && r.dataTs>=iniTs && r.dataTs<=fimTs;}) : ganhosAll;
+  var ganhosF = temDataGanho ? ganhosAll.filter(function(r){return !r.dataTs || (r.dataTs>=iniTs && r.dataTs<=fimTs);}) : ganhosAll;
 
   atualizarInfoFiltro();
   reprocessar(leadsF, ganhosF);
