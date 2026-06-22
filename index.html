@@ -4659,8 +4659,9 @@ async function salvarBaseNoSupabase(arquivoLeads, arquivoGanhos){
   mostrarLoading('Enviando para o servidor...');
   try {
     const ts = new Date().toISOString().replace(/[:.]/g,'-');
-    const leadsPath  = ts + '/leads_'  + arquivoLeads.name;
-    const ganhosPath = ts + '/ganhos_' + arquivoGanhos.name;
+    const sanitize = function(n){ return n.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9._-]/g,'_'); };
+    const leadsPath  = ts + '/leads_'  + sanitize(arquivoLeads.name);
+    const ganhosPath = ts + '/ganhos_' + sanitize(arquivoGanhos.name);
 
     // Upload dos 2 arquivos
     const up1 = await sb.storage.from(BUCKET).upload(leadsPath,  arquivoLeads,  { upsert:false });
@@ -4713,7 +4714,9 @@ async function salvarBaseNoSupabase(arquivoLeads, arquivoGanhos){
   } catch(err){
     esconderLoading();
     console.error('Erro salvar:', err);
-    mostrarErro('Erro ao salvar base: ' + err.message);
+    mostrarErro('Erro ao salvar base: ' + err.message + ' — Recarregando base anterior...');
+    // Recarrega o mês mais recente do banco para desfazer o render local
+    setTimeout(function(){ carregarUltimaBase(); }, 2000);
     return false;
   }
 }
