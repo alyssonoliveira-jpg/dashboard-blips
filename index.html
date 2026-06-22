@@ -4659,7 +4659,7 @@ async function salvarBaseNoSupabase(arquivoLeads, arquivoGanhos){
   mostrarLoading('Enviando para o servidor...');
   try {
     const ts = new Date().toISOString().replace(/[:.]/g,'-');
-    const sanitize = function(n){ return n.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9._-]/g,'_'); };
+    const sanitize = function(n){ return n.replace(/[^a-zA-Z0-9._-]/g,'_'); };
     const leadsPath  = ts + '/leads_'  + sanitize(arquivoLeads.name);
     const ganhosPath = ts + '/ganhos_' + sanitize(arquivoGanhos.name);
 
