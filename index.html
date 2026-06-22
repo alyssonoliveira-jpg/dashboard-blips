@@ -3871,6 +3871,11 @@ async function renderConfig(){
       data = fb.data || [];
     }
 
+    // deduplica por chave mantendo o registro de maior id (mais recente)
+    var seen = {};
+    data.forEach(function(r){ if(!seen[r.chave] || r.id > seen[r.chave].id) seen[r.chave] = r; });
+    data = Object.values(seen);
+
     var segmentos = data.filter(function(r){return r.tipo==='segmento';})
                         .sort(function(a,b){return a.chave.localeCompare(b.chave);});
     var vendedores = data.filter(function(r){return r.tipo==='vendedor';})
