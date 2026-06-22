@@ -3896,24 +3896,23 @@ async function renderConfig(){
 
     var listaSegs = segmentos.map(function(s){return s.chave;});
 
-    // Segmentos
+    var fmt = function(v){ return 'R$ '+(+v||0).toLocaleString('pt-BR'); };
+
+    // Segmentos — somente leitura
     var linhasSeg = segmentos.map(function(s){
-      return '<tr data-chave="'+s.chave+'">'+
+      return '<tr>'+
         '<td><strong>'+(s.nome_display||s.chave)+'</strong><div style="font-size:.66rem;color:#475569;margin-top:2px">'+s.chave+'</div></td>'+
-        '<td class="col-num"><input type="number" step="1000" class="seg-meta" value="'+s.meta_valor+'"></td>'+
-        '<td class="col-num"><input type="number" step="0.01" class="seg-conv" value="'+s.conv_alvo+'"></td>'+
+        '<td class="col-num" style="text-align:right;padding-right:12px">'+fmt(s.meta_valor)+'</td>'+
+        '<td class="col-num" style="text-align:right;padding-right:12px">'+(s.conv_alvo||0)+'%</td>'+
       '</tr>';
     }).join('');
 
-    // Vendedores
+    // Vendedores — somente leitura
     var linhasVend = vendedores.map(function(v){
-      var opts = listaSegs.map(function(s){
-        return '<option value="'+s+'"'+(v.segmento===s?' selected':'')+'>'+s.replace('Blips - ','')+'</option>';
-      }).join('');
-      return '<tr data-chave="'+v.chave+'">'+
+      return '<tr>'+
         '<td><strong>'+(v.nome_display||v.chave)+'</strong></td>'+
-        '<td class="col-seg"><select class="vend-seg">'+opts+'</select></td>'+
-        '<td class="col-num"><input type="number" step="1000" class="vend-meta" value="'+v.meta_valor+'"></td>'+
+        '<td class="col-seg" style="color:#94a3b8">'+(v.segmento||'—').replace('Blips - ','')+'</td>'+
+        '<td class="col-num" style="text-align:right;padding-right:12px">'+fmt(v.meta_valor)+'</td>'+
       '</tr>';
     }).join('');
 
@@ -3922,34 +3921,22 @@ async function renderConfig(){
 
     box.innerHTML =
       '<div style="background:#1e2a45;border:1px solid #334155;border-radius:10px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:8px">'+
-        '<span style="font-size:12px;color:#64748b">Editando metas de</span>'+
+        '<span style="font-size:12px;color:#64748b">Metas configuradas de</span>'+
         '<span style="font-size:13px;font-weight:700;color:#818cf8">'+mesLabel+'</span>'+
-        '<span style="font-size:11px;color:#475569;margin-left:4px">— troque o mês no filtro acima para editar outro mês</span>'+
+        '<span style="font-size:11px;color:#475569;margin-left:4px">— alterações via banco de dados</span>'+
       '</div>'+
       '<div class="cfg-block">'+
-        '<div class="cfg-head">📊 Metas por Segmento'+
-          '<div class="cfg-actions">'+
-            '<span id="seg-status"></span>'+
-            '<button class="cfg-btn" onclick="salvarConfigSegmentos()">Salvar Segmentos</button>'+
-          '</div>'+
-        '</div>'+
+        '<div class="cfg-head">📊 Metas por Segmento</div>'+
         '<table class="cfg-table">'+
           '<thead><tr><th>Segmento</th><th class="col-num">Meta R$</th><th class="col-num">Conv Alvo %</th></tr></thead>'+
           '<tbody>'+linhasSeg+'</tbody>'+
         '</table>'+
       '</div>'+
-
       '<div class="cfg-block">'+
-        '<div class="cfg-head">👥 Metas por Vendedor'+
-          '<div class="cfg-actions">'+
-            '<span id="vend-status"></span>'+
-            '<button class="cfg-btn cfg-btn-add" onclick="adicionarVendedor()">+ Novo</button>'+
-            '<button class="cfg-btn" onclick="salvarConfigVendedores()">Salvar Vendedores</button>'+
-          '</div>'+
-        '</div>'+
+        '<div class="cfg-head">👥 Metas por Vendedor</div>'+
         '<table class="cfg-table">'+
           '<thead><tr><th>Vendedor</th><th class="col-seg">Segmento</th><th class="col-num">Meta R$</th></tr></thead>'+
-          '<tbody id="cfg-vend-tbody">'+linhasVend+'</tbody>'+
+          '<tbody>'+linhasVend+'</tbody>'+
         '</table>'+
       '</div>';
   } catch(err){
