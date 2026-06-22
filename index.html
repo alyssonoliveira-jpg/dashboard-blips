@@ -4530,7 +4530,7 @@ async function carregarUltimaBase(){
     const { data, error } = await sb
       .from('bases_uploads')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('mes_referencia', { ascending: false })
       .limit(1);
 
     if(error) throw error;
