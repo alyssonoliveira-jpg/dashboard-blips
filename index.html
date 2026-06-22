@@ -3863,8 +3863,13 @@ async function renderConfig(){
   box.innerHTML = '<div class="proj-info">Carregando...</div>';
 
   try {
-    const { data, error } = await sb.from('config_metas').select('*');
+    var mesAlvo = mesSelecionado || (function(){var h=new Date();return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');}());
+    var { data, error } = await sb.from('config_metas').select('*').eq('mes_referencia', mesAlvo);
     if(error) throw error;
+    if(!data || !data.length){
+      var fb = await sb.from('config_metas').select('*').is('mes_referencia', null);
+      data = fb.data || [];
+    }
 
     var segmentos = data.filter(function(r){return r.tipo==='segmento';})
                         .sort(function(a,b){return a.chave.localeCompare(b.chave);});
@@ -3897,7 +3902,15 @@ async function renderConfig(){
       '</tr>';
     }).join('');
 
+    var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    var mesLabel = mesAlvo ? (function(){ var p=mesAlvo.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); })() : 'mês atual';
+
     box.innerHTML =
+      '<div style="background:#1e2a45;border:1px solid #334155;border-radius:10px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:12px;color:#64748b">Editando metas de</span>'+
+        '<span style="font-size:13px;font-weight:700;color:#818cf8">'+mesLabel+'</span>'+
+        '<span style="font-size:11px;color:#475569;margin-left:4px">— troque o mês no filtro acima para editar outro mês</span>'+
+      '</div>'+
       '<div class="cfg-block">'+
         '<div class="cfg-head">📊 Metas por Segmento'+
           '<div class="cfg-actions">'+
