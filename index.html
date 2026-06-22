@@ -3961,25 +3961,22 @@ async function salvarConfigSegmentos(){
   var statusEl = document.getElementById('seg-status');
   statusEl.innerHTML = '<span class="cfg-saving">Salvando...</span>';
   try {
+    var mesAlvo = mesSelecionado || (function(){var h=new Date();return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');}());
     var linhas = document.querySelectorAll('.cfg-block:first-of-type tbody tr');
-    var updates = [];
+    var rows = [];
     linhas.forEach(function(tr){
       var chave = tr.getAttribute('data-chave');
+      var nomeDisplay = tr.querySelector('td:first-child strong').textContent;
       var meta  = parseFloat(tr.querySelector('.seg-meta').value)||0;
       var conv  = parseFloat(tr.querySelector('.seg-conv').value)||0;
-      var mesAlvo = mesSelecionado || (function(){var h=new Date();return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');}());
-      updates.push(
-        sb.from('config_metas').upsert({
-          tipo:'segmento', chave: chave,
-          meta_valor: meta, conv_alvo: conv,
-          mes_referencia: mesAlvo,
-          updated_at: new Date().toISOString(), updated_by: usuarioAtual.email
-        }, { onConflict:'tipo,chave,mes_referencia' })
-      );
+      rows.push({ tipo:'segmento', chave:chave, nome_display:nomeDisplay, meta_valor:meta, conv_alvo:conv,
+        mes_referencia:mesAlvo, updated_at:new Date().toISOString(), updated_by:usuarioAtual.email });
     });
-    var results = await Promise.all(updates);
-    var erros = results.filter(function(r){return r.error;});
-    if(erros.length) throw erros[0].error;
+    // delete existing rows for this month then insert fresh
+    var del = await sb.from('config_metas').delete().eq('tipo','segmento').eq('mes_referencia', mesAlvo);
+    if(del.error) throw del.error;
+    var ins = await sb.from('config_metas').insert(rows);
+    if(ins.error) throw ins.error;
     await carregarMetasConfig();
     if(leadsAll) reprocessar(leadsAll, ganhosAll);
     await renderConfig();
