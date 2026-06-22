@@ -3970,10 +3970,12 @@ async function salvarConfigSegmentos(){
     var results = await Promise.all(updates);
     var erros = results.filter(function(r){return r.error;});
     if(erros.length) throw erros[0].error;
-    statusEl.innerHTML = '<span class="cfg-saved">✓ Salvo para '+( mesSelecionado||'mês atual')+'</span>';
-    setTimeout(function(){statusEl.innerHTML='';},3000);
     await carregarMetasConfig();
     if(leadsAll) reprocessar(leadsAll, ganhosAll);
+    await renderConfig();
+    statusEl = document.getElementById('seg-status');
+    if(statusEl) statusEl.innerHTML = '<span class="cfg-saved">✓ Salvo</span>';
+    setTimeout(function(){ var el=document.getElementById('seg-status'); if(el) el.innerHTML=''; },3000);
   } catch(err){
     statusEl.innerHTML = '<span style="color:#f87171;font-size:.7rem;margin-left:8px">Erro: '+err.message+'</span>';
   }
