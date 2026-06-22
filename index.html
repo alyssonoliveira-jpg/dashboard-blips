@@ -3972,11 +3972,14 @@ async function salvarConfigSegmentos(){
       rows.push({ tipo:'segmento', chave:chave, nome_display:nomeDisplay, meta_valor:meta, conv_alvo:conv,
         mes_referencia:mesAlvo, updated_at:new Date().toISOString(), updated_by:usuarioAtual.email });
     });
-    // delete existing rows for this month then insert fresh
-    var del = await sb.from('config_metas').delete().eq('tipo','segmento').eq('mes_referencia', mesAlvo);
-    if(del.error) throw del.error;
-    var ins = await sb.from('config_metas').insert(rows);
-    if(ins.error) throw ins.error;
+    var updates = rows.map(function(r){
+      return sb.from('config_metas')
+        .update({ meta_valor:r.meta_valor, conv_alvo:r.conv_alvo, nome_display:r.nome_display, updated_at:r.updated_at, updated_by:r.updated_by })
+        .eq('tipo','segmento').eq('chave',r.chave).eq('mes_referencia', mesAlvo);
+    });
+    var results = await Promise.all(updates);
+    var erros = results.filter(function(r){return r.error;});
+    if(erros.length) throw erros[0].error;
     await carregarMetasConfig();
     if(leadsAll) reprocessar(leadsAll, ganhosAll);
     await renderConfig();
