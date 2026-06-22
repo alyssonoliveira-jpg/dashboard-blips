@@ -3864,17 +3864,27 @@ async function renderConfig(){
 
   try {
     var mesAlvo = mesSelecionado || (function(){var h=new Date();return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');}());
-    var { data, error } = await sb.from('config_metas').select('*').eq('mes_referencia', mesAlvo);
-    if(error) throw error;
-    if(!data || !data.length){
-      var fb = await sb.from('config_metas').select('*').is('mes_referencia', null);
-      data = fb.data || [];
-    }
 
-    // deduplica por chave mantendo o registro mais recente por updated_at
-    var seen = {};
-    data.forEach(function(r){ if(!seen[r.chave] || (r.updated_at||'') > (seen[r.chave].updated_at||'')) seen[r.chave] = r; });
-    data = Object.values(seen);
+    // Busca todos os registros (todos os meses) para montar lista completa de segmentos/vendedores
+    var { data: todos, error } = await sb.from('config_metas').select('*');
+    if(error) throw error;
+    todos = todos || [];
+
+    // Para cada chave, prioriza o registro do mês alvo; senão usa o mais recente de qualquer mês
+    var byChave = {};
+    todos.forEach(function(r){
+      var key = r.chave;
+      if(!byChave[key]){
+        byChave[key] = r;
+      } else if(r.mes_referencia === mesAlvo){
+        // registro do mês alvo tem prioridade máxima
+        byChave[key] = r;
+      } else if(byChave[key].mes_referencia !== mesAlvo){
+        // ambos não são do mês alvo: mantém o mais recente
+        if((r.updated_at||'') > (byChave[key].updated_at||'')) byChave[key] = r;
+      }
+    });
+    var data = Object.values(byChave);
 
     var segmentos = data.filter(function(r){return r.tipo==='segmento';})
                         .sort(function(a,b){return a.chave.localeCompare(b.chave);});
