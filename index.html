@@ -4158,7 +4158,7 @@ window.atGerarAnalise = function(){
         txt: 'Nenhum ganho registrado no ultimo mes ('+fim.label+') com '+fim.cnt_cql+' CQLs ativos. Verificar exportacao de ganhos e pipeline do segmento.',
         mini: null});
 
-    // Acoes recomendadas
+    // A&#231;&#245;es Recomendadas
     var tiposCausa = causas.map(function(c){return c.tipo;});
     if(tiposCausa.indexOf('volume')>=0 || tiposCausa.indexOf('volume')>=0)
       acao.push('Revisar estrategia de geracao de leads e meta de prospecao ativa do segmento.');
@@ -4206,7 +4206,7 @@ window.atGerarAnalise = function(){
 
     var acaoItems = diag.acao.length ?
       '<div style="margin-top:10px;padding:10px 14px;background:#0f1c1a;border:1px solid #134e4a;border-radius:8px">'+
-        '<div style="color:#2dd4bf;font-size:.72rem;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">&#128161; Acoes Recomendadas</div>'+
+        '<div style="color:#2dd4bf;font-size:.72rem;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">&#128161; A&#231;&#245;es Recomendadas</div>'+
         '<ul style="margin:0;padding-left:16px;color:#94a3b8;font-size:.77rem;line-height:1.9">'+
           diag.acao.map(function(a){return '<li>'+a+'</li>';}).join('')+
         '</ul></div>' : '';
@@ -4227,7 +4227,7 @@ window.atGerarAnalise = function(){
   };
 
   var html = '<div class="at-card" style="margin-bottom:16px;padding:20px 24px">';
-  html += '<div style="font-size:1rem;font-weight:700;color:#e2e8f0;margin-bottom:4px">&#128202; Resumo Analitico &#8212; '+labelMes(meses[0])+' a '+labelMes(meses[meses.length-1])+'</div>';
+  html += '<div style="font-size:1rem;font-weight:700;color:#e2e8f0;margin-bottom:4px">&#128202; Resumo Anal&#237;tico &#8212; '+labelMes(meses[0])+' a '+labelMes(meses[meses.length-1])+'</div>';
   html += '<div style="color:#64748b;font-size:.78rem;margin-bottom:16px">'+meses.length+' meses analisados &middot; '+segs.length+' segmentos</div>';
 
   if(queda.length){
@@ -4239,7 +4239,7 @@ window.atGerarAnalise = function(){
     crescimento.forEach(function(obj){ html += blocoSeg(obj); });
   }
   if(estavel.length){
-    html += '<div style="color:#94a3b8;font-size:.82rem;font-weight:700;margin:20px 0 10px;text-transform:uppercase;letter-spacing:.06em">&#8212; Estaveis ('+estavel.length+')</div>';
+    html += '<div style="color:#94a3b8;font-size:.82rem;font-weight:700;margin:20px 0 10px;text-transform:uppercase;letter-spacing:.06em">&#8212; Est&#225;veis ('+estavel.length+')</div>';
     estavel.forEach(function(obj){ html += blocoSeg(obj); });
   }
 
@@ -4249,7 +4249,7 @@ window.atGerarAnalise = function(){
   html += '<div style="margin-top:20px;padding:16px 20px;background:#0a1018;border:1px solid #1e2535;border-radius:10px">';
   html += '<div style="font-size:.8rem;font-weight:700;color:#e2e8f0;margin-bottom:8px">Visao Consolidada</div>';
   html += '<div style="color:#94a3b8;font-size:.78rem;line-height:2">';
-  if(criticos.length) html += '&#128680; <strong style="color:#f87171">'+criticos.map(function(o){return o.nome;}).join(', ')+'</strong>: em queda e abaixo de 70% no ultimo mes &#8212; acao imediata.<br>';
+  if(criticos.length) html += '&#128680; <strong style="color:#f87171">'+criticos.map(function(o){return o.nome;}).join(', ')+'</strong>: em queda e abaixo de 70% no ultimo mes &#8212; a&#231;&#227;o imediata.<br>';
   if(batendo.length) html += '&#10003; <strong style="color:#4ade80">'+batendo.map(function(seg){return segsSet[seg];}).join(', ')+'</strong>: bateram meta no ultimo mes.<br>';
   var totCQLini = segs.reduce(function(a,seg){return a+serie[seg][0].cnt_cql;},0);
   var totCQLfim = segs.reduce(function(a,seg){return a+serie[seg][serie[seg].length-1].cnt_cql;},0);
