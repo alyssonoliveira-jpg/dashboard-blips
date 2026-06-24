@@ -3903,7 +3903,9 @@ async function renderAnaliseTrimestral(){
       '<span style="color:#475569;font-size:1.2rem">&#8594;</span>'+
       '<select id="at-mes-comp" class="at-sel">'+optsComp+'</select>'+
       '<button onclick="atRenderDepara()" style="background:#6366f1;color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:.85rem;cursor:pointer;font-weight:600">Atualizar</button>'+
+      '<button onclick="atGerarAnalise()" style="background:#0f766e;color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:.85rem;cursor:pointer;font-weight:600;margin-left:4px">&#128200; Gerar An&#225;lise</button>'+
     '</div>'+
+    '<div id="at-analise-box"></div>'+
     '<div id="at-depara-content"></div>';
 
   atRenderDepara();
@@ -4018,6 +4020,137 @@ window.atRenderDepara = function(){
       '</tr></thead>'+
       '<tbody>'+segRows+'</tbody>'+
     '</table></div>';
+};
+
+window.atGerarAnalise = function(){
+  var box = document.getElementById('at-analise-box');
+  var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
+  var fmtR = function(v){ return 'R$ '+Math.round(v||0).toLocaleString('pt-BR'); };
+  var fmtPct = function(v){ return (v||0).toFixed(1)+'%'; };
+
+  var meses = Object.keys(dadosPorMes).sort();
+  if(meses.length < 2){ box.innerHTML = '<div class="at-card" style="color:#94a3b8;margin-bottom:16px">Carregue ao menos 2 meses para gerar a análise.</div>'; return; }
+
+  // Coleta todos os segmentos
+  var segsSet = {};
+  meses.forEach(function(m){ (dadosPorMes[m]||[]).forEach(function(s){ segsSet[s.funilOrig]=s.nome; }); });
+  var segs = Object.keys(segsSet).sort();
+
+  // Monta série histórica por segmento
+  var serie = {}; // seg -> [{mes, pct_meta, g_val, cnt_cql, cnt_n1v, meta}]
+  segs.forEach(function(seg){
+    serie[seg] = meses.map(function(m){
+      var d = (dadosPorMes[m]||[]).find(function(s){return s.funilOrig===seg;}) || {};
+      return { mes:m, label:labelMes(m), pct_meta:d.pct_meta||0, g_val:d.g_val||0,
+               cnt_cql:d.cnt_cql||0, cnt_n1v:d.cnt_n1v||0, meta:d.meta||0 };
+    });
+  });
+
+  // Classifica tendência: compara primeiro e último mês
+  var queda=[], crescimento=[], estavel=[];
+  segs.forEach(function(seg){
+    var s = serie[seg];
+    var primeiro = s[0], ultimo = s[s.length-1];
+    var trend = ultimo.pct_meta - primeiro.pct_meta;
+    var abaixo = ultimo.pct_meta < 100;
+    var obj = { seg:seg, nome:segsSet[seg], serie:s, trend:trend, ultimoPct:ultimo.pct_meta, primeiroMes:primeiro.label, ultimoMes:ultimo.label };
+    if(trend < -3) queda.push(obj);
+    else if(trend > 3) crescimento.push(obj);
+    else estavel.push(obj);
+  });
+  queda.sort(function(a,b){return a.trend-b.trend;});
+  crescimento.sort(function(a,b){return b.trend-a.trend;});
+
+  // Gerador de linha de tendência inline
+  var sparkline = function(dados){
+    var vals = dados.map(function(d){return d.pct_meta;});
+    var max = Math.max.apply(null,vals)||100;
+    var w=120, h=32, pad=4;
+    var pts = vals.map(function(v,i){
+      var x = pad + i*(w-2*pad)/(vals.length-1||1);
+      var y = h - pad - (v/Math.max(max,100))*(h-2*pad);
+      return x+','+y;
+    }).join(' ');
+    var cor = vals[vals.length-1]>=100?'#4ade80':vals[vals.length-1]>=70?'#fbbf24':'#f87171';
+    return '<svg width="'+w+'" height="'+h+'" style="vertical-align:middle"><polyline points="'+pts+'" fill="none" stroke="'+cor+'" stroke-width="2" stroke-linejoin="round"/>'
+      + vals.map(function(v,i){
+          var x=pad+i*(w-2*pad)/(vals.length-1||1);
+          var y=h-pad-(v/Math.max(max,100))*(h-2*pad);
+          return '<circle cx="'+x+'" cy="'+y+'" r="3" fill="'+cor+'"/>';
+        }).join('')
+      +'</svg>';
+  };
+
+  // Bloco de segmento
+  var blocoSeg = function(obj, cor){
+    var s = obj.serie;
+    var mesLabels = s.map(function(d){return '<span style="color:#64748b;font-size:.72rem;margin-right:8px">'+d.label+'</span><span style="color:#e2e8f0;font-weight:600;font-size:.8rem;margin-right:16px">'+fmtPct(d.pct_meta)+'</span>'; }).join('');
+    var diasCQL = s.map(function(d){ return d.cnt_cql; });
+    var tendCQL = diasCQL[diasCQL.length-1] - diasCQL[0];
+    var tendGanhos = s[s.length-1].g_val - s[0].g_val;
+
+    // Diagnóstico automático
+    var diag = [];
+    if(tendCQL < 0) diag.push('Volume de CQL caiu '+Math.abs(tendCQL)+' leads ('+s[0].label+' &#8594; '+s[s.length-1].label+')');
+    else if(tendCQL > 0) diag.push('Volume de CQL cresceu '+tendCQL+' leads');
+    var taxaConv = s[s.length-1].cnt_cql > 0 ? s[s.length-1].cnt_n1v / s[s.length-1].cnt_cql * 100 : 0;
+    if(taxaConv < 15) diag.push('Taxa de aprovação N1 baixa no último mês: '+fmtPct(taxaConv));
+    if(tendGanhos < 0) diag.push('Ganhos caíram '+fmtR(Math.abs(tendGanhos))+' no período');
+    var abaixo = s.filter(function(d){return d.pct_meta<100 && d.meta>0;});
+    if(abaixo.length === s.length && s[0].meta>0) diag.push('Não bateu meta em nenhum dos '+s.length+' meses analisados');
+    else if(abaixo.length > 0 && s[0].meta>0) diag.push('Abaixo da meta em '+abaixo.length+' de '+s.length+' meses');
+
+    return '<div style="background:#0c1521;border:1px solid '+(obj.trend<-10?'#7f1d1d':obj.trend<0?'#4a2008':'#14532d')+';border-radius:10px;padding:16px 20px;margin-bottom:10px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">'+
+        '<div style="display:flex;align-items:center;gap:12px">'+
+          '<span style="font-weight:700;color:#e2e8f0;font-size:.95rem">'+obj.nome+'</span>'+
+          '<span style="color:'+cor+';font-size:.82rem;font-weight:700">'+(obj.trend>=0?'&#9650;':'&#9660;')+' '+Math.abs(obj.trend).toFixed(1)+'pp ('+obj.primeiroMes+' &#8594; '+obj.ultimoMes+')</span>'+
+        '</div>'+
+        sparkline(s)+
+      '</div>'+
+      '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">'+mesLabels+'</div>'+
+      (diag.length ? '<ul style="margin:6px 0 0 0;padding-left:18px;color:#94a3b8;font-size:.78rem;line-height:1.8">'+
+        diag.map(function(d){return '<li>'+d+'</li>';}).join('')+'</ul>' : '')+
+    '</div>';
+  };
+
+  var html = '<div class="at-card" style="margin-bottom:20px;padding:20px 24px">';
+  html += '<div style="font-size:1rem;font-weight:700;color:#e2e8f0;margin-bottom:4px">&#128202; Resumo Analítico — '+labelMes(meses[0])+' a '+labelMes(meses[meses.length-1])+'</div>';
+  html += '<div style="color:#64748b;font-size:.78rem;margin-bottom:16px">'+meses.length+' meses analisados · '+segs.length+' segmentos</div>';
+
+  // Atenção — em queda
+  if(queda.length){
+    html += '<div style="color:#f87171;font-size:.82rem;font-weight:700;margin:12px 0 8px;text-transform:uppercase;letter-spacing:.06em">&#9660; Em Queda ('+queda.length+')</div>';
+    queda.forEach(function(obj){ html += blocoSeg(obj,'#f87171'); });
+  }
+
+  // Crescimento
+  if(crescimento.length){
+    html += '<div style="color:#4ade80;font-size:.82rem;font-weight:700;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">&#9650; Em Crescimento ('+crescimento.length+')</div>';
+    crescimento.forEach(function(obj){ html += blocoSeg(obj,'#4ade80'); });
+  }
+
+  // Estável
+  if(estavel.length){
+    html += '<div style="color:#94a3b8;font-size:.82rem;font-weight:700;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">&#8212; Estável / Sem Tendência Clara ('+estavel.length+')</div>';
+    estavel.forEach(function(obj){ html += blocoSeg(obj,'#94a3b8'); });
+  }
+
+  // Resumo executivo final
+  var criticos = queda.filter(function(o){return o.ultimoPct < 70;});
+  var batendo  = segs.filter(function(seg){ var s=serie[seg]; return s[s.length-1].pct_meta >= 100 && s[s.length-1].meta>0; });
+  html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #1e2535">';
+  html += '<div style="color:#94a3b8;font-size:.78rem;line-height:2">';
+  if(criticos.length) html += '&#128680; <strong style="color:#f87171">'+criticos.map(function(o){return o.nome;}).join(', ')+'</strong> est&#227;o em queda e abaixo de 70% da meta no último mês — requerem ação imediata.<br>';
+  if(batendo.length) html += '&#10003; <strong style="color:#4ade80">'+batendo.map(function(seg){return segsSet[seg];}).join(', ')+'</strong> bateram meta no último mês.<br>';
+  var tendGeralCQL = segs.reduce(function(a,seg){ var s=serie[seg]; return a + (s[s.length-1].cnt_cql - s[0].cnt_cql); },0);
+  html += (tendGeralCQL>=0?'&#9650;':'&#9660;')+' CQL consolidado '+(tendGeralCQL>=0?'cresceu':'caiu')+' <strong style="color:#e2e8f0">'+Math.abs(tendGeralCQL)+'</strong> leads no período.<br>';
+  html += '</div></div>';
+  html += '</div>';
+
+  box.innerHTML = html;
+  box.scrollIntoView({behavior:'smooth', block:'start'});
 };
 
 // Carrega e processa um mês silenciosamente sem alterar estado global
