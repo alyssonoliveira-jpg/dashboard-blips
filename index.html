@@ -4078,6 +4078,9 @@ async function renderAnaliseTrimestral(){
       '<button onclick="atRenderDepara()" style="background:#6366f1;color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:.85rem;cursor:pointer;font-weight:600">Atualizar</button>'+
       '<button onclick="atGerarAnalise()" style="background:#0f766e;color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:.85rem;cursor:pointer;font-weight:600;margin-left:4px">&#128200; Gerar An&#225;lise</button>'+
     '</div>'+
+    '<div style="display:inline-flex;align-items:center;gap:6px;background:#0c1a2e;border:1px solid #1e3a5f;border-radius:6px;padding:5px 12px;font-size:.78rem;color:#60a5fa;margin-bottom:12px">'+
+      '&#128197; Meses hist&#243;ricos normalizados at&#233; dia '+new Date().getDate()+' para comparação justa com o mês atual'+
+    '</div>'+
     '<div id="at-analise-box"></div>'+
     '<div id="at-depara-content"></div>';
 
@@ -4452,6 +4455,8 @@ async function carregarMesSilencioso(ym){
   var K_INTER = keys.find(function(k){return k.toLowerCase().includes('interesse');})||'';
   var K_CL    = keys.find(function(k){return k.toLowerCase().includes('classifica')&&k.toLowerCase().includes('loca');})||'';
   var K_CV    = keys.find(function(k){return k.toLowerCase().includes('classifica')&&k.toLowerCase().includes('venda');})||'';
+  var K_DATA  = keys.find(function(k){return k.toLowerCase().includes('criado');})||
+                keys.find(function(k){return k.toLowerCase().includes('data')&&!k.toLowerCase().includes('perda')&&!k.toLowerCase().includes('reserva');})||'';
 
   var gKeys = Object.keys(rawGanhos[0]||{});
   var GK_FUNIL = gKeys.find(function(k){return k.toLowerCase().includes('funil');})||'';
@@ -4459,18 +4464,23 @@ async function carregarMesSilencioso(ym){
                  gKeys.find(function(k){return k.toLowerCase().includes('valor do neg');})||
                  gKeys.find(function(k){return k.toLowerCase().includes('valor');})||'';
 
+  // diaCorte: normaliza meses históricos ao mesmo dia do mês atual para comparação justa
+  var diaCorte = new Date().getDate();
+
   var leads = rawLeads.map(function(r){
     var int_ = String(r[K_INTER]||'').trim().toUpperCase();
     var cl = String(r[K_CL]||'').trim();
     var cv = String(r[K_CV]||'').trim();
+    var dataStr = K_DATA ? String(r[K_DATA]||'').trim() : '';
+    var diaMes = dataStr ? new Date(dataStr.replace(' ','T')).getDate() : 0;
     return{
       funil: String(r[K_FUNIL]||'').trim(),
       valor: parseFloat(String(r[K_VALOR]||'0').replace(/[^\d.-]/g,''))||0,
       interesse: int_, cl:cl, cv:cv,
       isN1v:cv==='N1', isN2v:cv==='N2', isN3v:cv==='N3', isN4v:cv==='N4',
-      isN1l:cl==='N1'
+      isN1l:cl==='N1', diaMes:diaMes
     };
-  });
+  }).filter(function(r){ return r.diaMes === 0 || r.diaMes <= diaCorte; });
 
   var ganhos = rawGanhos.map(function(r){
     return{ funil:String(r[GK_FUNIL]||'').trim(), valor:parseFloat(String(r[GK_VALOR]||'0').replace(/[^\d.-]/g,''))||0 };
