@@ -4708,7 +4708,7 @@ function renderizar(met,totalLeads){
   kpis.innerHTML=
     '<div class="kpi"><div class="kpi-lbl">Meta Geral</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(47161564)+'</div><div class="kpi-sub">todos os segmentos</div></div>'+
     (SEM_META_SEG.includes(usuarioAtual&&usuarioAtual.email) ? '' : '<div class="kpi"><div class="kpi-lbl">Meta do Segmento</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">'+met.length+' segmento'+(met.length!==1?'s':'')+'</div></div>')+
-    '<div class="kpi"><div class="kpi-lbl">Valor CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+trend(tc,prev&&prev.tc)+'</div><div class="kpi-sub">'+totalLeads.toLocaleString('pt-BR')+' negócios</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Valor CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+trend(tc,prev&&prev.tc)+'</div><div class="kpi-sub">'+s('cnt_cql').toLocaleString('pt-BR')+' leads CQL</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+trend(tn,prev&&prev.tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val ko">'+fmtBRL(tv)+trend(tv,prev&&prev.tv)+'</div><div class="kpi-sub">Conv: '+fmtPct(pv)+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">N1 Locação</div><div class="kpi-val ko">'+fmtBRL(tl)+trend(tl,prev&&prev.tl)+'</div><div class="kpi-sub">Conv: '+fmtPct(pl)+'</div></div>'+
