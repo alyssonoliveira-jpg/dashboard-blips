@@ -578,7 +578,7 @@ tfoot td.sep{border-left:1px solid #1e2535}
   <button class="tab"        data-tab="batedores"     onclick="trocarAba('batedores')"><i class="ti ti-star" aria-hidden="true"></i>Batedores</button>
   <div class="tab-sep"></div>
   <button class="tab"        data-tab="equipamentos"  onclick="trocarAba('equipamentos')"><i class="ti ti-tool" aria-hidden="true"></i>Equipamento</button>
-  <button class="tab"        data-tab="gestao-vendedores" onclick="trocarAba('gestao-vendedores')"><i class="ti ti-users-group" aria-hidden="true"></i>Gestão</button>
+  <button class="tab"        data-tab="analise-trimestral" onclick="trocarAba('analise-trimestral')"><i class="ti ti-chart-bar" aria-hidden="true"></i>Análise Trimestral</button>
   <button class="tab" id="tab-config" data-tab="config" onclick="trocarAba('config')" style="display:none"><i class="ti ti-settings" aria-hidden="true"></i>Configurações</button>
 </div>
 
@@ -651,8 +651,8 @@ tfoot td.sep{border-left:1px solid #1e2535}
   <div id="equip-content" style="max-width:1300px;margin:0 auto;padding:0 4px"></div>
 </div>
 
-<div class="page" id="page-gestao-vendedores" style="display:none">
-  <div id="gestao-vendedores-content" style="max-width:1300px;margin:0 auto;padding:0 4px"></div>
+<div class="page" id="page-analise-trimestral" style="display:none">
+  <div id="at-content" style="max-width:1400px;margin:0 auto;padding:0 4px"></div>
 </div>
 
 <!-- PAGINA BATEDORES DE META -->
@@ -687,6 +687,7 @@ var dadosGanhos = null;
 var leadsAll  = null;   // todos os leads parseados (com .dataObj)
 var ganhosAll = null;   // todos os ganhos parseados (com .dataObj se houver)
 var leadsAtivos = [];   // leads do mes/periodo selecionado (usado na aba Equipamento)
+var dadosPorMes = {};  // { 'YYYY-MM': [{metricas por segmento}] } para Análise Trimestral
 var dataMin   = null;   // menor data encontrada nos leads
 var dataMax   = null;   // maior data encontrada nos leads
 
@@ -993,9 +994,14 @@ async function gerarDashboard(){
         conv_alvo: CONV_ALVO[seg] || 0,
         meta: META_SEG[seg] || 0,
         pct_meta: (META_SEG[seg] && META_SEG[seg]>0) ? gv/META_SEG[seg]*100 : 0,
-        qtd_leads: s.length
+        qtd_leads: s.length,
+        cnt_cql: cql.length, cnt_n1v: n1v.length, cnt_n2v: n2v.length,
+        cnt_n3v: n3v.length, cnt_n4v: n4v.length, cnt_n1l: n1l.length
       };
     });
+
+    // Salva métricas por mês para Análise Trimestral
+    if(mesSelecionado) dadosPorMes[mesSelecionado] = met;
 
     // Inicializa filtro de data
     inicializarFiltroData();
@@ -1598,18 +1604,18 @@ function trocarAba(nome){
   document.getElementById('page-projecao').style.display   = nome==='projecao'   ? '' : 'none';
   document.getElementById('page-config').style.display       = nome==='config'       ? '' : 'none';
   document.getElementById('page-equipamentos').style.display = nome==='equipamentos' ? '' : 'none';
-  document.getElementById('page-gestao-vendedores').style.display = nome==='gestao-vendedores' ? '' : 'none';
+  document.getElementById('page-analise-trimestral').style.display = nome==='analise-trimestral' ? '' : 'none';
 
-  if(nome==='projecao')        renderProjecao();
-  if(nome==='equipamentos')    renderEquipamentos();
-  if(nome==='performance')     renderPerformance();
-  if(nome==='credito')         renderCredito();
-  if(nome==='classificacoes') renderClassificacoes();
-  if(nome==='projecao-meta')  renderProjecaoMeta();
-  if(nome==='ranking-n1')   renderRankingN1();
-  if(nome==='ranking-venda') renderRankingVenda();
-  if(nome==='config' && isAdmin) renderConfig();
-  if(nome==='gestao-vendedores') renderGestaoVendedores();
+  if(nome==='projecao')            renderProjecao();
+  if(nome==='equipamentos')        renderEquipamentos();
+  if(nome==='performance')         renderPerformance();
+  if(nome==='credito')             renderCredito();
+  if(nome==='classificacoes')      renderClassificacoes();
+  if(nome==='projecao-meta')       renderProjecaoMeta();
+  if(nome==='ranking-n1')          renderRankingN1();
+  if(nome==='ranking-venda')       renderRankingVenda();
+  if(nome==='config' && isAdmin)   renderConfig();
+  if(nome==='analise-trimestral')  renderAnaliseTrimestral();
 }
 
 // ── VENDEDORES ──
@@ -3861,6 +3867,208 @@ window.renderResumoGV = async function(){
 // ────────────────────────────────────────────────
 //  ABA CONFIGURACOES (admin)
 // ────────────────────────────────────────────────
+// ── ANÁLISE TRIMESTRAL ──────────────────────────────────────────────────────
+async function renderAnaliseTrimestral(){
+  var box = document.getElementById('at-content');
+  box.innerHTML = '<div class="proj-info">Carregando dados...</div>';
+
+  // Pega últimos 3 meses disponíveis
+  var meses = Object.keys(basesPorMes).sort().slice(-3);
+  if(!meses.length){ box.innerHTML = '<div class="proj-info">Nenhum mês carregado.</div>'; return; }
+
+  // Carrega meses que ainda não foram processados
+  for(var i=0;i<meses.length;i++){
+    var m = meses[i];
+    if(!dadosPorMes[m]){
+      try{ await carregarMesSilencioso(m); } catch(e){ console.error('Erro carregar',m,e); }
+    }
+  }
+
+  var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
+  var fmtN = function(v){ return (v||0).toLocaleString('pt-BR'); };
+  var fmtR = function(v){ return 'R$ '+Math.round(v||0).toLocaleString('pt-BR'); };
+  var fmtP = function(a,b){ if(!b) return '—'; var d=(a-b)/b*100; return (d>=0?'<span style="color:#4ade80">▲':'<span style="color:#f87171">▼')+(Math.abs(d).toFixed(1))+'%</span>'; };
+
+  // Coleta todos os segmentos presentes
+  var segsSet = {};
+  meses.forEach(function(m){ (dadosPorMes[m]||[]).forEach(function(s){ segsSet[s.funilOrig]=s.nome; }); });
+  var segs = Object.keys(segsSet).sort();
+
+  // ── VISÃO MACRO ──
+  var headerCols = meses.map(function(m){ return '<th colspan="7" style="text-align:center;background:#1e2a45;color:#818cf8;padding:6px 4px;font-size:.8rem">'+labelMes(m)+'</th>'; }).join('');
+  var subCols = meses.map(function(){ return '<th class="at-num">CQL</th><th class="at-num">N1v</th><th class="at-num">N2v</th><th class="at-num">N3v</th><th class="at-num">N4v</th><th class="at-num">N1l</th><th class="at-num">Ganhos</th>'; }).join('');
+
+  var rowsMacro = segs.map(function(seg){
+    var nome = segsSet[seg];
+    var cells = meses.map(function(m){
+      var d = (dadosPorMes[m]||[]).find(function(s){return s.funilOrig===seg;}) || {};
+      var pctMeta = d.pct_meta||0;
+      var corMeta = pctMeta>=90?'#4ade80':pctMeta>=70?'#fbbf24':'#f87171';
+      return '<td class="at-num">'+fmtN(d.cnt_cql)+'</td>'+
+             '<td class="at-num">'+fmtN(d.cnt_n1v)+'</td>'+
+             '<td class="at-num">'+fmtN(d.cnt_n2v)+'</td>'+
+             '<td class="at-num">'+fmtN(d.cnt_n3v)+'</td>'+
+             '<td class="at-num">'+fmtN(d.cnt_n4v)+'</td>'+
+             '<td class="at-num">'+fmtN(d.cnt_n1l)+'</td>'+
+             '<td class="at-num" style="color:'+corMeta+';font-weight:600">'+fmtR(d.g_val)+'</td>';
+    }).join('');
+    return '<tr onclick="atDrilldown(\''+seg+'\')" style="cursor:pointer" onmouseover="this.style.background=\'#1e2535\'" onmouseout="this.style.background=\'\'">'+
+      '<td style="padding:8px 12px;font-weight:600;white-space:nowrap;min-width:120px">'+nome+'</td>'+cells+'</tr>';
+  }).join('');
+
+  // Totais macro
+  var totaisCells = meses.map(function(m){
+    var rows = dadosPorMes[m]||[];
+    var sum = function(f){ return rows.reduce(function(a,r){ return a+(r[f]||0); },0); };
+    return '<td class="at-num" style="font-weight:700">'+fmtN(sum('cnt_cql'))+'</td>'+
+           '<td class="at-num" style="font-weight:700">'+fmtN(sum('cnt_n1v'))+'</td>'+
+           '<td class="at-num" style="font-weight:700">'+fmtN(sum('cnt_n2v'))+'</td>'+
+           '<td class="at-num" style="font-weight:700">'+fmtN(sum('cnt_n3v'))+'</td>'+
+           '<td class="at-num" style="font-weight:700">'+fmtN(sum('cnt_n4v'))+'</td>'+
+           '<td class="at-num" style="font-weight:700">'+fmtN(sum('cnt_n1l'))+'</td>'+
+           '<td class="at-num" style="font-weight:700;color:#818cf8">'+fmtR(sum('g_val'))+'</td>';
+  }).join('');
+
+  // ── DRILL-DOWN (renderizado sob demanda) ──
+  var drillHtml = '<div id="at-drill" style="margin-top:24px"></div>';
+
+  box.innerHTML =
+    '<div class="cfg-block" style="overflow-x:auto">'+
+      '<div class="cfg-head" style="margin-bottom:12px">📊 Visão Macro — Últimos '+meses.length+' meses <span style="font-size:.7rem;color:#475569;margin-left:8px">clique em um segmento para detalhar</span></div>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:.78rem">'+
+        '<thead>'+
+          '<tr><th style="padding:6px 12px;text-align:left">Segmento</th>'+headerCols+'</tr>'+
+          '<tr style="background:#0f1622"><th></th>'+subCols+'</tr>'+
+        '</thead>'+
+        '<tbody>'+rowsMacro+'</tbody>'+
+        '<tfoot><tr style="background:#1e2a45;border-top:1px solid #334155"><td style="padding:8px 12px;font-weight:700">TOTAL</td>'+totaisCells+'</tr></tfoot>'+
+      '</table>'+
+    '</div>'+
+    drillHtml;
+
+  // CSS inline para células numéricas
+  if(!document.getElementById('at-css')){
+    var s=document.createElement('style'); s.id='at-css';
+    s.textContent='.at-num{text-align:right;padding:6px 10px;border-bottom:1px solid #1e2535;white-space:nowrap;font-variant-numeric:tabular-nums}';
+    document.head.appendChild(s);
+  }
+}
+
+// Drill-down por segmento
+window.atDrilldown = function(seg){
+  var meses = Object.keys(basesPorMes).sort().slice(-3);
+  var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
+  var fmtN = function(v){ return (v||0).toLocaleString('pt-BR'); };
+  var fmtR = function(v){ return 'R$ '+Math.round(v||0).toLocaleString('pt-BR'); };
+  var fmtVar = function(a,b){ if(!b||!a) return '<span style="color:#475569">—</span>'; var d=(a-b)/b*100; return (d>=0?'<span style="color:#4ade80">▲':'<span style="color:#f87171">▼')+Math.abs(d).toFixed(1)+'%</span>'; };
+
+  var metricas = [
+    {key:'cnt_cql',  label:'CQL'},
+    {key:'cnt_n1v',  label:'N1 Venda'},
+    {key:'cnt_n2v',  label:'N2 Venda'},
+    {key:'cnt_n3v',  label:'N3 Venda'},
+    {key:'cnt_n4v',  label:'N4 Venda'},
+    {key:'cnt_n1l',  label:'N1 Locação'},
+    {key:'g_val',    label:'Ganhos R$', fmt: fmtR},
+    {key:'pct_meta', label:'% Meta', fmt: function(v){ return (v||0).toFixed(1)+'%'; }}
+  ];
+
+  var dados = meses.map(function(m){
+    return (dadosPorMes[m]||[]).find(function(s){return s.funilOrig===seg;}) || {};
+  });
+
+  var nomeSeg = dados.reduce(function(a,d){ return d.nome||a; },'');
+  var headerMeses = meses.map(function(m){ return '<th style="text-align:right;padding:8px 12px;color:#94a3b8;font-size:.78rem">'+labelMes(m)+'</th>'; }).join('');
+  var varHeaders = meses.length>=2 ? meses.slice(1).map(function(m,i){ return '<th style="text-align:right;padding:8px 12px;color:#94a3b8;font-size:.78rem">Var '+labelMes(meses[i])+'→'+labelMes(m)+'</th>'; }).join('') : '';
+
+  var rows = metricas.map(function(mt){
+    var fmt = mt.fmt || fmtN;
+    var vals = dados.map(function(d){ return d[mt.key]||0; });
+    var cells = vals.map(function(v){ return '<td style="text-align:right;padding:8px 12px;font-variant-numeric:tabular-nums">'+fmt(v)+'</td>'; }).join('');
+    var varCells = vals.length>=2 ? vals.slice(1).map(function(v,i){ return '<td style="text-align:right;padding:8px 12px">'+fmtVar(v,vals[i])+'</td>'; }).join('') : '';
+    return '<tr style="border-bottom:1px solid #1e2535"><td style="padding:8px 12px;font-weight:600;color:#cbd5e1">'+mt.label+'</td>'+cells+varCells+'</tr>';
+  }).join('');
+
+  document.getElementById('at-drill').innerHTML =
+    '<div class="cfg-block" style="margin-top:0">'+
+      '<div class="cfg-head">🔍 Drill-down — '+nomeSeg+' <button onclick="document.getElementById(\'at-drill\').innerHTML=\'\'" style="float:right;background:none;border:none;color:#475569;cursor:pointer;font-size:12px">✕ fechar</button></div>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:.8rem">'+
+        '<thead><tr style="background:#1e2535"><th style="padding:8px 12px;text-align:left">Métrica</th>'+headerMeses+varHeaders+'</tr></thead>'+
+        '<tbody>'+rows+'</tbody>'+
+      '</table>'+
+    '</div>';
+  document.getElementById('at-drill').scrollIntoView({behavior:'smooth',block:'start'});
+};
+
+// Carrega e processa um mês silenciosamente sem alterar estado global
+async function carregarMesSilencioso(ym){
+  var base = basesPorMes[ym];
+  if(!base) return;
+  await carregarMetasConfig(ym);
+  var { data: leadsBlob, error: e1 } = await sb.storage.from(BUCKET).download(base.leads_path);
+  if(e1) throw e1;
+  var { data: ganhosBlob, error: e2 } = await sb.storage.from(BUCKET).download(base.ganhos_path);
+  if(e2) throw e2;
+
+  var rawLeads  = await blobParaJson(leadsBlob);
+  var rawGanhos = await blobParaJson(ganhosBlob);
+
+  var keys = Object.keys(rawLeads[0]||{});
+  var K_FUNIL = keys.find(function(k){return k.toLowerCase().includes('funil');})||'';
+  var K_VALOR = keys.find(function(k){return k.toLowerCase().includes('valor');})||'';
+  var K_INTER = keys.find(function(k){return k.toLowerCase().includes('interesse');})||'';
+  var K_CL    = keys.find(function(k){return k.toLowerCase().includes('classifica')&&k.toLowerCase().includes('loca');})||'';
+  var K_CV    = keys.find(function(k){return k.toLowerCase().includes('classifica')&&k.toLowerCase().includes('venda');})||'';
+
+  var gKeys = Object.keys(rawGanhos[0]||{});
+  var GK_FUNIL = gKeys.find(function(k){return k.toLowerCase().includes('funil');})||'';
+  var GK_VALOR = gKeys.find(function(k){return k.toLowerCase().includes('sum_')&&k.toLowerCase().includes('valor');})||
+                 gKeys.find(function(k){return k.toLowerCase().includes('valor do neg');})||
+                 gKeys.find(function(k){return k.toLowerCase().includes('valor');})||'';
+
+  var leads = rawLeads.map(function(r){
+    var int_ = String(r[K_INTER]||'').trim().toUpperCase();
+    var cl = String(r[K_CL]||'').trim();
+    var cv = String(r[K_CV]||'').trim();
+    return{
+      funil: String(r[K_FUNIL]||'').trim(),
+      valor: parseFloat(String(r[K_VALOR]||'0').replace(/[^\d.-]/g,''))||0,
+      interesse: int_, cl:cl, cv:cv,
+      isN1v:cv==='N1', isN2v:cv==='N2', isN3v:cv==='N3', isN4v:cv==='N4',
+      isN1l:cl==='N1'
+    };
+  });
+
+  var ganhos = rawGanhos.map(function(r){
+    return{ funil:String(r[GK_FUNIL]||'').trim(), valor:parseFloat(String(r[GK_VALOR]||'0').replace(/[^\d.-]/g,''))||0 };
+  });
+
+  var soma = function(arr){ return arr.reduce(function(a,r){return a+r.valor;},0); };
+  var segsPresentes = leads.map(function(r){return r.funil;}).filter(function(f,i,a){return f&&a.indexOf(f)===i;});
+
+  dadosPorMes[ym] = segsPresentes.map(function(seg){
+    var s   = leads.filter(function(r){return r.funil===seg;});
+    var vd  = s.filter(function(r){return r.interesse==='VENDA';});
+    var lc  = s.filter(function(r){return r.interesse==='LOCACAO';});
+    var cql = vd.concat(lc);
+    var n1v = vd.filter(function(r){return r.isN1v;}), n2v=vd.filter(function(r){return r.isN2v;});
+    var n3v = vd.filter(function(r){return r.isN3v;}), n4v=vd.filter(function(r){return r.isN4v;});
+    var n1l = lc.filter(function(r){return r.isN1l;});
+    var gs  = ganhos.filter(function(r){return r.funil===seg;});
+    var gv  = soma(gs);
+    var meta = META_SEG[seg]||0;
+    return{
+      funilOrig:seg, nome:seg.replace('Blips - ','').replace('Ideal - ',''),
+      cnt_cql:cql.length, cnt_n1v:n1v.length, cnt_n2v:n2v.length,
+      cnt_n3v:n3v.length, cnt_n4v:n4v.length, cnt_n1l:n1l.length,
+      g_val:gv, g_qtd:gs.length, meta:meta,
+      pct_meta: meta>0 ? gv/meta*100 : 0
+    };
+  });
+}
+
 async function renderConfig(){
   var box = document.getElementById('cfg-content');
   box.innerHTML = '<div class="proj-info">Carregando...</div>';
