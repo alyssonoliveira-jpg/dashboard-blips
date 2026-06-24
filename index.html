@@ -3888,6 +3888,11 @@ async function renderVisaoMarketing(){
   var meses = Object.keys(basesPorMes).sort().slice(-3);
   if(!meses.length){ box.innerHTML = '<div class="proj-info">Nenhum mes carregado.</div>'; return; }
 
+  // Mês atual sempre usa dados do reprocessar (ultimosSegmentos) — nunca do silent loader
+  if(mesSelecionado && ultimosSegmentos && ultimosSegmentos.length){
+    dadosPorMes[mesSelecionado] = ultimosSegmentos;
+  }
+
   for(var i=0;i<meses.length;i++){
     if(!dadosPorMes[meses[i]]){
       try{ await carregarMesSilencioso(meses[i]); } catch(e){}
@@ -4047,6 +4052,11 @@ async function renderAnaliseTrimestral(){
 
   var meses = Object.keys(basesPorMes).sort().slice(-3);
   if(!meses.length){ box.innerHTML = '<div class="proj-info">Nenhum mes carregado.</div>'; return; }
+
+  // Mês atual sempre usa dados do reprocessar (ultimosSegmentos) — nunca do silent loader
+  if(mesSelecionado && ultimosSegmentos && ultimosSegmentos.length){
+    dadosPorMes[mesSelecionado] = ultimosSegmentos;
+  }
 
   for(var i=0;i<meses.length;i++){
     if(!dadosPorMes[meses[i]]){
