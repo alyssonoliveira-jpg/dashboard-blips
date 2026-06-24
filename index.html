@@ -4104,7 +4104,7 @@ window.atGerarAnalise = function(){
     var dCQL = delta(fim.cnt_cql, ini.cnt_cql);
     if(Math.abs(dCQL) > 10){
       if(dCQL < 0) causas.push({tipo:'volume', sev: dCQL < -30 ? 2 : 1,
-        txt: 'CQL caiu <strong>'+Math.abs(dCQL).toFixed(0)+'%</strong> ('+ini.cnt_cql+' &#8594; '+fim.cnt_cql+' leads). Menos entrada no funil reduz diretamente o potencial de ganhos.',
+        txt: 'CQL caiu <strong>'+Math.abs(dCQL).toFixed(0)+'%</strong> ('+ini.label+': '+ini.cnt_cql+' &#8594; '+fim.label+': '+fim.cnt_cql+' leads). Menos entrada no funil reduz diretamente o potencial de ganhos.',
         mini: sparkline(s,'cnt_cql')});
       else contexto.push('CQL cresceu '+dCQL.toFixed(0)+'% no periodo.');
     } else {
@@ -4115,7 +4115,7 @@ window.atGerarAnalise = function(){
     var dAprov = delta(fim.taxa_aprov, ini.taxa_aprov);
     if(ini.taxa_aprov > 0 && Math.abs(dAprov) > 10){
       if(dAprov < 0) causas.push({tipo:'credito', sev: dAprov < -30 ? 2 : 1,
-        txt: 'Taxa de aprovacao caiu <strong>'+Math.abs(dAprov).toFixed(1)+'%</strong> ('+fmtPct(ini.taxa_aprov)+' &#8594; '+fmtPct(fim.taxa_aprov)+'). Pode indicar perfil de lead piorando ou criterios de credito mais restritivos.',
+        txt: 'Taxa de aprovacao caiu <strong>'+Math.abs(dAprov).toFixed(1)+'%</strong> ('+ini.label+': '+fmtPct(ini.taxa_aprov)+' &#8594; '+fim.label+': '+fmtPct(fim.taxa_aprov)+'). Pode indicar perfil de lead piorando ou criterios de credito mais restritivos.',
         mini: sparkline(s,'taxa_aprov')});
       else contexto.push('Aprovacao melhorou '+dAprov.toFixed(1)+'% no periodo.');
     }
@@ -4128,7 +4128,7 @@ window.atGerarAnalise = function(){
     var dConv = delta(fim.taxa_conv, ini.taxa_conv);
     if(ini.taxa_conv > 0 && Math.abs(dConv) > 15){
       if(dConv < 0) causas.push({tipo:'conversao', sev: dConv < -40 ? 2 : 1,
-        txt: 'Conversao de aprovados em ganhos caiu <strong>'+Math.abs(dConv).toFixed(1)+'%</strong> ('+fmtPct(ini.taxa_conv)+' &#8594; '+fmtPct(fim.taxa_conv)+'). Leads chegam ate N1 mas nao fecham &#8212; possivel problema de abordagem, proposta ou concorrencia.',
+        txt: 'Conversao de aprovados em ganhos caiu <strong>'+Math.abs(dConv).toFixed(1)+'%</strong> ('+ini.label+': '+fmtPct(ini.taxa_conv)+' &#8594; '+fim.label+': '+fmtPct(fim.taxa_conv)+'). Leads chegam ate N1 mas nao fecham &#8212; possivel problema de abordagem, proposta ou concorrencia.',
         mini: sparkline(s,'taxa_conv')});
       else contexto.push('Conversao de aprovados melhorou '+dConv.toFixed(1)+'% no periodo.');
     }
@@ -4141,7 +4141,7 @@ window.atGerarAnalise = function(){
     var dTicket = delta(fim.ticket_medio, ini.ticket_medio);
     if(ini.ticket_medio > 0 && Math.abs(dTicket) > 10){
       if(dTicket < 0) causas.push({tipo:'ticket', sev:1,
-        txt: 'Ticket medio recuou <strong>'+Math.abs(dTicket).toFixed(1)+'%</strong> ('+fmtR(ini.ticket_medio)+' &#8594; '+fmtR(fim.ticket_medio)+'). Vendedores podem estar fechando negocios menores para bater numero de contratos.',
+        txt: 'Ticket medio recuou <strong>'+Math.abs(dTicket).toFixed(1)+'%</strong> ('+ini.label+': '+fmtR(ini.ticket_medio)+' &#8594; '+fim.label+': '+fmtR(fim.ticket_medio)+'). Vendedores podem estar fechando negocios menores para bater numero de contratos.',
         mini: sparkline(s,'ticket_medio')});
       else contexto.push('Ticket medio cresceu '+dTicket.toFixed(1)+'% no periodo.');
     }
