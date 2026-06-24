@@ -655,6 +655,10 @@ tfoot td.sep{border-left:1px solid #1e2535}
   <div id="at-content" style="max-width:1400px;margin:0 auto;padding:0 4px"></div>
 </div>
 
+<div class="page" id="page-visao-marketing" style="display:none">
+  <div id="vm-content" style="max-width:1400px;margin:0 auto;padding:0 4px"></div>
+</div>
+
 <!-- PAGINA BATEDORES DE META -->
 <div class="page" id="page-batedores" style="display:none">
   <div id="batedores-resumo"></div>
@@ -1605,6 +1609,7 @@ function trocarAba(nome){
   document.getElementById('page-config').style.display       = nome==='config'       ? '' : 'none';
   document.getElementById('page-equipamentos').style.display = nome==='equipamentos' ? '' : 'none';
   document.getElementById('page-analise-trimestral').style.display = nome==='analise-trimestral' ? '' : 'none';
+  document.getElementById('page-visao-marketing').style.display = nome==='visao-marketing' ? '' : 'none';
 
   if(nome==='projecao')            renderProjecao();
   if(nome==='equipamentos')        renderEquipamentos();
@@ -1616,6 +1621,7 @@ function trocarAba(nome){
   if(nome==='ranking-venda')       renderRankingVenda();
   if(nome==='config' && isAdmin)   renderConfig();
   if(nome==='analise-trimestral')  renderAnaliseTrimestral();
+  if(nome==='visao-marketing')      renderVisaoMarketing();
 }
 
 // ── VENDEDORES ──
@@ -3868,6 +3874,166 @@ window.renderResumoGV = async function(){
 //  ABA CONFIGURACOES (admin)
 // ────────────────────────────────────────────────
 // ── ANÁLISE TRIMESTRAL ──────────────────────────────────────────────────────
+async function renderVisaoMarketing(){
+  var box = document.getElementById('vm-content');
+  box.innerHTML = '<div class="proj-info">Carregando...</div>';
+
+  var meses = Object.keys(basesPorMes).sort().slice(-3);
+  if(!meses.length){ box.innerHTML = '<div class="proj-info">Nenhum mes carregado.</div>'; return; }
+
+  for(var i=0;i<meses.length;i++){
+    if(!dadosPorMes[meses[i]]){
+      try{ await carregarMesSilencioso(meses[i]); } catch(e){}
+    }
+  }
+  if(mesSelecionado) await carregarMetasConfig(mesSelecionado);
+
+  var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
+  var fmtN = function(v){ return Math.round(v||0).toLocaleString('pt-BR'); };
+  var fmtR = function(v){ return 'R$ '+Math.round(v||0).toLocaleString('pt-BR'); };
+  var fmtPct = function(v){ return (v||0).toFixed(1)+'%'; };
+
+  // CSS
+  if(!document.getElementById('vm-css')){
+    var s = document.createElement('style'); s.id='vm-css';
+    s.textContent = '.vm-card{background:#0f1622;border:1px solid #1e2535;border-radius:10px;padding:0;overflow:hidden;margin-bottom:10px}.vm-head{padding:14px 18px;border-bottom:1px solid #1e2535;display:flex;align-items:center;justify-content:space-between}.vm-body{padding:14px 18px}.vm-pill{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:3px 12px;font-size:.75rem;font-weight:700}.vm-prog-bg{background:#1e2535;border-radius:6px;height:10px;flex:1}.vm-prog-fill{height:10px;border-radius:6px;transition:width .4s}.vm-mes-btn{background:#1e2535;color:#94a3b8;border:none;border-radius:6px;padding:5px 14px;font-size:.78rem;cursor:pointer;font-weight:600}.vm-mes-btn.active{background:#6366f1;color:#fff}';
+    document.head.appendChild(s);
+  }
+
+  var mesSel = meses[meses.length-1];
+
+  var renderMes = function(mes){
+    var dados = dadosPorMes[mes] || [];
+    var segs = dados.filter(function(d){ return d.meta && d.meta > 0; })
+                    .sort(function(a,b){ return b.meta - a.meta; });
+
+    if(!segs.length){
+      document.getElementById('vm-tabela').innerHTML = '<div style="color:#475569;padding:20px;text-align:center">Sem dados de meta para '+labelMes(mes)+'.</div>';
+      return;
+    }
+
+    // Totais
+    var totMeta=0, totCQLnec=0, totCQLent=0;
+
+    var rows = segs.map(function(d){
+      var ticket   = d.g_qtd > 0 ? d.g_val / d.g_qtd : 0;
+      var txAprov  = d.cnt_cql > 0 ? d.cnt_n1v / d.cnt_cql : 0;
+      var txFech   = d.cnt_n1v > 0 ? d.g_qtd / d.cnt_n1v : 0;
+
+      // Fallback: se nao tem historico de conversao, usa medias do segmento nos outros meses
+      if(txAprov === 0 || txFech === 0){
+        var outrosMeses = meses.filter(function(m){return m!==mes;});
+        var totCql=0,totN1=0,totGq=0;
+        outrosMeses.forEach(function(m){
+          var od = (dadosPorMes[m]||[]).find(function(s){return s.funilOrig===d.funilOrig;});
+          if(od){ totCql+=od.cnt_cql||0; totN1+=od.cnt_n1v||0; totGq+=od.g_qtd||0; }
+        });
+        if(txAprov===0 && totCql>0) txAprov = totN1/totCql;
+        if(txFech===0  && totN1>0)  txFech  = totGq/totN1;
+        if(ticket===0){
+          outrosMeses.forEach(function(m){
+            var od=(dadosPorMes[m]||[]).find(function(s){return s.funilOrig===d.funilOrig;});
+            if(od && od.g_qtd>0 && ticket===0) ticket=od.g_val/od.g_qtd;
+          });
+        }
+      }
+
+      var cqlNec = (ticket>0 && txAprov>0 && txFech>0)
+        ? Math.ceil(d.meta / ticket / txFech / txAprov)
+        : null;
+
+      totMeta  += d.meta;
+      totCQLnec += cqlNec||0;
+      totCQLent += d.cnt_cql||0;
+
+      var gap      = cqlNec!=null ? d.cnt_cql - cqlNec : null;
+      var pctEntregue = cqlNec > 0 ? Math.min(200, d.cnt_cql/cqlNec*100) : null;
+      var corGap   = gap==null?'#64748b':gap>=0?'#4ade80':'#f87171';
+      var corBar   = pctEntregue==null?'#475569':pctEntregue>=100?'#4ade80':pctEntregue>=70?'#fbbf24':'#f87171';
+      var gapTxt   = gap==null ? '—' : gap>=0 ? '+'+fmtN(gap)+' excedente' : fmtN(Math.abs(gap))+' deficit';
+
+      return '<tr style="border-bottom:1px solid #1e2535">'+
+        '<td style="padding:12px 14px;font-weight:600;color:#e2e8f0;white-space:nowrap">'+d.nome+'</td>'+
+        '<td style="padding:12px 14px;text-align:right;color:#94a3b8;font-size:.82rem">'+fmtR(d.meta)+'</td>'+
+        '<td style="padding:12px 14px;text-align:right;color:#94a3b8;font-size:.82rem">'+(ticket>0?fmtR(ticket):'—')+'</td>'+
+        '<td style="padding:12px 14px;text-align:right;color:#94a3b8;font-size:.82rem">'+(txAprov>0?fmtPct(txAprov*100):'—')+'</td>'+
+        '<td style="padding:12px 14px;text-align:right;color:#94a3b8;font-size:.82rem">'+(txFech>0?fmtPct(txFech*100):'—')+'</td>'+
+        '<td style="padding:12px 14px;text-align:right;font-weight:700;color:#e2e8f0">'+(cqlNec!=null?fmtN(cqlNec):'—')+'</td>'+
+        '<td style="padding:12px 14px;text-align:right;font-weight:700;color:#818cf8">'+fmtN(d.cnt_cql)+'</td>'+
+        '<td style="padding:12px 14px;min-width:140px">'+
+          (pctEntregue!=null ?
+            '<div style="display:flex;align-items:center;gap:8px">'+
+              '<div class="vm-prog-bg" style="flex:1"><div class="vm-prog-fill" style="width:'+Math.min(100,pctEntregue).toFixed(0)+'%;background:'+corBar+'"></div></div>'+
+              '<span style="font-size:.72rem;color:'+corBar+';font-weight:700;width:38px;text-align:right">'+pctEntregue.toFixed(0)+'%</span>'+
+            '</div>' : '—')+
+        '</td>'+
+        '<td style="padding:12px 14px;text-align:right">'+
+          '<span style="color:'+corGap+';font-size:.78rem;font-weight:700">'+gapTxt+'</span>'+
+        '</td>'+
+      '</tr>';
+    }).join('');
+
+    // Linha de total
+    var totGap = totCQLent - totCQLnec;
+    var totBar = totCQLnec > 0 ? Math.min(200, totCQLent/totCQLnec*100) : 0;
+    var totCorBar = totBar>=100?'#4ade80':totBar>=70?'#fbbf24':'#f87171';
+    rows += '<tr style="background:#1e2a45;font-weight:700">'+
+      '<td style="padding:12px 14px;color:#e2e8f0">TOTAL</td>'+
+      '<td style="padding:12px 14px;text-align:right;color:#94a3b8">'+fmtR(totMeta)+'</td>'+
+      '<td colspan="3" style="padding:12px 14px;text-align:center;color:#475569;font-size:.72rem">—</td>'+
+      '<td style="padding:12px 14px;text-align:right;color:#e2e8f0">'+fmtN(totCQLnec)+'</td>'+
+      '<td style="padding:12px 14px;text-align:right;color:#818cf8">'+fmtN(totCQLent)+'</td>'+
+      '<td style="padding:12px 14px;min-width:140px">'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<div class="vm-prog-bg" style="flex:1"><div class="vm-prog-fill" style="width:'+Math.min(100,totBar).toFixed(0)+'%;background:'+totCorBar+'"></div></div>'+
+          '<span style="font-size:.72rem;color:'+totCorBar+';font-weight:700;width:38px;text-align:right">'+totBar.toFixed(0)+'%</span>'+
+        '</div>'+
+      '</td>'+
+      '<td style="padding:12px 14px;text-align:right;color:'+(totGap>=0?'#4ade80':'#f87171')+';font-size:.78rem;font-weight:700">'+(totGap>=0?'+':'')+fmtN(totGap)+(totGap>=0?' excedente':' deficit')+'</td>'+
+    '</tr>';
+
+    document.getElementById('vm-tabela').innerHTML =
+      '<table style="width:100%;border-collapse:collapse;font-size:.82rem">'+
+        '<thead><tr style="background:#0c1521">'+
+          '<th style="padding:10px 14px;text-align:left;color:#475569;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Segmento</th>'+
+          '<th style="padding:10px 14px;text-align:right;color:#475569;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Meta R$</th>'+
+          '<th style="padding:10px 14px;text-align:right;color:#475569;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Ticket M&#233;dio</th>'+
+          '<th style="padding:10px 14px;text-align:right;color:#475569;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Aprov. N1</th>'+
+          '<th style="padding:10px 14px;text-align:right;color:#475569;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Conv. Fech.</th>'+
+          '<th style="padding:10px 14px;text-align:right;color:#e2e8f0;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">CQL Necess&#225;rio</th>'+
+          '<th style="padding:10px 14px;text-align:right;color:#818cf8;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">CQL Entregue</th>'+
+          '<th style="padding:10px 14px;text-align:left;color:#475569;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;min-width:140px">Cobertura</th>'+
+          '<th style="padding:10px 14px;text-align:right;color:#475569;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Gap</th>'+
+        '</tr></thead>'+
+        '<tbody>'+rows+'</tbody>'+
+      '</table>';
+  };
+
+  // Monta botoes de mes
+  var botoesHtml = meses.map(function(m){
+    var ativo = m===mesSel ? ' active' : '';
+    return '<button class="vm-mes-btn'+ativo+'" onclick="vmSelecionarMes(\''+m+'\')">'+ labelMes(m)+'</button>';
+  }).join('');
+
+  box.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">'+
+      '<span style="color:#94a3b8;font-size:.85rem;font-weight:600">M&#234;s:</span>'+
+      botoesHtml+
+      '<span style="margin-left:8px;color:#475569;font-size:.75rem">CQL Necess&#225;rio = Meta &#247; Ticket M&#233;dio &#247; Taxa Fechamento &#247; Taxa Aprova&#231;&#227;o</span>'+
+    '</div>'+
+    '<div class="vm-card"><div id="vm-tabela"></div></div>';
+
+  window.vmSelecionarMes = function(mes){
+    mesSel = mes;
+    document.querySelectorAll('.vm-mes-btn').forEach(function(b){
+      b.classList.toggle('active', b.textContent===labelMes(mes));
+    });
+    renderMes(mes);
+  };
+
+  renderMes(mesSel);
+}
 async function renderAnaliseTrimestral(){
   var box = document.getElementById('at-content');
   box.innerHTML = '<div class="proj-info">Carregando dados...</div>';
