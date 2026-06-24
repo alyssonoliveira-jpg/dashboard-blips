@@ -1656,7 +1656,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
     var navV=nv1+nv2+nv3+nv4, nl=soma(n1l), nt=navV+nl;
     var metaV = META_VEND[k] !== undefined ? META_VEND[k] : null;
     return {
-      nome: v.nome,
+      nome: VENDS_DISPLAY[k] || v.nome,
       seg:  v.seg,
       cql_t:ct, cql_v:cv2, cql_l:cl2,
       n1_t:nt, n1_vv:nv1, n2_vv:nv2, n3_vv:nv3, n4_vv:nv4, aprov_vv:navV, n1_ll:nl,
