@@ -1667,6 +1667,9 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
     };
   });
 
+  // Remove vendedores sem meta configurada
+  arr = arr.filter(function(v){ return v.meta && v.meta > 0; });
+
   // Guarda globalmente pra usar na aba Projecao
   ultimosVendedores = arr;
 
