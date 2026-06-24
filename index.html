@@ -579,6 +579,7 @@ tfoot td.sep{border-left:1px solid #1e2535}
   <div class="tab-sep"></div>
   <button class="tab"        data-tab="equipamentos"  onclick="trocarAba('equipamentos')"><i class="ti ti-tool" aria-hidden="true"></i>Equipamento</button>
   <button class="tab"        data-tab="analise-trimestral" onclick="trocarAba('analise-trimestral')"><i class="ti ti-chart-bar" aria-hidden="true"></i>Análise Trimestral</button>
+  <button class="tab"        data-tab="visao-marketing"    onclick="trocarAba('visao-marketing')"><i class="ti ti-speakerphone" aria-hidden="true"></i>Visão Marketing</button>
   <button class="tab" id="tab-config" data-tab="config" onclick="trocarAba('config')" style="display:none"><i class="ti ti-settings" aria-hidden="true"></i>Configurações</button>
 </div>
 
@@ -4474,8 +4475,8 @@ async function carregarMesSilencioso(ym){
 
   dadosPorMes[ym] = segsPresentes.map(function(seg){
     var s   = leads.filter(function(r){return r.funil===seg;});
-    var vd  = s.filter(function(r){return r.interesse==='VENDA';});
-    var lc  = s.filter(function(r){return r.interesse==='LOCACAO';});
+    var vd  = s.filter(function(r){return r.interesse==='VENDA'||(r.interesse===''&&r.cv!=='');});
+    var lc  = s.filter(function(r){return r.interesse==='LOCACAO'||(r.interesse===''&&r.cv===''&&r.cl!=='');});
     var cql = vd.concat(lc);
     var n1v = vd.filter(function(r){return r.isN1v;}), n2v=vd.filter(function(r){return r.isN2v;});
     var n3v = vd.filter(function(r){return r.isN3v;}), n4v=vd.filter(function(r){return r.isN4v;});
