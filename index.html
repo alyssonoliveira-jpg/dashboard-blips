@@ -4028,33 +4028,45 @@ window.atGerarAnalise = function(){
   var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
   var fmtR = function(v){ return 'R$ '+Math.round(v||0).toLocaleString('pt-BR'); };
   var fmtPct = function(v){ return (v||0).toFixed(1)+'%'; };
+  var delta = function(a,b){ return b>0 ? (a-b)/b*100 : 0; };
 
   var meses = Object.keys(dadosPorMes).sort();
-  if(meses.length < 2){ box.innerHTML = '<div class="at-card" style="color:#94a3b8;margin-bottom:16px">Carregue ao menos 2 meses para gerar a análise.</div>'; return; }
+  if(meses.length < 2){
+    box.innerHTML = '<div class="at-card" style="color:#94a3b8;margin-bottom:16px">Carregue ao menos 2 meses para gerar a analise.</div>';
+    return;
+  }
 
-  // Coleta todos os segmentos
   var segsSet = {};
   meses.forEach(function(m){ (dadosPorMes[m]||[]).forEach(function(s){ segsSet[s.funilOrig]=s.nome; }); });
   var segs = Object.keys(segsSet).sort();
 
-  // Monta série histórica por segmento
-  var serie = {}; // seg -> [{mes, pct_meta, g_val, cnt_cql, cnt_n1v, meta}]
+  // Serie historica enriquecida por segmento
+  var serie = {};
   segs.forEach(function(seg){
     serie[seg] = meses.map(function(m){
       var d = (dadosPorMes[m]||[]).find(function(s){return s.funilOrig===seg;}) || {};
-      return { mes:m, label:labelMes(m), pct_meta:d.pct_meta||0, g_val:d.g_val||0,
-               cnt_cql:d.cnt_cql||0, cnt_n1v:d.cnt_n1v||0, meta:d.meta||0 };
+      var cql = d.cnt_cql||0, n1v = d.cnt_n1v||0, g_qtd = d.g_qtd||0, g_val = d.g_val||0;
+      return {
+        mes: m, label: labelMes(m),
+        pct_meta: d.pct_meta||0, meta: d.meta||0,
+        g_val: g_val, g_qtd: g_qtd,
+        cnt_cql: cql, cnt_n1v: n1v, cnt_n2v: d.cnt_n2v||0,
+        cnt_n3v: d.cnt_n3v||0, cnt_n4v: d.cnt_n4v||0, cnt_n1l: d.cnt_n1l||0,
+        taxa_aprov:  cql>0 ? n1v/cql*100 : 0,           // N1v/CQL
+        taxa_conv:   n1v>0 ? g_qtd/n1v*100 : 0,          // fechamentos/aprovados
+        ticket_medio: g_qtd>0 ? g_val/g_qtd : 0
+      };
     });
   });
 
-  // Classifica tendência: compara primeiro e último mês
+  // Classificacao de tendencia
   var queda=[], crescimento=[], estavel=[];
   segs.forEach(function(seg){
-    var s = serie[seg];
-    var primeiro = s[0], ultimo = s[s.length-1];
-    var trend = ultimo.pct_meta - primeiro.pct_meta;
-    var abaixo = ultimo.pct_meta < 100;
-    var obj = { seg:seg, nome:segsSet[seg], serie:s, trend:trend, ultimoPct:ultimo.pct_meta, primeiroMes:primeiro.label, ultimoMes:ultimo.label };
+    var s = serie[seg], ini = s[0], fim = s[s.length-1];
+    var trend = fim.pct_meta - ini.pct_meta;
+    var obj = { seg:seg, nome:segsSet[seg], serie:s, trend:trend,
+                primeiroMes:ini.label, ultimoMes:fim.label,
+                ultimoPct:fim.pct_meta };
     if(trend < -3) queda.push(obj);
     else if(trend > 3) crescimento.push(obj);
     else estavel.push(obj);
@@ -4062,97 +4074,192 @@ window.atGerarAnalise = function(){
   queda.sort(function(a,b){return a.trend-b.trend;});
   crescimento.sort(function(a,b){return b.trend-a.trend;});
 
-  // Gerador de linha de tendência inline
-  var sparkline = function(dados){
-    var vals = dados.map(function(d){return d.pct_meta;});
-    var max = Math.max.apply(null,vals)||100;
-    var w=120, h=32, pad=4;
+  // Sparkline
+  var sparkline = function(dados, key){
+    key = key || 'pct_meta';
+    var vals = dados.map(function(d){return d[key]||0;});
+    var max = Math.max.apply(null,vals.concat([0.1]));
+    var ref = key==='pct_meta' ? 100 : max;
+    var w=110, h=30, pad=4;
     var pts = vals.map(function(v,i){
-      var x = pad + i*(w-2*pad)/(vals.length-1||1);
-      var y = h - pad - (v/Math.max(max,100))*(h-2*pad);
-      return x+','+y;
+      var x=pad+i*(w-2*pad)/(vals.length-1||1);
+      var y=h-pad-(Math.min(v,ref*1.2)/ref)*(h-2*pad);
+      return x.toFixed(1)+','+y.toFixed(1);
     }).join(' ');
-    var cor = vals[vals.length-1]>=100?'#4ade80':vals[vals.length-1]>=70?'#fbbf24':'#f87171';
+    var last=vals[vals.length-1], cor=last>=ref?'#4ade80':last>=ref*0.7?'#fbbf24':'#f87171';
     return '<svg width="'+w+'" height="'+h+'" style="vertical-align:middle"><polyline points="'+pts+'" fill="none" stroke="'+cor+'" stroke-width="2" stroke-linejoin="round"/>'
-      + vals.map(function(v,i){
-          var x=pad+i*(w-2*pad)/(vals.length-1||1);
-          var y=h-pad-(v/Math.max(max,100))*(h-2*pad);
-          return '<circle cx="'+x+'" cy="'+y+'" r="3" fill="'+cor+'"/>';
-        }).join('')
-      +'</svg>';
+      +vals.map(function(v,i){
+        var x=(pad+i*(w-2*pad)/(vals.length-1||1)).toFixed(1);
+        var y=(h-pad-(Math.min(v,ref*1.2)/ref)*(h-2*pad)).toFixed(1);
+        return '<circle cx="'+x+'" cy="'+y+'" r="2.5" fill="'+cor+'"/>';
+      }).join('')+'</svg>';
   };
 
-  // Bloco de segmento
-  var blocoSeg = function(obj, cor){
+  // Diagnostico causal profundo
+  var diagnosticar = function(obj){
+    var s = obj.serie, ini = s[0], fim = s[s.length-1];
+    var causas = [], contexto = [], acao = [];
+
+    // 1 — Volume de entrada (CQL)
+    var dCQL = delta(fim.cnt_cql, ini.cnt_cql);
+    if(Math.abs(dCQL) > 10){
+      if(dCQL < 0) causas.push({tipo:'volume', sev: dCQL < -30 ? 2 : 1,
+        txt: 'CQL caiu <strong>'+Math.abs(dCQL).toFixed(0)+'%</strong> ('+ini.cnt_cql+' &#8594; '+fim.cnt_cql+' leads). Menos entrada no funil reduz diretamente o potencial de ganhos.',
+        mini: sparkline(s,'cnt_cql')});
+      else contexto.push('CQL cresceu '+dCQL.toFixed(0)+'% no periodo.');
+    } else {
+      contexto.push('Volume de CQL estavel ('+ini.cnt_cql+' &#8594; '+fim.cnt_cql+' leads).');
+    }
+
+    // 2 — Aprovacao de credito (N1v/CQL)
+    var dAprov = delta(fim.taxa_aprov, ini.taxa_aprov);
+    if(ini.taxa_aprov > 0 && Math.abs(dAprov) > 10){
+      if(dAprov < 0) causas.push({tipo:'credito', sev: dAprov < -30 ? 2 : 1,
+        txt: 'Taxa de aprovacao caiu <strong>'+Math.abs(dAprov).toFixed(1)+'%</strong> ('+fmtPct(ini.taxa_aprov)+' &#8594; '+fmtPct(fim.taxa_aprov)+'). Pode indicar perfil de lead piorando ou criterios de credito mais restritivos.',
+        mini: sparkline(s,'taxa_aprov')});
+      else contexto.push('Aprovacao melhorou '+dAprov.toFixed(1)+'% no periodo.');
+    }
+    if(fim.taxa_aprov < 15 && fim.cnt_cql > 5)
+      causas.push({tipo:'credito_baixo', sev:2,
+        txt: 'Taxa de aprovacao atual <strong>'+fmtPct(fim.taxa_aprov)+'</strong> esta abaixo de 15% &#8212; indica problema sistemico de qualidade de lead ou perfil de credito do segmento.',
+        mini: null});
+
+    // 3 — Conversao de fechamento (ganhos/aprovados)
+    var dConv = delta(fim.taxa_conv, ini.taxa_conv);
+    if(ini.taxa_conv > 0 && Math.abs(dConv) > 15){
+      if(dConv < 0) causas.push({tipo:'conversao', sev: dConv < -40 ? 2 : 1,
+        txt: 'Conversao de aprovados em ganhos caiu <strong>'+Math.abs(dConv).toFixed(1)+'%</strong> ('+fmtPct(ini.taxa_conv)+' &#8594; '+fmtPct(fim.taxa_conv)+'). Leads chegam ate N1 mas nao fecham &#8212; possivel problema de abordagem, proposta ou concorrencia.',
+        mini: sparkline(s,'taxa_conv')});
+      else contexto.push('Conversao de aprovados melhorou '+dConv.toFixed(1)+'% no periodo.');
+    }
+    if(fim.taxa_conv < 20 && fim.cnt_n1v > 3)
+      causas.push({tipo:'conv_baixo', sev:1,
+        txt: 'Conversao atual <strong>'+fmtPct(fim.taxa_conv)+'</strong>: menos de 1 em 5 aprovados vira ganho. Revisar processo pos-aprovacao e follow-up do vendedor.',
+        mini: null});
+
+    // 4 — Ticket medio
+    var dTicket = delta(fim.ticket_medio, ini.ticket_medio);
+    if(ini.ticket_medio > 0 && Math.abs(dTicket) > 10){
+      if(dTicket < 0) causas.push({tipo:'ticket', sev:1,
+        txt: 'Ticket medio recuou <strong>'+Math.abs(dTicket).toFixed(1)+'%</strong> ('+fmtR(ini.ticket_medio)+' &#8594; '+fmtR(fim.ticket_medio)+'). Vendedores podem estar fechando negocios menores para bater numero de contratos.',
+        mini: sparkline(s,'ticket_medio')});
+      else contexto.push('Ticket medio cresceu '+dTicket.toFixed(1)+'% no periodo.');
+    }
+
+    // 5 — Queda de ganhos com CQL crescendo = problema de processo
+    if(dCQL > 5 && fim.g_val < ini.g_val)
+      causas.push({tipo:'processo', sev:2,
+        txt: 'CQL cresceu mas ganhos caíram &#8212; mais leads entrando porem com pior qualidade ou processo de fechamento ineficiente. Checar perfil dos leads e coaching do vendedor.',
+        mini: null});
+
+    // 6 — Sem ganhos no ultimo mes
+    if(fim.g_qtd === 0 && fim.cnt_cql > 0)
+      causas.push({tipo:'zero_ganhos', sev:2,
+        txt: 'Nenhum ganho registrado no ultimo mes ('+fim.label+') com '+fim.cnt_cql+' CQLs ativos. Verificar exportacao de ganhos e pipeline do segmento.',
+        mini: null});
+
+    // Acoes recomendadas
+    var tiposCausa = causas.map(function(c){return c.tipo;});
+    if(tiposCausa.indexOf('volume')>=0 || tiposCausa.indexOf('volume')>=0)
+      acao.push('Revisar estrategia de geracao de leads e meta de prospecao ativa do segmento.');
+    if(tiposCausa.indexOf('credito')>=0 || tiposCausa.indexOf('credito_baixo')>=0)
+      acao.push('Analisar perfil dos leads reprovados: refinar criterios de qualificacao antes de avanar no funil.');
+    if(tiposCausa.indexOf('conversao')>=0 || tiposCausa.indexOf('conv_baixo')>=0)
+      acao.push('Auditar propostas e pipeline pos-N1: sessao de role-play ou revisao de objecoes com o vendedor responsavel.');
+    if(tiposCausa.indexOf('ticket')>=0)
+      acao.push('Reorientar vendedor para negocios de maior valor; revisar tabela de produtos/planos ofertados.');
+    if(tiposCausa.indexOf('processo')>=0)
+      acao.push('Fazer auditoria de qualidade nos leads recentes: o problema nao e volume, e processo ou perfil.');
+    if(!causas.length)
+      contexto.push('Nenhuma causa critica identificada automaticamente &#8212; analise manual recomendada.');
+
+    return { causas:causas, contexto:contexto, acao:acao };
+  };
+
+  // Bloco de segmento renderizado
+  var blocoSeg = function(obj){
     var s = obj.serie;
-    var mesLabels = s.map(function(d){return '<span style="color:#64748b;font-size:.72rem;margin-right:8px">'+d.label+'</span><span style="color:#e2e8f0;font-weight:600;font-size:.8rem;margin-right:16px">'+fmtPct(d.pct_meta)+'</span>'; }).join('');
-    var diasCQL = s.map(function(d){ return d.cnt_cql; });
-    var tendCQL = diasCQL[diasCQL.length-1] - diasCQL[0];
-    var tendGanhos = s[s.length-1].g_val - s[0].g_val;
+    var corTrend = obj.trend < -10 ? '#f87171' : obj.trend < 0 ? '#fb923c' : obj.trend > 10 ? '#4ade80' : '#a3e635';
+    var diag = diagnosticar(obj);
 
-    // Diagnóstico automático
-    var diag = [];
-    if(tendCQL < 0) diag.push('Volume de CQL caiu '+Math.abs(tendCQL)+' leads ('+s[0].label+' &#8594; '+s[s.length-1].label+')');
-    else if(tendCQL > 0) diag.push('Volume de CQL cresceu '+tendCQL+' leads');
-    var taxaConv = s[s.length-1].cnt_cql > 0 ? s[s.length-1].cnt_n1v / s[s.length-1].cnt_cql * 100 : 0;
-    if(taxaConv < 15) diag.push('Taxa de aprovação N1 baixa no último mês: '+fmtPct(taxaConv));
-    if(tendGanhos < 0) diag.push('Ganhos caíram '+fmtR(Math.abs(tendGanhos))+' no período');
-    var abaixo = s.filter(function(d){return d.pct_meta<100 && d.meta>0;});
-    if(abaixo.length === s.length && s[0].meta>0) diag.push('Não bateu meta em nenhum dos '+s.length+' meses analisados');
-    else if(abaixo.length > 0 && s[0].meta>0) diag.push('Abaixo da meta em '+abaixo.length+' de '+s.length+' meses');
+    var mesRow = s.map(function(d){
+      var cor = d.pct_meta>=100?'#4ade80':d.pct_meta>=70?'#fbbf24':'#f87171';
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;background:#0f1622;border-radius:8px">'+
+        '<span style="color:#64748b;font-size:.7rem">'+d.label+'</span>'+
+        '<span style="color:'+cor+';font-weight:700;font-size:.88rem">'+fmtPct(d.pct_meta)+'</span>'+
+        '<span style="color:#475569;font-size:.68rem">'+fmtR(d.g_val)+'</span>'+
+      '</div>';
+    }).join('');
 
-    return '<div style="background:#0c1521;border:1px solid '+(obj.trend<-10?'#7f1d1d':obj.trend<0?'#4a2008':'#14532d')+';border-radius:10px;padding:16px 20px;margin-bottom:10px">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">'+
-        '<div style="display:flex;align-items:center;gap:12px">'+
-          '<span style="font-weight:700;color:#e2e8f0;font-size:.95rem">'+obj.nome+'</span>'+
-          '<span style="color:'+cor+';font-size:.82rem;font-weight:700">'+(obj.trend>=0?'&#9650;':'&#9660;')+' '+Math.abs(obj.trend).toFixed(1)+'pp ('+obj.primeiroMes+' &#8594; '+obj.ultimoMes+')</span>'+
+    var causaItems = diag.causas.map(function(c){
+      var icone = c.sev===2 ? '&#128680;' : '&#9888;';
+      var cor   = c.sev===2 ? '#f87171' : '#fbbf24';
+      return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#0a1018;border-left:3px solid '+cor+';border-radius:4px;margin-bottom:6px">'+
+        '<span style="font-size:.9rem;flex-shrink:0">'+icone+'</span>'+
+        '<div style="flex:1;font-size:.78rem;color:#cbd5e1;line-height:1.7">'+c.txt+'</div>'+
+        (c.mini ? '<div style="flex-shrink:0">'+c.mini+'</div>' : '')+
+      '</div>';
+    }).join('');
+
+    var ctxItems = diag.contexto.length ?
+      '<div style="color:#64748b;font-size:.75rem;margin:6px 0;line-height:1.8">'+diag.contexto.map(function(t){return '&#8226; '+t;}).join('<br>')+'</div>' : '';
+
+    var acaoItems = diag.acao.length ?
+      '<div style="margin-top:10px;padding:10px 14px;background:#0f1c1a;border:1px solid #134e4a;border-radius:8px">'+
+        '<div style="color:#2dd4bf;font-size:.72rem;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">&#128161; Acoes Recomendadas</div>'+
+        '<ul style="margin:0;padding-left:16px;color:#94a3b8;font-size:.77rem;line-height:1.9">'+
+          diag.acao.map(function(a){return '<li>'+a+'</li>';}).join('')+
+        '</ul></div>' : '';
+
+    return '<div style="background:#0c1521;border:1px solid '+(obj.trend<-10?'#450a0a':obj.trend<0?'#431407':'#1c3a2a')+';border-radius:12px;padding:18px 20px;margin-bottom:14px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">'+
+        '<div>'+
+          '<span style="font-weight:700;color:#e2e8f0;font-size:1rem">'+obj.nome+'</span>'+
+          '<span style="margin-left:12px;color:'+corTrend+';font-size:.82rem;font-weight:700">'+(obj.trend>=0?'&#9650; +':'&#9660; ')+obj.trend.toFixed(1)+'pp</span>'+
         '</div>'+
-        sparkline(s)+
+        sparkline(s,'pct_meta')+
       '</div>'+
-      '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">'+mesLabels+'</div>'+
-      (diag.length ? '<ul style="margin:6px 0 0 0;padding-left:18px;color:#94a3b8;font-size:.78rem;line-height:1.8">'+
-        diag.map(function(d){return '<li>'+d+'</li>';}).join('')+'</ul>' : '')+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+mesRow+'</div>'+
+      (causaItems || '<div style="color:#64748b;font-size:.77rem">Nenhuma causa critica identificada automaticamente.</div>')+
+      ctxItems+
+      acaoItems+
     '</div>';
   };
 
-  var html = '<div class="at-card" style="margin-bottom:20px;padding:20px 24px">';
-  html += '<div style="font-size:1rem;font-weight:700;color:#e2e8f0;margin-bottom:4px">&#128202; Resumo Analítico — '+labelMes(meses[0])+' a '+labelMes(meses[meses.length-1])+'</div>';
-  html += '<div style="color:#64748b;font-size:.78rem;margin-bottom:16px">'+meses.length+' meses analisados · '+segs.length+' segmentos</div>';
+  var html = '<div class="at-card" style="margin-bottom:16px;padding:20px 24px">';
+  html += '<div style="font-size:1rem;font-weight:700;color:#e2e8f0;margin-bottom:4px">&#128202; Resumo Analitico &#8212; '+labelMes(meses[0])+' a '+labelMes(meses[meses.length-1])+'</div>';
+  html += '<div style="color:#64748b;font-size:.78rem;margin-bottom:16px">'+meses.length+' meses analisados &middot; '+segs.length+' segmentos</div>';
 
-  // Atenção — em queda
   if(queda.length){
-    html += '<div style="color:#f87171;font-size:.82rem;font-weight:700;margin:12px 0 8px;text-transform:uppercase;letter-spacing:.06em">&#9660; Em Queda ('+queda.length+')</div>';
-    queda.forEach(function(obj){ html += blocoSeg(obj,'#f87171'); });
+    html += '<div style="color:#f87171;font-size:.82rem;font-weight:700;margin:12px 0 10px;text-transform:uppercase;letter-spacing:.06em">&#9660; Em Queda ('+queda.length+')</div>';
+    queda.forEach(function(obj){ html += blocoSeg(obj); });
   }
-
-  // Crescimento
   if(crescimento.length){
-    html += '<div style="color:#4ade80;font-size:.82rem;font-weight:700;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">&#9650; Em Crescimento ('+crescimento.length+')</div>';
-    crescimento.forEach(function(obj){ html += blocoSeg(obj,'#4ade80'); });
+    html += '<div style="color:#4ade80;font-size:.82rem;font-weight:700;margin:20px 0 10px;text-transform:uppercase;letter-spacing:.06em">&#9650; Em Crescimento ('+crescimento.length+')</div>';
+    crescimento.forEach(function(obj){ html += blocoSeg(obj); });
   }
-
-  // Estável
   if(estavel.length){
-    html += '<div style="color:#94a3b8;font-size:.82rem;font-weight:700;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">&#8212; Estável / Sem Tendência Clara ('+estavel.length+')</div>';
-    estavel.forEach(function(obj){ html += blocoSeg(obj,'#94a3b8'); });
+    html += '<div style="color:#94a3b8;font-size:.82rem;font-weight:700;margin:20px 0 10px;text-transform:uppercase;letter-spacing:.06em">&#8212; Estaveis ('+estavel.length+')</div>';
+    estavel.forEach(function(obj){ html += blocoSeg(obj); });
   }
 
-  // Resumo executivo final
+  // Resumo executivo
   var criticos = queda.filter(function(o){return o.ultimoPct < 70;});
-  var batendo  = segs.filter(function(seg){ var s=serie[seg]; return s[s.length-1].pct_meta >= 100 && s[s.length-1].meta>0; });
-  html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #1e2535">';
+  var batendo  = segs.filter(function(seg){ var s=serie[seg]; return s[s.length-1].pct_meta>=100 && s[s.length-1].meta>0; });
+  html += '<div style="margin-top:20px;padding:16px 20px;background:#0a1018;border:1px solid #1e2535;border-radius:10px">';
+  html += '<div style="font-size:.8rem;font-weight:700;color:#e2e8f0;margin-bottom:8px">Visao Consolidada</div>';
   html += '<div style="color:#94a3b8;font-size:.78rem;line-height:2">';
-  if(criticos.length) html += '&#128680; <strong style="color:#f87171">'+criticos.map(function(o){return o.nome;}).join(', ')+'</strong> est&#227;o em queda e abaixo de 70% da meta no último mês — requerem ação imediata.<br>';
-  if(batendo.length) html += '&#10003; <strong style="color:#4ade80">'+batendo.map(function(seg){return segsSet[seg];}).join(', ')+'</strong> bateram meta no último mês.<br>';
-  var tendGeralCQL = segs.reduce(function(a,seg){ var s=serie[seg]; return a + (s[s.length-1].cnt_cql - s[0].cnt_cql); },0);
-  html += (tendGeralCQL>=0?'&#9650;':'&#9660;')+' CQL consolidado '+(tendGeralCQL>=0?'cresceu':'caiu')+' <strong style="color:#e2e8f0">'+Math.abs(tendGeralCQL)+'</strong> leads no período.<br>';
+  if(criticos.length) html += '&#128680; <strong style="color:#f87171">'+criticos.map(function(o){return o.nome;}).join(', ')+'</strong>: em queda e abaixo de 70% no ultimo mes &#8212; acao imediata.<br>';
+  if(batendo.length) html += '&#10003; <strong style="color:#4ade80">'+batendo.map(function(seg){return segsSet[seg];}).join(', ')+'</strong>: bateram meta no ultimo mes.<br>';
+  var totCQLini = segs.reduce(function(a,seg){return a+serie[seg][0].cnt_cql;},0);
+  var totCQLfim = segs.reduce(function(a,seg){return a+serie[seg][serie[seg].length-1].cnt_cql;},0);
+  html += (totCQLfim>=totCQLini?'&#9650;':'&#9660;')+' CQL consolidado: <strong style="color:#e2e8f0">'+totCQLini+'</strong> ('+labelMes(meses[0])+') &#8594; <strong style="color:#e2e8f0">'+totCQLfim+'</strong> ('+labelMes(meses[meses.length-1])+').';
   html += '</div></div>';
   html += '</div>';
 
   box.innerHTML = html;
   box.scrollIntoView({behavior:'smooth', block:'start'});
 };
-
 // Carrega e processa um mês silenciosamente sem alterar estado global
 async function carregarMesSilencioso(ym){
   var base = basesPorMes[ym];
