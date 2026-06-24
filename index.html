@@ -3881,6 +3881,9 @@ async function renderAnaliseTrimestral(){
     }
   }
 
+  // Restaura META_SEG do mês atual após carregamentos silenciosos
+  if(mesSelecionado) await carregarMetasConfig(mesSelecionado);
+
   var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
 
