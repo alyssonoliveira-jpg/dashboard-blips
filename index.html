@@ -4237,7 +4237,7 @@ window.atGerarAnalise = function(){
 
   var segsSet = {};
   meses.forEach(function(m){ (dadosPorMes[m]||[]).forEach(function(s){ segsSet[s.funilOrig]=s.nome; }); });
-  var segs = Object.keys(segsSet).sort();
+  var segs = Object.keys(segsSet).sort().filter(function(s){ return _temAcesso(s); });
 
   // Serie historica enriquecida por segmento
   var serie = {};
