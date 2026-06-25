@@ -4244,18 +4244,21 @@ window.atGerarAnalise = function(){
   segs.forEach(function(seg){
     serie[seg] = meses.map(function(m){
       var d = (dadosPorMes[m]||[]).find(function(s){return s.funilOrig===seg;}) || {};
-      var cql = d.cnt_cql||0, n1v = d.cnt_n1v||0, g_qtd = d.g_qtd||0, g_val = d.g_val||0;
+      var cql = d.cnt_cql||0;
+      var aprov = (d.cnt_n1v||0)+(d.cnt_n2v||0)+(d.cnt_n3v||0)+(d.cnt_n4v||0)+(d.cnt_n1l||0);
+      var g_qtd = d.g_qtd||0, g_val = d.g_val||0;
       return {
         mes: m, label: labelMes(m),
         pct_meta: d.pct_meta||0, meta: d.meta||0,
         g_val: g_val, g_qtd: g_qtd,
-        cnt_cql: cql, cnt_n1v: n1v, cnt_n2v: d.cnt_n2v||0,
+        cnt_cql: cql, cnt_aprov: aprov,
+        cnt_n1v: d.cnt_n1v||0, cnt_n2v: d.cnt_n2v||0,
         cnt_n3v: d.cnt_n3v||0, cnt_n4v: d.cnt_n4v||0, cnt_n1l: d.cnt_n1l||0,
         cnt_aprov_sinal:  d.cnt_aprov_sinal||0,
         cnt_reprovado:    d.cnt_reprovado||0,
         cnt_nova_analise: d.cnt_nova_analise||0,
-        taxa_aprov:  cql>0 ? n1v/cql*100 : 0,
-        taxa_conv:   n1v>0 ? g_qtd/n1v*100 : 0,
+        taxa_aprov:  cql>0 ? aprov/cql*100 : 0,
+        taxa_conv:   aprov>0 ? g_qtd/aprov*100 : 0,
         ticket_medio: g_qtd>0 ? g_val/g_qtd : 0
       };
     });
@@ -4317,13 +4320,13 @@ window.atGerarAnalise = function(){
     var dAprov = delta(fim.taxa_aprov, ini.taxa_aprov);
     if(ini.taxa_aprov > 0 && Math.abs(dAprov) > 10){
       if(dAprov < 0) causas.push({tipo:'credito', sev: dAprov < -30 ? 2 : 1,
-        txt: 'Taxa de aprovacao caiu <strong>'+Math.abs(dAprov).toFixed(1)+'%</strong> ('+ini.label+': '+fmtPct(ini.taxa_aprov)+' = '+ini.cnt_n1v+' N1 de '+ini.cnt_cql+' CQL &#8594; '+fim.label+': '+fmtPct(fim.taxa_aprov)+' = '+fim.cnt_n1v+' N1 de '+fim.cnt_cql+' CQL). Pode indicar perfil de lead piorando ou criterios de credito mais restritivos.',
+        txt: 'Taxa de aprovacao caiu <strong>'+Math.abs(dAprov).toFixed(1)+'%</strong> ('+ini.label+': '+fmtPct(ini.taxa_aprov)+' = '+ini.cnt_aprov+' aprovados de '+ini.cnt_cql+' CQL &#8594; '+fim.label+': '+fmtPct(fim.taxa_aprov)+' = '+fim.cnt_aprov+' aprovados de '+fim.cnt_cql+' CQL). Pode indicar perfil de lead piorando ou criterios de credito mais restritivos.',
         mini: sparkline(s,'taxa_aprov')});
-      else contexto.push('Aprovacao melhorou '+dAprov.toFixed(1)+'% no periodo ('+ini.label+': '+ini.cnt_n1v+' N1 &#8594; '+fim.label+': '+fim.cnt_n1v+' N1).');
+      else contexto.push('Aprovacao melhorou '+dAprov.toFixed(1)+'% no periodo ('+ini.label+': '+ini.cnt_aprov+' aprovados &#8594; '+fim.label+': '+fim.cnt_aprov+' aprovados).');
     }
     if(fim.taxa_aprov < 15 && fim.cnt_cql > 5)
       causas.push({tipo:'credito_baixo', sev:2,
-        txt: 'Taxa de aprovacao atual <strong>'+fmtPct(fim.taxa_aprov)+'</strong> ('+fim.cnt_n1v+' N1 de '+fim.cnt_cql+' CQL) esta abaixo de 15% &#8212; indica problema sistemico de qualidade de lead ou perfil de credito do segmento.',
+        txt: 'Taxa de aprovacao atual <strong>'+fmtPct(fim.taxa_aprov)+'</strong> ('+fim.cnt_aprov+' aprovados de '+fim.cnt_cql+' CQL) esta abaixo de 15% &#8212; indica problema sistemico de qualidade de lead ou perfil de credito do segmento.',
         mini: null});
 
     // 2b — Reprovações de crédito explícitas
@@ -4343,13 +4346,13 @@ window.atGerarAnalise = function(){
     var dConv = delta(fim.taxa_conv, ini.taxa_conv);
     if(ini.taxa_conv > 0 && Math.abs(dConv) > 15){
       if(dConv < 0) causas.push({tipo:'conversao', sev: dConv < -40 ? 2 : 1,
-        txt: 'Conversao de aprovados em ganhos caiu <strong>'+Math.abs(dConv).toFixed(1)+'%</strong> ('+ini.label+': '+fmtPct(ini.taxa_conv)+' = '+ini.g_qtd+' ganhos de '+ini.cnt_n1v+' N1 &#8594; '+fim.label+': '+fmtPct(fim.taxa_conv)+' = '+fim.g_qtd+' ganhos de '+fim.cnt_n1v+' N1). Leads chegam ate N1 mas nao fecham &#8212; possivel problema de abordagem, proposta ou concorrencia.',
+        txt: 'Conversao de aprovados em ganhos caiu <strong>'+Math.abs(dConv).toFixed(1)+'%</strong> ('+ini.label+': '+fmtPct(ini.taxa_conv)+' = '+ini.g_qtd+' ganhos de '+ini.cnt_aprov+' aprovados &#8594; '+fim.label+': '+fmtPct(fim.taxa_conv)+' = '+fim.g_qtd+' ganhos de '+fim.cnt_aprov+' aprovados). Leads chegam ate aprovacao mas nao fecham &#8212; possivel problema de abordagem, proposta ou concorrencia.',
         mini: sparkline(s,'taxa_conv')});
-      else contexto.push('Conversao de aprovados melhorou '+dConv.toFixed(1)+'% no periodo ('+ini.label+': '+ini.g_qtd+' ganhos de '+ini.cnt_n1v+' N1 &#8594; '+fim.label+': '+fim.g_qtd+' ganhos de '+fim.cnt_n1v+' N1).');
+      else contexto.push('Conversao de aprovados melhorou '+dConv.toFixed(1)+'% no periodo ('+ini.label+': '+ini.g_qtd+' ganhos de '+ini.cnt_aprov+' aprovados &#8594; '+fim.label+': '+fim.g_qtd+' ganhos de '+fim.cnt_aprov+' aprovados).');
     }
-    if(fim.taxa_conv < 20 && fim.cnt_n1v > 3)
+    if(fim.taxa_conv < 20 && fim.cnt_aprov > 3)
       causas.push({tipo:'conv_baixo', sev:1,
-        txt: 'Conversao atual <strong>'+fmtPct(fim.taxa_conv)+'</strong> ('+fim.g_qtd+' ganhos de '+fim.cnt_n1v+' N1 aprovados): menos de 1 em 5 aprovados vira ganho. Revisar processo pos-aprovacao e follow-up do vendedor.',
+        txt: 'Conversao atual <strong>'+fmtPct(fim.taxa_conv)+'</strong> ('+fim.g_qtd+' ganhos de '+fim.cnt_aprov+' aprovados): menos de 1 em 5 aprovados vira ganho. Revisar processo pos-aprovacao e follow-up do vendedor.',
         mini: null});
 
     // 4 — Ticket medio
