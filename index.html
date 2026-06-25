@@ -4497,6 +4497,10 @@ async function carregarMesSilencioso(ym){
   var K_DATA  = keys.find(function(k){return k.toLowerCase().includes('criado');})||
                 keys.find(function(k){return k.toLowerCase().includes('data')&&!k.toLowerCase().includes('perda')&&!k.toLowerCase().includes('reserva');})||'';
   var K_CRED  = keys.find(function(k){return k.toLowerCase().includes('analise')&&k.toLowerCase().includes('cred');})||'';
+  console.log('[DEBUG carregarMesSilencioso] '+ym+' — colunas detectadas:', {K_FUNIL:K_FUNIL,K_VALOR:K_VALOR,K_INTER:K_INTER,K_CL:K_CL,K_CV:K_CV,K_DATA:K_DATA,K_CRED:K_CRED});
+  console.log('[DEBUG carregarMesSilencioso] '+ym+' — primeiras 3 colunas do arquivo:', keys.slice(0,5));
+  var sampleFitness = rawLeads.find(function(r){return String(r[K_FUNIL]||'').includes('Fitness');});
+  if(sampleFitness) console.log('[DEBUG Fitness sample] '+ym+':', {interesse:sampleFitness[K_INTER], cv:sampleFitness[K_CV], cl:sampleFitness[K_CL], cred:sampleFitness[K_CRED]});
 
   var gKeys = Object.keys(rawGanhos[0]||{});
   var GK_FUNIL = gKeys.find(function(k){return k.toLowerCase().includes('funil');})||'';
