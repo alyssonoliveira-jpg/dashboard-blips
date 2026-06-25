@@ -4480,13 +4480,19 @@ async function carregarMesSilencioso(ym){
   var base = basesPorMes[ym];
   if(!base) return;
   await carregarMetasConfig(ym);
+  console.log('[DEBUG] '+ym+' — baixando leads:', base.leads_path);
   var { data: leadsBlob, error: e1 } = await sb.storage.from(BUCKET).download(base.leads_path);
-  if(e1) throw e1;
+  console.log('[DEBUG] '+ym+' — leads download result: e1=', e1, 'blob=', leadsBlob?'ok':'null');
+  if(e1) { console.error('[DEBUG] leads ERRO:', e1); throw e1; }
+  console.log('[DEBUG] '+ym+' — baixando ganhos:', base.ganhos_path);
   var { data: ganhosBlob, error: e2 } = await sb.storage.from(BUCKET).download(base.ganhos_path);
-  if(e2) throw e2;
+  console.log('[DEBUG] '+ym+' — ganhos download result: e2=', e2, 'blob=', ganhosBlob?'ok':'null');
+  if(e2) { console.error('[DEBUG] ganhos ERRO:', e2); throw e2; }
 
+  console.log('[DEBUG] '+ym+' — parseando blobs...');
   var rawLeads  = await blobParaJson(leadsBlob);
   var rawGanhos = await blobParaJson(ganhosBlob);
+  console.log('[DEBUG] '+ym+' — rawLeads.length=', rawLeads.length, 'rawGanhos.length=', rawGanhos.length);
 
   var keys = Object.keys(rawLeads[0]||{});
   var K_FUNIL = keys.find(function(k){return k.toLowerCase().includes('funil');})||'';
