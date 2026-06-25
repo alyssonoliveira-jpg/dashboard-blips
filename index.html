@@ -4495,16 +4495,16 @@ async function carregarMesSilencioso(ym){
   console.log('[DEBUG] '+ym+' — rawLeads.length=', rawLeads.length, 'rawGanhos.length=', rawGanhos.length);
 
   var keys = Object.keys(rawLeads[0]||{});
-  var K_FUNIL = keys.find(function(k){return k.toLowerCase().includes('funil');})||'';
-  var K_VALOR = keys.find(function(k){return k.toLowerCase().includes('valor');})||'';
-  var K_INTER = keys.find(function(k){return k.toLowerCase().includes('interesse');})||'';
-  var K_CL    = keys.find(function(k){return k.toLowerCase().includes('classifica')&&k.toLowerCase().includes('loca');})||'';
-  var K_CV    = keys.find(function(k){return k.toLowerCase().includes('classifica')&&k.toLowerCase().includes('venda');})||'';
-  var K_DATA  = keys.find(function(k){return k.toLowerCase().includes('criado');})||
-                keys.find(function(k){return k.toLowerCase().includes('data')&&!k.toLowerCase().includes('perda')&&!k.toLowerCase().includes('reserva');})||'';
-  var K_CRED  = keys.find(function(k){return k.toLowerCase().includes('analise')&&k.toLowerCase().includes('cred');})||'';
+  function n(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
+  var K_FUNIL = keys.find(function(k){return n(k).includes('funil');})||'';
+  var K_VALOR = keys.find(function(k){return n(k).includes('valor');})||'';
+  var K_INTER = keys.find(function(k){return n(k).includes('interesse');})||'';
+  var K_CL    = keys.find(function(k){return n(k).includes('classifica')&&n(k).includes('loca');})||'';
+  var K_CV    = keys.find(function(k){return n(k).includes('classifica')&&n(k).includes('venda');})||'';
+  var K_DATA  = keys.find(function(k){return n(k).includes('criado');})||
+                keys.find(function(k){return n(k).includes('data')&&!n(k).includes('perda')&&!n(k).includes('reserva');})||'';
+  var K_CRED  = keys.find(function(k){return n(k).includes('analise')&&n(k).includes('cred');})||'';
   console.log('[DEBUG carregarMesSilencioso] '+ym+' — colunas detectadas:', {K_FUNIL:K_FUNIL,K_VALOR:K_VALOR,K_INTER:K_INTER,K_CL:K_CL,K_CV:K_CV,K_DATA:K_DATA,K_CRED:K_CRED});
-  console.log('[DEBUG carregarMesSilencioso] '+ym+' — primeiras 3 colunas do arquivo:', keys.slice(0,5));
   var sampleFitness = rawLeads.find(function(r){return String(r[K_FUNIL]||'').includes('Fitness');});
   if(sampleFitness) console.log('[DEBUG Fitness sample] '+ym+':', {interesse:sampleFitness[K_INTER], cv:sampleFitness[K_CV], cl:sampleFitness[K_CL], cred:sampleFitness[K_CRED]});
 
