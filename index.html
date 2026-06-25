@@ -4440,17 +4440,17 @@ window.atGerarAnalise = function(){
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+mesRow+'</div>'+
       (function(){
         var ini = s[0], fim = s[s.length-1];
-        var totIni = (ini.cnt_aprov_sinal||0)+(ini.cnt_reprovado||0)+(ini.cnt_nova_analise||0);
-        var totFim = (fim.cnt_aprov_sinal||0)+(fim.cnt_reprovado||0)+(fim.cnt_nova_analise||0);
-        if(totIni===0 && totFim===0) return '';
-        var varPct = ini.cnt_aprov_sinal>0 ? ((fim.cnt_aprov_sinal-ini.cnt_aprov_sinal)/ini.cnt_aprov_sinal*100) : null;
+        var aprovIni = ini.cnt_aprov||0;
+        var aprovFim = fim.cnt_aprov||0;
+        if(aprovIni===0 && aprovFim===0) return '';
+        var varPct = aprovIni>0 ? ((aprovFim-aprovIni)/aprovIni*100) : null;
         var corVar = varPct===null?'#64748b':varPct>=0?'#4ade80':'#f87171';
         var varTxt = varPct===null?'':' <span style="color:'+corVar+';font-weight:700">'+(varPct>=0?'&#9650;':'&#9660;')+' '+Math.abs(varPct).toFixed(1)+'%</span>';
         return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#0a1018;border-radius:8px;margin-bottom:10px;font-size:.77rem;color:#94a3b8">'+
-          '<span style="color:#60a5fa;font-weight:700">Cr&#233;dito</span>'+
-          '<span>'+ini.label+': <strong style="color:#e2e8f0">'+ini.cnt_aprov_sinal+'</strong> aprovados</span>'+
+          '<span style="color:#60a5fa;font-weight:700">Aprovados</span>'+
+          '<span>'+ini.label+': <strong style="color:#e2e8f0">'+aprovIni+'</strong></span>'+
           '<span style="color:#334155">&#8594;</span>'+
-          '<span>'+fim.label+': <strong style="color:#e2e8f0">'+fim.cnt_aprov_sinal+'</strong> aprovados'+varTxt+'</span>'+
+          '<span>'+fim.label+': <strong style="color:#e2e8f0">'+aprovFim+'</strong>'+varTxt+'</span>'+
         '</div>';
       })()+
       (causaItems || '<div style="color:#64748b;font-size:.77rem">Nenhuma causa critica identificada automaticamente.</div>')+
