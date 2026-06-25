@@ -4106,7 +4106,7 @@ window.atRenderDepara = function(){
   var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
   var fmtN = function(v){ return Math.round(v||0).toLocaleString('pt-BR'); };
   var fmtR = function(v){ return 'R$ '+Math.round(v||0).toLocaleString('pt-BR'); };
-  var fmtPct = function(v){ return (v||0).toFixed(1)+'%'; };
+  var fmtPct = function(v){ return (v||0)>999?'—':(v||0).toFixed(1)+'%'; };
 
   var badge = function(a, b){
     if(!b && !a) return '<span class="at-badge-eq">&#8212;</span>';
