@@ -4085,27 +4085,22 @@ async function renderAnaliseTrimestral(){
   var optsComp = meses.map(function(m,i){ return '<option value="'+m+'"'+(i===meses.length-1?' selected':'')+'>'+labelMes(m)+'</option>'; }).join('');
 
   box.innerHTML =
-    '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap">'+
-      '<span style="color:#94a3b8;font-size:.85rem">Comparar:</span>'+
-      '<select id="at-mes-base" class="at-sel">'+opts+'</select>'+
-      '<span style="color:#475569;font-size:1.2rem">&#8594;</span>'+
-      '<select id="at-mes-comp" class="at-sel">'+optsComp+'</select>'+
-      '<button onclick="atRenderDepara()" style="background:#6366f1;color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:.85rem;cursor:pointer;font-weight:600">Atualizar</button>'+
-      '<button onclick="atGerarAnalise()" style="background:#0f766e;color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:.85rem;cursor:pointer;font-weight:600;margin-left:4px">&#128200; Gerar An&#225;lise</button>'+
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">'+
+      '<button onclick="atGerarAnalise()" style="background:#0f766e;color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:.85rem;cursor:pointer;font-weight:600">&#128200; Gerar An&#225;lise</button>'+
     '</div>'+
     '<div style="display:inline-flex;align-items:center;gap:6px;background:#0c1a2e;border:1px solid #1e3a5f;border-radius:6px;padding:5px 12px;font-size:.78rem;color:#60a5fa;margin-bottom:12px">'+
       '&#128197; Meses hist&#243;ricos normalizados at&#233; dia '+new Date().getDate()+' para comparação justa com o mês atual'+
     '</div>'+
-    '<div id="at-analise-box"></div>'+
-    '<div id="at-depara-content"></div>';
+    '<div id="at-depara-content"></div>'+
+    '<div id="at-analise-box"></div>';
 
   atRenderDepara();
 }
 
 window.atRenderDepara = function(){
-  var mesBase = document.getElementById('at-mes-base').value;
-  var mesComp = document.getElementById('at-mes-comp').value;
   var container = document.getElementById('at-depara-content');
+  var meses = Object.keys(dadosPorMes).sort();
+  if(meses.length < 2){ container.innerHTML=''; return; }
 
   var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
@@ -4117,108 +4112,113 @@ window.atRenderDepara = function(){
     if(!b && !a) return '<span class="at-badge-eq">&#8212;</span>';
     if(!b) return '<span class="at-badge-up">&#9650; novo</span>';
     var d=(a-b)/b*100;
-    if(Math.abs(d)<0.5) return '<span class="at-badge-eq">= 0%</span>';
+    if(Math.abs(d)<0.5) return '<span class="at-badge-eq">&#8776;0%</span>';
     if(d>0) return '<span class="at-badge-up">&#9650; '+d.toFixed(1)+'%</span>';
     return '<span class="at-badge-dn">&#9660; '+Math.abs(d).toFixed(1)+'%</span>';
   };
 
-  var progBar = function(val, max, cor){
-    var pct = max>0 ? Math.min(100,val/max*100) : 0;
-    return '<div style="margin-top:3px"><div class="at-prog-bg" style="flex:1"><div class="at-prog-fill" style="width:'+pct+'%;background:'+cor+'"></div></div></div>';
-  };
-
   var metricas = [
-    {key:'cnt_cql',  label:'CQL',        fmt:fmtN,  cor:'#818cf8'},
-    {key:'cnt_n1v',  label:'N1 Venda',   fmt:fmtN,  cor:'#38bdf8'},
-    {key:'cnt_n2v',  label:'N2 Venda',   fmt:fmtN,  cor:'#34d399'},
-    {key:'cnt_n3v',  label:'N3 Venda',   fmt:fmtN,  cor:'#a78bfa'},
-    {key:'cnt_n4v',  label:'N4 Venda',   fmt:fmtN,  cor:'#f472b6'},
-    {key:'cnt_n1l',       label:'N1 Locacao',        fmt:fmtN,  cor:'#fb923c'},
-    {key:'g_val',         label:'Ganhos R$',         fmt:fmtR,  cor:'#4ade80', isR:true},
-    {key:'pct_meta',      label:'% da Meta',         fmt:fmtPct,cor:'#fbbf24'},
-    {key:'_sep_cred',     label:'── Crédito ──',     fmt:null,  cor:'#475569', sep:true},
-    {key:'cnt_aprov_sinal',  label:'Aprovado c/ Sinal', fmt:fmtN,  cor:'#34d399'},
+    {key:'cnt_cql',          label:'CQL',               fmt:fmtN,  cor:'#818cf8'},
+    {key:'cnt_n1v',          label:'N1 Venda',          fmt:fmtN,  cor:'#38bdf8'},
+    {key:'cnt_n2v',          label:'N2 Venda',          fmt:fmtN,  cor:'#34d399'},
+    {key:'cnt_n3v',          label:'N3 Venda',          fmt:fmtN,  cor:'#a78bfa'},
+    {key:'cnt_n4v',          label:'N4 Venda',          fmt:fmtN,  cor:'#f472b6'},
+    {key:'cnt_n1l',          label:'N1 Locação',        fmt:fmtN,  cor:'#fb923c'},
+    {key:'g_val',            label:'Ganhos R$',         fmt:fmtR,  cor:'#4ade80'},
+    {key:'pct_meta',         label:'% Meta',            fmt:fmtPct,cor:'#fbbf24'},
+    {key:'_sep_cred',        label:'── Crédito ──',     fmt:null,  cor:'#475569', sep:true},
+    {key:'cnt_aprov_sinal',  label:'Aprov. c/ Sinal',   fmt:fmtN,  cor:'#34d399'},
     {key:'cnt_reprovado',    label:'Reprovado',         fmt:fmtN,  cor:'#f87171'},
     {key:'cnt_nova_analise', label:'Nova Análise',      fmt:fmtN,  cor:'#fbbf24'}
   ];
 
   var segsSet = {};
-  [mesBase,mesComp].forEach(function(m){ (dadosPorMes[m]||[]).forEach(function(s){ segsSet[s.funilOrig]=s.nome; }); });
+  meses.forEach(function(m){ (dadosPorMes[m]||[]).forEach(function(s){ segsSet[s.funilOrig]=s.nome; }); });
   var segs = Object.keys(segsSet).sort().filter(function(s){ return _temAcesso(s); });
 
-  var sumBase={cql:0,n1v:0,ganhos:0}, sumComp={cql:0,n1v:0,ganhos:0};
+  // KPI cards: primeiro vs último mês
+  var m0 = meses[0], mN = meses[meses.length-1];
+  var sumIni={cql:0,aprov:0,ganhos:0}, sumFim={cql:0,aprov:0,ganhos:0};
   segs.forEach(function(seg){
-    var db=(dadosPorMes[mesBase]||[]).find(function(s){return s.funilOrig===seg;})||{};
-    var dc=(dadosPorMes[mesComp]||[]).find(function(s){return s.funilOrig===seg;})||{};
-    sumBase.cql+=(db.cnt_cql||0); sumBase.n1v+=(db.cnt_n1v||0); sumBase.ganhos+=(db.g_val||0);
-    sumComp.cql+=(dc.cnt_cql||0); sumComp.n1v+=(dc.cnt_n1v||0); sumComp.ganhos+=(dc.g_val||0);
+    var di=(dadosPorMes[m0]||[]).find(function(s){return s.funilOrig===seg;})||{};
+    var df=(dadosPorMes[mN]||[]).find(function(s){return s.funilOrig===seg;})||{};
+    sumIni.cql+=(di.cnt_cql||0); sumIni.aprov+=(di.cnt_n1v||0); sumIni.ganhos+=(di.g_val||0);
+    sumFim.cql+=(df.cnt_cql||0); sumFim.aprov+=(df.cnt_n1v||0); sumFim.ganhos+=(df.g_val||0);
   });
 
-  var cardHtml = function(titulo, vBase, vComp, fmt){
-    var d = vBase>0?(vComp-vBase)/vBase*100:0;
+  var cardHtml = function(titulo, vIni, vFim, fmt){
+    var d = vIni>0?(vFim-vIni)/vIni*100:0;
     var cor=d>=0?'#4ade80':'#f87171'; var seta=d>=0?'&#9650;':'&#9660;';
     return '<div class="at-card" style="flex:1;min-width:180px">'+
       '<div style="color:#64748b;font-size:.75rem;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">'+titulo+'</div>'+
-      '<div style="font-size:1.4rem;font-weight:700;color:#e2e8f0;margin-bottom:6px">'+fmt(vComp)+'</div>'+
+      '<div style="font-size:1.4rem;font-weight:700;color:#e2e8f0;margin-bottom:6px">'+fmt(vFim)+'</div>'+
       '<div style="font-size:.8rem;display:flex;gap:10px;align-items:center">'+
-        '<span style="color:#64748b">'+labelMes(mesBase)+': '+fmt(vBase)+'</span>'+
+        '<span style="color:#64748b">'+labelMes(m0)+': '+fmt(vIni)+'</span>'+
         '<span style="color:'+cor+';font-weight:700">'+seta+' '+Math.abs(d).toFixed(1)+'%</span>'+
       '</div></div>';
   };
 
-  var cardsRow = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">'+
-    cardHtml('CQL Total',sumBase.cql,sumComp.cql,fmtN)+
-    cardHtml('N1 Venda Total',sumBase.n1v,sumComp.n1v,fmtN)+
-    cardHtml('Ganhos Total',sumBase.ganhos,sumComp.ganhos,fmtR)+
-  '</div>';
+  // Cabeçalho: colunas = Segmento | Métrica | Mês1 | Mês2 | ... | Var
+  var thMeses = meses.map(function(m){
+    return '<th style="padding:8px 14px;text-align:center;color:#94a3b8;font-size:.78rem;font-weight:700;white-space:nowrap;min-width:90px">'+labelMes(m)+'</th>';
+  }).join('');
 
-  var maxGanhos = segs.reduce(function(mx,seg){
-    var db=(dadosPorMes[mesBase]||[]).find(function(s){return s.funilOrig===seg;})||{};
-    var dc=(dadosPorMes[mesComp]||[]).find(function(s){return s.funilOrig===seg;})||{};
-    return Math.max(mx,db.g_val||0,dc.g_val||0);
-  },0);
+  var thHead = '<tr style="background:#0f1622">'+
+    '<th style="padding:8px 14px;text-align:left;color:#64748b;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;min-width:120px">Segmento</th>'+
+    '<th style="padding:8px 14px;text-align:left;color:#64748b;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;min-width:110px">Métrica</th>'+
+    thMeses+
+    '<th style="padding:8px 14px;text-align:center;color:#64748b;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;min-width:80px">Var.</th>'+
+  '</tr>';
 
-  var segRows = segs.map(function(seg){
-    var db=(dadosPorMes[mesBase]||[]).find(function(s){return s.funilOrig===seg;})||{};
-    var dc=(dadosPorMes[mesComp]||[]).find(function(s){return s.funilOrig===seg;})||{};
-    var cells = metricas.map(function(mt){
-      if(mt.sep) return '<td style="padding:6px 14px;color:#475569;font-size:.7rem;text-align:center;border-top:1px solid #1e2535">—</td>';
-      var vb=db[mt.key]||0, vc=dc[mt.key]||0;
-      var bar = mt.isR?progBar(vc,maxGanhos,mt.cor):'';
-      return '<td style="padding:10px 14px;vertical-align:middle">'+
-        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'+
-          '<div style="display:flex;align-items:center;gap:8px">'+
-            '<span style="color:#64748b;font-size:.72rem">'+mt.fmt(vb)+'</span>'+
-            '<span style="font-size:.82rem;font-weight:600;color:#e2e8f0">'+mt.fmt(vc)+'</span>'+
-            badge(vc,vb)+
-          '</div>'+bar+
-        '</div></td>';
+  var segRows = segs.map(function(seg, si){
+    var bgSeg = si%2===0?'#0c1521':'#0a1018';
+    return metricas.map(function(mt, mi){
+      if(mt.sep){
+        var colspan = meses.length+3;
+        return '<tr style="background:'+bgSeg+'"><td colspan="'+colspan+'" style="padding:4px 14px;color:#334155;font-size:.68rem;border-top:1px solid #1a2535">'+mt.label+'</td></tr>';
+      }
+      var vals = meses.map(function(m){
+        return (dadosPorMes[m]||[]).find(function(s){return s.funilOrig===seg;}) || {};
+      });
+      var vFirst = vals[0][mt.key]||0, vLast = vals[vals.length-1][mt.key]||0;
+      var mesCells = vals.map(function(d,i){
+        var v = d[mt.key]||0;
+        var cor = mt.cor||'#e2e8f0';
+        return '<td style="padding:8px 14px;text-align:center;color:'+cor+';font-size:.8rem;font-weight:600">'+mt.fmt(v)+'</td>';
+      }).join('');
+      var varCell = '<td style="padding:8px 14px;text-align:center">'+badge(vLast,vFirst)+'</td>';
+      var segLabel = mi===0
+        ? '<td rowspan="'+metricas.filter(function(x){return !x.sep;}).length+'" style="padding:10px 14px;font-weight:700;color:#e2e8f0;vertical-align:middle;white-space:nowrap;border-right:1px solid #1e2535;background:'+bgSeg+'">'+segsSet[seg]+'</td>'
+        : '';
+      // Only show segLabel on first non-sep metric of each segment
+      if(mi===0){
+        return '<tr class="at-metrow" style="background:'+bgSeg+';border-bottom:1px solid #1a2535">'+
+          '<td rowspan="'+(metricas.length - metricas.filter(function(x){return x.sep;}).length)+'" style="padding:10px 14px;font-weight:700;color:#e2e8f0;vertical-align:middle;white-space:nowrap;border-right:1px solid #1e2535">'+segsSet[seg]+'</td>'+
+          '<td style="padding:8px 14px;color:'+mt.cor+';font-size:.75rem;white-space:nowrap">'+mt.label+'</td>'+
+          mesCells+varCell+'</tr>';
+      }
+      return '<tr class="at-metrow" style="background:'+bgSeg+';border-bottom:1px solid #1a2535">'+
+        '<td style="padding:8px 14px;color:'+mt.cor+';font-size:.75rem;white-space:nowrap">'+mt.label+'</td>'+
+        mesCells+varCell+'</tr>';
     }).join('');
-    return '<tr class="at-metrow" style="border-bottom:1px solid #1e2535">'+
-      '<td style="padding:10px 14px;font-weight:600;color:#e2e8f0;white-space:nowrap;min-width:120px">'+segsSet[seg]+'</td>'+cells+'</tr>';
   }).join('');
 
-  var thMets = metricas.map(function(mt){
-    if(mt.sep) return '<th style="padding:8px 14px;text-align:center;color:#475569;font-size:.68rem;white-space:nowrap;font-weight:600;border-top:1px solid #1e2535">'+mt.label+'</th>';
-    return '<th style="padding:8px 14px;text-align:right;color:#64748b;font-size:.72rem;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.04em">'+mt.label+'</th>';
-  }).join('');
-
-  container.innerHTML = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">'+
-    cardHtml('CQL Total',sumBase.cql,sumComp.cql,fmtN)+
-    cardHtml('N1 Venda Total',sumBase.n1v,sumComp.n1v,fmtN)+
-    cardHtml('Ganhos Total',sumBase.ganhos,sumComp.ganhos,fmtR)+
-  '</div>'+
-  '<div class="at-card" style="overflow-x:auto;padding:0">'+
-    '<div style="padding:14px 20px;border-bottom:1px solid #1e2535;display:flex;align-items:center;justify-content:space-between">'+
-      '<span style="font-weight:700;color:#e2e8f0">De-Para por Segmento</span>'+
-      '<span style="font-size:.75rem;color:#475569">'+labelMes(mesBase)+' (cinza) &#8594; '+labelMes(mesComp)+' (branco)</span>'+
+  container.innerHTML =
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">'+
+      cardHtml('CQL Total',sumIni.cql,sumFim.cql,fmtN)+
+      cardHtml('Aprov. Venda Total',sumIni.aprov,sumFim.aprov,fmtN)+
+      cardHtml('Ganhos Total',sumIni.ganhos,sumFim.ganhos,fmtR)+
     '</div>'+
-    '<table style="width:100%;border-collapse:collapse;font-size:.8rem">'+
-      '<thead><tr style="background:#0f1622">'+
-        '<th style="padding:8px 14px;text-align:left;color:#64748b;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Segmento</th>'+thMets+
-      '</tr></thead>'+
-      '<tbody>'+segRows+'</tbody>'+
-    '</table></div>';
+    '<div class="at-card" style="overflow-x:auto;padding:0">'+
+      '<div style="padding:14px 20px;border-bottom:1px solid #1e2535">'+
+        '<span style="font-weight:700;color:#e2e8f0">De-Para por Segmento</span>'+
+        '<span style="margin-left:12px;font-size:.75rem;color:#475569">'+meses.map(labelMes).join(' &#8594; ')+'</span>'+
+      '</div>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:.8rem">'+
+        '<thead>'+thHead+'</thead>'+
+        '<tbody>'+segRows+'</tbody>'+
+      '</table>'+
+    '</div>';
 };
 
 window.atGerarAnalise = function(){
