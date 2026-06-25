@@ -4433,7 +4433,7 @@ window.atGerarAnalise = function(){
       '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">'+
         '<div>'+
           '<span style="font-weight:700;color:#e2e8f0;font-size:1rem">'+obj.nome+'</span>'+
-          '<span style="margin-left:12px;color:'+corTrend+';font-size:.82rem;font-weight:700">'+(obj.trend>=0?'&#9650; +':'&#9660; ')+obj.trend.toFixed(1)+'pp</span>'+
+          '<span style="margin-left:12px;color:'+corTrend+';font-size:.82rem;font-weight:700">'+(obj.trend>=0?'&#9650;':'&#9660;')+' meta '+(obj.trend>=0?'subiu':'caiu')+' de <strong>'+obj.serie[0].pct_meta.toFixed(0)+'%</strong> para <strong>'+obj.serie[obj.serie.length-1].pct_meta.toFixed(0)+'%</strong></span>'+
         '</div>'+
         sparkline(s,'pct_meta')+
       '</div>'+
