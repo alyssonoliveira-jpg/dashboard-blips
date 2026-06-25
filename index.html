@@ -874,6 +874,7 @@ async function gerarDashboard(){
     var K_DATA   = findKey(keys,['negocio','criado']) || findKey(keys,['negociocriado']) || findKey(keys,['criadoem']) || keys.find(function(k){return k.toLowerCase().includes('criado em');}) || '';
     var K_EQUIP  = keys.find(function(k){return k.toLowerCase().includes('equipamento');}) || '';
     var K_STATUS = keys.find(function(k){return k.toLowerCase().includes('status');}) || '';
+    var K_CRED   = keys.find(function(k){return k.toLowerCase().includes('analise')&&k.toLowerCase().includes('cred');}) || '';
 
     if(!K_FUNIL||!K_VALOR){
       mostrarErro('Coluna Funil ou Valor nao encontrada. Verifique o arquivo de leads.');
@@ -929,6 +930,7 @@ async function gerarDashboard(){
         isAprovV: cv==='N1'||cv==='N2'||cv==='N3'||cv==='N4',
         isN1l: cl==='N1',
         isCQL: int_==='VENDA' || int_==='LOCACAO',
+        cred: K_CRED ? String(r[K_CRED]||'').trim() : '',
         equip:  K_EQUIP  ? String(r[K_EQUIP]||'').trim()  : '',
         status: K_STATUS ? String(r[K_STATUS]||'').trim() : ''
       };
@@ -1576,7 +1578,10 @@ function reprocessar(leads, ganhos){
       pct_meta: (META_SEG[seg] && META_SEG[seg]>0) ? gv/META_SEG[seg]*100 : 0,
       qtd_leads: s.length,
       cnt_cql: cql.length, cnt_n1v: n1v.length, cnt_n2v: n2v.length,
-      cnt_n3v: n3v.length, cnt_n4v: n4v.length, cnt_n1l: n1l.length
+      cnt_n3v: n3v.length, cnt_n4v: n4v.length, cnt_n1l: n1l.length,
+      cnt_aprov_sinal: s.filter(function(r){return r.cred==='Aprovado com Sinal';}).length,
+      cnt_reprovado:   s.filter(function(r){return r.cred==='Reprovado';}).length,
+      cnt_nova_analise:s.filter(function(r){return r.cred==='Solicitar Nova Análise';}).length
     };
   });
 
@@ -4128,9 +4133,13 @@ window.atRenderDepara = function(){
     {key:'cnt_n2v',  label:'N2 Venda',   fmt:fmtN,  cor:'#34d399'},
     {key:'cnt_n3v',  label:'N3 Venda',   fmt:fmtN,  cor:'#a78bfa'},
     {key:'cnt_n4v',  label:'N4 Venda',   fmt:fmtN,  cor:'#f472b6'},
-    {key:'cnt_n1l',  label:'N1 Locacao', fmt:fmtN,  cor:'#fb923c'},
-    {key:'g_val',    label:'Ganhos R$',  fmt:fmtR,  cor:'#4ade80', isR:true},
-    {key:'pct_meta', label:'% da Meta',  fmt:fmtPct,cor:'#fbbf24'}
+    {key:'cnt_n1l',       label:'N1 Locacao',        fmt:fmtN,  cor:'#fb923c'},
+    {key:'g_val',         label:'Ganhos R$',         fmt:fmtR,  cor:'#4ade80', isR:true},
+    {key:'pct_meta',      label:'% da Meta',         fmt:fmtPct,cor:'#fbbf24'},
+    {key:'_sep_cred',     label:'── Crédito ──',     fmt:null,  cor:'#475569', sep:true},
+    {key:'cnt_aprov_sinal',  label:'Aprovado c/ Sinal', fmt:fmtN,  cor:'#34d399'},
+    {key:'cnt_reprovado',    label:'Reprovado',         fmt:fmtN,  cor:'#f87171'},
+    {key:'cnt_nova_analise', label:'Nova Análise',      fmt:fmtN,  cor:'#fbbf24'}
   ];
 
   var segsSet = {};
@@ -4173,6 +4182,7 @@ window.atRenderDepara = function(){
     var db=(dadosPorMes[mesBase]||[]).find(function(s){return s.funilOrig===seg;})||{};
     var dc=(dadosPorMes[mesComp]||[]).find(function(s){return s.funilOrig===seg;})||{};
     var cells = metricas.map(function(mt){
+      if(mt.sep) return '<td style="padding:6px 14px;color:#475569;font-size:.7rem;text-align:center;border-top:1px solid #1e2535">—</td>';
       var vb=db[mt.key]||0, vc=dc[mt.key]||0;
       var bar = mt.isR?progBar(vc,maxGanhos,mt.cor):'';
       return '<td style="padding:10px 14px;vertical-align:middle">'+
@@ -4188,7 +4198,10 @@ window.atRenderDepara = function(){
       '<td style="padding:10px 14px;font-weight:600;color:#e2e8f0;white-space:nowrap;min-width:120px">'+segsSet[seg]+'</td>'+cells+'</tr>';
   }).join('');
 
-  var thMets = metricas.map(function(mt){ return '<th style="padding:8px 14px;text-align:right;color:#64748b;font-size:.72rem;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.04em">'+mt.label+'</th>'; }).join('');
+  var thMets = metricas.map(function(mt){
+    if(mt.sep) return '<th style="padding:8px 14px;text-align:center;color:#475569;font-size:.68rem;white-space:nowrap;font-weight:600;border-top:1px solid #1e2535">'+mt.label+'</th>';
+    return '<th style="padding:8px 14px;text-align:right;color:#64748b;font-size:.72rem;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.04em">'+mt.label+'</th>';
+  }).join('');
 
   container.innerHTML = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">'+
     cardHtml('CQL Total',sumBase.cql,sumComp.cql,fmtN)+
@@ -4238,8 +4251,11 @@ window.atGerarAnalise = function(){
         g_val: g_val, g_qtd: g_qtd,
         cnt_cql: cql, cnt_n1v: n1v, cnt_n2v: d.cnt_n2v||0,
         cnt_n3v: d.cnt_n3v||0, cnt_n4v: d.cnt_n4v||0, cnt_n1l: d.cnt_n1l||0,
-        taxa_aprov:  cql>0 ? n1v/cql*100 : 0,           // N1v/CQL
-        taxa_conv:   n1v>0 ? g_qtd/n1v*100 : 0,          // fechamentos/aprovados
+        cnt_aprov_sinal:  d.cnt_aprov_sinal||0,
+        cnt_reprovado:    d.cnt_reprovado||0,
+        cnt_nova_analise: d.cnt_nova_analise||0,
+        taxa_aprov:  cql>0 ? n1v/cql*100 : 0,
+        taxa_conv:   n1v>0 ? g_qtd/n1v*100 : 0,
         ticket_medio: g_qtd>0 ? g_val/g_qtd : 0
       };
     });
@@ -4297,7 +4313,7 @@ window.atGerarAnalise = function(){
       contexto.push('Volume de CQL estavel ('+ini.cnt_cql+' &#8594; '+fim.cnt_cql+' leads).');
     }
 
-    // 2 — Aprovacao de credito (N1v/CQL)
+    // 2 — Aprovacao de credito (N1v/CQL) + análise de reprovações
     var dAprov = delta(fim.taxa_aprov, ini.taxa_aprov);
     if(ini.taxa_aprov > 0 && Math.abs(dAprov) > 10){
       if(dAprov < 0) causas.push({tipo:'credito', sev: dAprov < -30 ? 2 : 1,
@@ -4309,6 +4325,19 @@ window.atGerarAnalise = function(){
       causas.push({tipo:'credito_baixo', sev:2,
         txt: 'Taxa de aprovacao atual <strong>'+fmtPct(fim.taxa_aprov)+'</strong> esta abaixo de 15% &#8212; indica problema sistemico de qualidade de lead ou perfil de credito do segmento.',
         mini: null});
+
+    // 2b — Reprovações de crédito explícitas
+    var totCredIni = (ini.cnt_aprov_sinal||0)+(ini.cnt_reprovado||0)+(ini.cnt_nova_analise||0);
+    var totCredFim = (fim.cnt_aprov_sinal||0)+(fim.cnt_reprovado||0)+(fim.cnt_nova_analise||0);
+    var pctReprovIni = totCredIni > 0 ? (ini.cnt_reprovado||0)/totCredIni*100 : 0;
+    var pctReprovFim = totCredFim > 0 ? (fim.cnt_reprovado||0)/totCredFim*100 : 0;
+    var dReprov = pctReprovFim - pctReprovIni;
+    if(totCredFim > 5 && dReprov > 8)
+      causas.push({tipo:'reprovacao_cred', sev: dReprov > 15 ? 2 : 1,
+        txt: 'Reprovacao de credito subiu <strong>'+dReprov.toFixed(1)+'pp</strong> ('+ini.label+': '+pctReprovIni.toFixed(1)+'% &#8594; '+fim.label+': '+pctReprovFim.toFixed(1)+'% dos analisados). Principais impactados: '+fim.cnt_reprovado+' leads reprovados em '+fim.label+'. Revisar perfil minimo de renda/score antes de enviar ao credito.',
+        mini: null});
+    else if(totCredFim > 5 && dReprov < -8)
+      contexto.push('Reprovacao de credito reduziu '+Math.abs(dReprov).toFixed(1)+'pp ('+ini.label+': '+pctReprovIni.toFixed(1)+'% &#8594; '+fim.label+': '+pctReprovFim.toFixed(1)+'%). Melhora na qualificacao ou criterios de credito mais flexiveis.');
 
     // 3 — Conversao de fechamento (ganhos/aprovados)
     var dConv = delta(fim.taxa_conv, ini.taxa_conv);
@@ -4467,6 +4496,7 @@ async function carregarMesSilencioso(ym){
   var K_CV    = keys.find(function(k){return k.toLowerCase().includes('classifica')&&k.toLowerCase().includes('venda');})||'';
   var K_DATA  = keys.find(function(k){return k.toLowerCase().includes('criado');})||
                 keys.find(function(k){return k.toLowerCase().includes('data')&&!k.toLowerCase().includes('perda')&&!k.toLowerCase().includes('reserva');})||'';
+  var K_CRED  = keys.find(function(k){return k.toLowerCase().includes('analise')&&k.toLowerCase().includes('cred');})||'';
 
   var gKeys = Object.keys(rawGanhos[0]||{});
   var GK_FUNIL = gKeys.find(function(k){return k.toLowerCase().includes('funil');})||'';
@@ -4488,7 +4518,8 @@ async function carregarMesSilencioso(ym){
       valor: parseFloat(String(r[K_VALOR]||'0').replace(/[^\d.-]/g,''))||0,
       interesse: int_, cl:cl, cv:cv,
       isN1v:cv==='N1', isN2v:cv==='N2', isN3v:cv==='N3', isN4v:cv==='N4',
-      isN1l:cl==='N1', diaMes:diaMes
+      isN1l:cl==='N1', diaMes:diaMes,
+      cred: K_CRED ? String(r[K_CRED]||'').trim() : ''
     };
   }).filter(function(r){ return r.diaMes === 0 || r.diaMes <= diaCorte; });
 
@@ -4514,6 +4545,9 @@ async function carregarMesSilencioso(ym){
       funilOrig:seg, nome:seg.replace('Blips - ','').replace('Ideal - ',''),
       cnt_cql:cql.length, cnt_n1v:n1v.length, cnt_n2v:n2v.length,
       cnt_n3v:n3v.length, cnt_n4v:n4v.length, cnt_n1l:n1l.length,
+      cnt_aprov_sinal: s.filter(function(r){return r.cred==='Aprovado com Sinal';}).length,
+      cnt_reprovado:   s.filter(function(r){return r.cred==='Reprovado';}).length,
+      cnt_nova_analise:s.filter(function(r){return r.cred==='Solicitar Nova Análise';}).length,
       g_val:gv, g_qtd:gs.length, meta:meta,
       pct_meta: meta>0 ? gv/meta*100 : 0
     };
