@@ -875,6 +875,7 @@ async function gerarDashboard(){
     var K_EQUIP  = keys.find(function(k){return k.toLowerCase().includes('equipamento');}) || '';
     var K_STATUS = keys.find(function(k){return k.toLowerCase().includes('status');}) || '';
     var K_CRED   = keys.find(function(k){return k.toLowerCase().includes('analise')&&k.toLowerCase().includes('cred');}) || '';
+    var K_ORIG   = keys.find(function(k){return k.toLowerCase().includes('origem')&&k.toLowerCase().includes('mkt');}) || '';
 
     if(!K_FUNIL||!K_VALOR){
       mostrarErro('Coluna Funil ou Valor nao encontrada. Verifique o arquivo de leads.');
@@ -932,7 +933,8 @@ async function gerarDashboard(){
         isCQL: int_==='VENDA' || int_==='LOCACAO',
         cred: K_CRED ? String(r[K_CRED]||'').trim() : '',
         equip:  K_EQUIP  ? String(r[K_EQUIP]||'').trim()  : '',
-        status: K_STATUS ? String(r[K_STATUS]||'').trim() : ''
+        status: K_STATUS ? String(r[K_STATUS]||'').trim() : '',
+        origem: K_ORIG ? String(r[K_ORIG]||'').trim() : ''
       };
     });
 
@@ -1003,7 +1005,8 @@ async function gerarDashboard(){
         pct_meta: (META_SEG[seg] && META_SEG[seg]>0) ? gv/META_SEG[seg]*100 : 0,
         qtd_leads: s.length,
         cnt_cql: cql.length, cnt_n1v: n1v.length, cnt_n2v: n2v.length,
-        cnt_n3v: n3v.length, cnt_n4v: n4v.length, cnt_n1l: n1l.length
+        cnt_n3v: n3v.length, cnt_n4v: n4v.length, cnt_n1l: n1l.length,
+        origemMap: (function(){ var m={}; s.forEach(function(r){ if(r.origem){ m[r.origem]=(m[r.origem]||0)+1; } }); return m; })()
       };
     });
 
@@ -1581,7 +1584,8 @@ function reprocessar(leads, ganhos){
       cnt_n3v: n3v.length, cnt_n4v: n4v.length, cnt_n1l: n1l.length,
       cnt_aprov_sinal: s.filter(function(r){return r.cred==='Aprovado com Sinal';}).length,
       cnt_reprovado:   s.filter(function(r){return r.cred==='Reprovado';}).length,
-      cnt_nova_analise:s.filter(function(r){return r.cred==='Solicitar Nova Análise';}).length
+      cnt_nova_analise:s.filter(function(r){return r.cred==='Solicitar Nova Análise';}).length,
+      origemMap: (function(){ var m={}; s.forEach(function(r){ if(r.origem){ m[r.origem]=(m[r.origem]||0)+1; } }); return m; })()
     };
   });
 
@@ -4025,6 +4029,59 @@ async function renderVisaoMarketing(){
         '</tr></thead>'+
         '<tbody>'+rows+'</tbody>'+
       '</table>';
+
+    // Origem Mkt por Segmento
+    var origemBox = document.getElementById('vm-origem');
+    if(origemBox){
+      // Agrega origens de todos os segmentos visíveis neste mês
+      var origemPorSeg = segs.filter(function(d){ return d.origemMap && Object.keys(d.origemMap).length > 0; });
+      if(!origemPorSeg.length){
+        origemBox.innerHTML = '<div style="padding:16px 18px;color:#475569;font-size:.82rem">Sem dados de Origem Mkt para '+labelMes(mes)+'.</div>';
+      } else {
+        // Coleta todas as origens únicas e ordena por total desc
+        var origemTotais = {};
+        origemPorSeg.forEach(function(d){
+          Object.keys(d.origemMap).forEach(function(o){
+            origemTotais[o] = (origemTotais[o]||0) + d.origemMap[o];
+          });
+        });
+        var origensOrdenadas = Object.keys(origemTotais).sort(function(a,b){ return origemTotais[b]-origemTotais[a]; });
+        var maxTotal = origemTotais[origensOrdenadas[0]] || 1;
+
+        // Cabeçalho
+        var segCols = origemPorSeg.map(function(d){ return '<th style="padding:8px 12px;text-align:right;color:#818cf8;font-size:.72rem;white-space:nowrap">'+d.nome+'</th>'; }).join('');
+        var origemRows = origensOrdenadas.map(function(o){
+          var tot = origemTotais[o];
+          var pct = (tot/maxTotal*100).toFixed(0);
+          var segCells = origemPorSeg.map(function(d){
+            var v = (d.origemMap&&d.origemMap[o]) || 0;
+            return '<td style="padding:8px 12px;text-align:right;color:'+(v>0?'#e2e8f0':'#334155')+';font-size:.8rem">'+(v||'—')+'</td>';
+          }).join('');
+          return '<tr style="border-bottom:1px solid #1e2535">'+
+            '<td style="padding:8px 12px;color:#94a3b8;font-size:.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+o+'">'+o+'</td>'+
+            '<td style="padding:8px 12px;min-width:130px">'+
+              '<div style="display:flex;align-items:center;gap:8px">'+
+                '<div style="background:#1e2535;border-radius:4px;height:8px;flex:1"><div style="height:8px;border-radius:4px;background:#6366f1;width:'+pct+'%"></div></div>'+
+                '<span style="color:#818cf8;font-size:.75rem;font-weight:700;width:30px;text-align:right">'+tot+'</span>'+
+              '</div>'+
+            '</td>'+
+            segCells+
+          '</tr>';
+        }).join('');
+
+        origemBox.innerHTML =
+          '<div style="padding:14px 18px;border-bottom:1px solid #1e2535;font-size:.85rem;font-weight:700;color:#e2e8f0">Origem Mkt por Segmento — '+labelMes(mes)+'</div>'+
+          '<div style="overflow-x:auto">'+
+          '<table style="width:100%;border-collapse:collapse;font-size:.82rem">'+
+            '<thead><tr style="background:#0c1521">'+
+              '<th style="padding:8px 12px;text-align:left;color:#475569;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">Origem</th>'+
+              '<th style="padding:8px 12px;text-align:left;color:#475569;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;min-width:130px">Total</th>'+
+              segCols+
+            '</tr></thead>'+
+            '<tbody>'+origemRows+'</tbody>'+
+          '</table></div>';
+      }
+    }
   };
 
   // Monta botoes de mes
@@ -4039,7 +4096,8 @@ async function renderVisaoMarketing(){
       botoesHtml+
       '<span style="margin-left:8px;color:#475569;font-size:.75rem">CQL Necess&#225;rio = Meta &#247; Ticket M&#233;dio &#247; Taxa Fechamento &#247; Taxa Aprova&#231;&#227;o</span>'+
     '</div>'+
-    '<div class="vm-card"><div id="vm-tabela"></div></div>';
+    '<div class="vm-card"><div id="vm-tabela"></div></div>'+
+    '<div class="vm-card" style="margin-top:16px"><div id="vm-origem"></div></div>';
 
   window.vmSelecionarMes = function(mes){
     mesSel = mes;
@@ -4522,6 +4580,7 @@ async function carregarMesSilencioso(ym){
   var K_DATA  = keys.find(function(k){return n(k).includes('criado');})||
                 keys.find(function(k){return n(k).includes('data')&&!n(k).includes('perda')&&!n(k).includes('reserva');})||'';
   var K_CRED  = keys.find(function(k){return n(k).includes('analise')&&n(k).includes('cred');})||'';
+  var K_ORIG  = keys.find(function(k){return n(k).includes('origem')&&n(k).includes('mkt');})||'';
   console.log('[DEBUG carregarMesSilencioso] '+ym+' — colunas detectadas:', {K_FUNIL:K_FUNIL,K_VALOR:K_VALOR,K_INTER:K_INTER,K_CL:K_CL,K_CV:K_CV,K_DATA:K_DATA,K_CRED:K_CRED});
   var sampleFitness = rawLeads.find(function(r){return String(r[K_FUNIL]||'').includes('Fitness');});
   if(sampleFitness) console.log('[DEBUG Fitness sample] '+ym+':', {interesse:sampleFitness[K_INTER], cv:sampleFitness[K_CV], cl:sampleFitness[K_CL], cred:sampleFitness[K_CRED]});
@@ -4547,7 +4606,8 @@ async function carregarMesSilencioso(ym){
       interesse: int_, cl:cl, cv:cv,
       isN1v:cv==='N1', isN2v:cv==='N2', isN3v:cv==='N3', isN4v:cv==='N4',
       isN1l:cl==='N1', diaMes:diaMes,
-      cred: K_CRED ? String(r[K_CRED]||'').trim() : ''
+      cred: K_CRED ? String(r[K_CRED]||'').trim() : '',
+      origem: K_ORIG ? String(r[K_ORIG]||'').trim() : ''
     };
   }).filter(function(r){ return r.diaMes === 0 || r.diaMes <= diaCorte; });
 
@@ -4577,7 +4637,8 @@ async function carregarMesSilencioso(ym){
       cnt_reprovado:   s.filter(function(r){return r.cred==='Reprovado';}).length,
       cnt_nova_analise:s.filter(function(r){return r.cred==='Solicitar Nova Análise';}).length,
       g_val:gv, g_qtd:gs.length, meta:meta,
-      pct_meta: meta>0 ? gv/meta*100 : 0
+      pct_meta: meta>0 ? gv/meta*100 : 0,
+      origemMap: (function(){ var m={}; s.forEach(function(r){ if(r.origem){ m[r.origem]=(m[r.origem]||0)+1; } }); return m; })()
     };
   });
 }
