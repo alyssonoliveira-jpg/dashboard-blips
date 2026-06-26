@@ -5321,10 +5321,14 @@ async function validarUsuario(user){
     });
   });
 
-  // Carrega chave da Lana e exibe FAB
-  lanaCarregarChave().then(function(){
-    document.getElementById('lana-fab').style.display = 'flex';
-  });
+  // Carrega chave da Lana — apenas para emails autorizados (beta)
+  var LANA_BETA = ['alysson.oliveira@blips.com.br'];
+  var emailAtual = usuarioAtual ? (usuarioAtual.email || '') : '';
+  if(LANA_BETA.indexOf(emailAtual) >= 0){
+    lanaCarregarChave().then(function(){
+      document.getElementById('lana-fab').style.display = 'flex';
+    });
+  }
 }
 
 // ── BLOQUEIO DE SEGMENTO POR USUÁRIO ──
