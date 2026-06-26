@@ -349,6 +349,34 @@ tfoot td.sep{border-left:1px solid #1e2535}
 .cfg-saved{font-size:.7rem;color:#4ade80;margin-left:8px}
 .page{max-width:1300px;margin:0 auto}
 
+/* ── LANA CHAT ── */
+#lana-fab{position:fixed;bottom:28px;right:28px;z-index:9000;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.5);display:flex;align-items:center;justify-content:center;transition:transform .2s}
+#lana-fab:hover{transform:scale(1.1)}
+#lana-fab svg{width:26px;height:26px;fill:#fff}
+#lana-fab .lana-notif{position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#f59e0b;border:2px solid #0b1120;display:none}
+#lana-panel{position:fixed;bottom:96px;right:28px;z-index:9000;width:380px;max-height:600px;background:#111827;border:1px solid #1e2d45;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,.6);display:none;flex-direction:column;overflow:hidden}
+#lana-panel.open{display:flex}
+.lana-header{background:linear-gradient(135deg,#1e1b4b,#312e81);padding:14px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.lana-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.lana-hinfo{flex:1}
+.lana-hname{font-size:.9rem;font-weight:700;color:#e0e7ff}
+.lana-hstatus{font-size:.7rem;color:#6366f1;display:flex;align-items:center;gap:4px}
+.lana-hstatus::before{content:'';width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block}
+.lana-close{background:none;border:none;color:#6b7280;cursor:pointer;font-size:1.2rem;padding:2px 6px;border-radius:6px}
+.lana-close:hover{color:#e0e7ff;background:#1e2d45}
+.lana-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px}
+.lana-msgs::-webkit-scrollbar{width:4px}.lana-msgs::-webkit-scrollbar-track{background:transparent}.lana-msgs::-webkit-scrollbar-thumb{background:#1e2d45;border-radius:2px}
+.lana-msg{max-width:85%;padding:10px 14px;border-radius:14px;font-size:.82rem;line-height:1.5;word-break:break-word}
+.lana-msg.bot{background:#1e2535;color:#cbd5e1;align-self:flex-start;border-bottom-left-radius:4px}
+.lana-msg.user{background:linear-gradient(135deg,#312e81,#1e1b4b);color:#e0e7ff;align-self:flex-end;border-bottom-right-radius:4px}
+.lana-msg.typing{color:#6366f1;font-style:italic}
+.lana-input-row{padding:12px 14px;border-top:1px solid #1e2d45;display:flex;gap:8px;flex-shrink:0;background:#0f1622}
+.lana-input{flex:1;background:#1e2535;border:1px solid #2a3147;border-radius:10px;color:#e2e8f0;font-size:.82rem;padding:9px 12px;resize:none;outline:none;font-family:inherit;max-height:80px}
+.lana-input:focus{border-color:#6366f1}
+.lana-send{background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:#fff;cursor:pointer;padding:9px 14px;font-size:.85rem;font-weight:600;transition:opacity .15s;flex-shrink:0}
+.lana-send:hover{opacity:.85}
+.lana-send:disabled{opacity:.4;cursor:not-allowed}
+.lana-ctx{padding:8px 14px;background:#0a0f1a;border-top:1px solid #1e2d45;font-size:.68rem;color:#334155;flex-shrink:0}
 /* FILTRO SEGMENTO GLOBAL */
 .sf-btn{padding:5px 14px;border-radius:20px;border:1px solid #2a3147;background:#0f1622;color:#94a3b8;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .15s}
 .sf-btn:hover{border-color:#475569;color:#cbd5e1}
@@ -675,6 +703,29 @@ tfoot td.sep{border-left:1px solid #1e2535}
 <!-- PAGINA CQL / PERDAS -->
 <div class="page" id="page-cql-perdas" style="display:none">
   <div id="cql-content" style="max-width:1300px;margin:0 auto;padding:0 4px"></div>
+</div>
+
+<!-- LANA FAB + PAINEL -->
+<button id="lana-fab" onclick="lanaToggle()" title="Falar com a Lana" style="display:none">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.527 3.66 1.438 5.168L2 22l4.832-1.438A9.956 9.956 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 2a8 8 0 110 16A8 8 0 0112 4zM8 10a1 1 0 100 2 1 1 0 000-2zm4 0a1 1 0 100 2 1 1 0 000-2zm4 0a1 1 0 100 2 1 1 0 000-2z"/></svg>
+  <span class="lana-notif" id="lana-notif"></span>
+</button>
+
+<div id="lana-panel">
+  <div class="lana-header">
+    <div class="lana-avatar">🤖</div>
+    <div class="lana-hinfo">
+      <div class="lana-hname">Lana — Assistente Blips</div>
+      <div class="lana-hstatus">Online · Dados do dashboard ativos</div>
+    </div>
+    <button class="lana-close" onclick="lanaToggle()">✕</button>
+  </div>
+  <div class="lana-msgs" id="lana-msgs"></div>
+  <div class="lana-ctx" id="lana-ctx">📊 Contexto: aguardando dados...</div>
+  <div class="lana-input-row">
+    <textarea class="lana-input" id="lana-input" rows="1" placeholder="Pergunte algo para a Lana..." onkeydown="lanaKeydown(event)"></textarea>
+    <button class="lana-send" id="lana-send" onclick="lanaEnviar()">Enviar</button>
+  </div>
 </div>
 
 <!-- PAGINA BATEDORES DE META -->
@@ -1091,6 +1142,11 @@ var basesPorMes  = {};
 
 // ── ESTADO DOS FILTROS GLOBAIS ──
 var filtroGlobal = { segmento:'all', vendedor:'', status:'all', interesse:'all' };
+
+// ── LANA ──
+var lanaGeminiKey  = '';
+var lanaHistorico  = [];   // [{role:'user'|'model', parts:[{text}]}]
+var lanaAberto     = false;
 
 function inicializarFiltroGlobal(){
   var bar = document.getElementById('filtro-global');
@@ -4811,6 +4867,18 @@ async function renderConfig(){
         '<span style="font-size:11px;color:#475569;margin-left:4px">— alterações via banco de dados</span>'+
       '</div>'+
       '<div class="cfg-block">'+
+        '<div class="cfg-head">🤖 Lana — Assistente IA</div>'+
+        '<div style="padding:14px 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+          '<label style="font-size:.78rem;color:#94a3b8;flex-shrink:0">Chave Gemini API</label>'+
+          '<input id="lana-key-input" type="password" placeholder="AIza..." value="'+(lanaGeminiKey||'')+'" '+
+            'style="flex:1;min-width:220px;background:#0f1622;border:1px solid #2a3147;border-radius:8px;color:#e2e8f0;padding:8px 12px;font-size:.8rem;font-family:monospace;outline:none">'+
+          '<button onclick="lanaSalvarChave(document.getElementById(\'lana-key-input\').value.trim())" '+
+            'style="background:#6366f1;border:none;border-radius:8px;color:#fff;padding:8px 16px;font-size:.78rem;font-weight:600;cursor:pointer">Salvar</button>'+
+          '<span id="lana-key-status"></span>'+
+        '</div>'+
+        '<p style="font-size:.72rem;color:#475569;margin:4px 0 0">A chave é salva de forma segura no Supabase e nunca fica exposta no código.</p>'+
+      '</div>'+
+      '<div class="cfg-block">'+
         '<div class="cfg-head">📊 Metas por Segmento</div>'+
         '<table class="cfg-table">'+
           '<thead><tr><th>Segmento</th><th class="col-num">Meta R$</th><th class="col-num">Conv Alvo %</th></tr></thead>'+
@@ -5222,6 +5290,11 @@ async function validarUsuario(user){
       if(_userSegmentos) aplicarBloqueioSegmento();
       renderizarFiltroSegmento();
     });
+  });
+
+  // Carrega chave da Lana e exibe FAB
+  lanaCarregarChave().then(function(){
+    document.getElementById('lana-fab').style.display = 'flex';
   });
 }
 
@@ -5854,6 +5927,209 @@ async function sair(){
   await sb.auth.signOut();
   // Reset visual
   location.reload();
+}
+
+// ════════════════════════════════════════
+// LANA — Assistente IA Blips
+// ════════════════════════════════════════
+
+function lanaToggle(){
+  lanaAberto = !lanaAberto;
+  var panel = document.getElementById('lana-panel');
+  panel.classList.toggle('open', lanaAberto);
+  if(lanaAberto){
+    document.getElementById('lana-notif').style.display = 'none';
+    lanaAtualizarCtx();
+    if(!lanaHistorico.length) lanaBoasVindas();
+    setTimeout(function(){ document.getElementById('lana-input').focus(); }, 150);
+  }
+}
+
+function lanaBoasVindas(){
+  var nome = usuarioAtual ? (usuarioAtual.user_metadata.full_name || usuarioAtual.user_metadata.name || '').split(' ')[0] : '';
+  var mes = mesSelecionado ? (function(){
+    var p = mesSelecionado.split('-');
+    var meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    return meses[+p[1]-1]+'/'+p[0];
+  })() : 'o período atual';
+  var txt = 'Oi' + (nome ? ', **'+nome+'**' : '') + '! 👋 Sou a **Lana**, sua assistente comercial da Blips.\n\nEstou com os dados de **'+mes+'** carregados e pronta para te ajudar. Pode perguntar sobre leads, conversões, vendas, perdas, equipamentos ou qualquer métrica do dashboard!';
+  lanaAdicionarMsg('bot', txt);
+}
+
+function lanaAdicionarMsg(role, texto){
+  var msgs = document.getElementById('lana-msgs');
+  var div = document.createElement('div');
+  div.className = 'lana-msg ' + (role === 'bot' ? 'bot' : 'user');
+  // Suporte básico a **negrito** e quebras de linha
+  div.innerHTML = texto
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function lanaAtualizarCtx(){
+  var ctx = document.getElementById('lana-ctx');
+  if(!ctx) return;
+  var seg = filtroGlobal.segmento !== 'all' ? filtroGlobal.segmento.replace('Blips - ','').replace('Ideal - ','') : 'Todos';
+  var mes = mesSelecionado || 'Todos';
+  var leads = leadsAtivos ? leadsAtivos.length : 0;
+  ctx.textContent = '📊 Contexto ativo: '+mes+' · Segmento: '+seg+' · '+leads+' leads';
+}
+
+function lanaKeydown(e){
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); lanaEnviar(); }
+}
+
+function lanaConstruirContexto(){
+  var linhas = [];
+  var mes = mesSelecionado || 'não selecionado';
+  linhas.push('=== DADOS DO DASHBOARD COMERCIAL BLIPS ===');
+  linhas.push('Mês de referência: ' + mes);
+  linhas.push('Segmento filtrado: ' + (filtroGlobal.segmento !== 'all' ? filtroGlobal.segmento : 'Todos'));
+  linhas.push('Total de leads no período: ' + (leadsAtivos ? leadsAtivos.length : 0));
+
+  // KPIs por segmento
+  if(leadsAtivos && leadsAtivos.length){
+    linhas.push('\n--- KPIs por Segmento ---');
+    SEGMENTOS.forEach(function(seg){
+      var sLeads = leadsAtivos.filter(function(r){ return r.funil===seg; });
+      if(!sLeads.length) return;
+      var nome = seg.replace('Blips - ','').replace('Ideal - ','');
+      var ganhosSeg = (ganhosAtivos||ganhosAll||[]).filter(function(g){ return g.funil===seg; });
+      var vendas = ganhosSeg.length;
+      var conv = sLeads.length ? (vendas/sLeads.length*100).toFixed(1) : 0;
+      var aprovados = sLeads.filter(function(r){ return (r.cv&&r.cv!=='')||(r.cl&&r.cl!==''); }).length;
+      var perdidos = sLeads.filter(function(r){ return r.isPerda; }).length;
+      linhas.push(nome+': '+sLeads.length+' leads | '+vendas+' vendas | '+conv+'% conv | '+aprovados+' aprovados | '+perdidos+' perdidos');
+    });
+  }
+
+  // Metas (se carregadas)
+  if(typeof metasConfig !== 'undefined' && metasConfig){
+    linhas.push('\n--- Metas Configuradas ---');
+    Object.keys(metasConfig).forEach(function(seg){
+      var m = metasConfig[seg];
+      if(m && m.meta_valor){
+        var nome = seg.replace('Blips - ','').replace('Ideal - ','');
+        linhas.push(nome+': meta R$'+Number(m.meta_valor).toLocaleString('pt-BR')+' | conv alvo '+( m.conv_alvo||0)+'%');
+      }
+    });
+  }
+
+  // Usuários conhecidos (supervisores/gestores)
+  linhas.push('\n--- Usuários do Dashboard ---');
+  linhas.push('Usuário atual: ' + (usuarioAtual ? (usuarioAtual.user_metadata.full_name || usuarioAtual.user_metadata.name || usuarioAtual.email) : 'desconhecido'));
+
+  return linhas.join('\n');
+}
+
+function lanaSistemaPrompt(){
+  var contexto = lanaConstruirContexto();
+  return 'Você é a **Lana**, assistente comercial inteligente da Blips. Seu papel é apoiar gestores e supervisores com análises rápidas, precisas e simpáticas dos dados do Dashboard Comercial.\n\n'+
+'**Regras inegociáveis:**\n'+
+'- Use SOMENTE os dados fornecidos no contexto abaixo. Nunca invente números, percentuais ou informações\n'+
+'- Se a informação não estiver no contexto, diga: "Essa informação não está disponível no momento"\n'+
+'- Seja simpática, próxima e use o nome da pessoa ao responder sempre que possível\n'+
+'- Respostas **resumidas e diretas** — sem enrolação. Perguntas simples = 1 a 2 linhas. Análises = bullet points curtos\n'+
+'- Sempre contextualiza o número: compare com a meta quando disponível, sinalize ✅ se bom e ⚠️ se abaixo\n'+
+'- Se identificar algo crítico nos dados (conversão muito baixa, muitas perdas concentradas num motivo, vendedor zerado), mencione proativamente com um alerta gentil\n'+
+'- Se perguntarem fora do escopo do dashboard (previsão de mercado, concorrentes, etc.), redirecione: "Isso está fora dos dados que tenho agora. Posso te ajudar com os números do dashboard?"\n'+
+'- Responda sempre em português brasileiro\n\n'+
+'**Contexto atual do dashboard:**\n'+contexto;
+}
+
+async function lanaEnviar(){
+  var input = document.getElementById('lana-input');
+  var sendBtn = document.getElementById('lana-send');
+  var texto = input.value.trim();
+  if(!texto) return;
+
+  if(!lanaGeminiKey){
+    lanaAdicionarMsg('bot', '⚠️ Chave da API não configurada. Peça ao administrador para configurar a chave Gemini na aba Configurações.');
+    return;
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+  lanaAdicionarMsg('user', texto);
+  sendBtn.disabled = true;
+
+  // Indicador de digitação
+  var typing = lanaAdicionarMsg('bot', '...');
+  typing.classList.add('typing');
+
+  // Adiciona ao histórico
+  lanaHistorico.push({ role:'user', parts:[{ text: texto }] });
+
+  try {
+    // Monta payload — sistema como primeiro turno de usuário
+    var contents = [];
+    // Injeta contexto renovado a cada envio no system turn
+    contents.push({ role:'user', parts:[{ text: lanaSistemaPrompt() }] });
+    contents.push({ role:'model', parts:[{ text: 'Entendido! Estou pronta para ajudar com os dados do dashboard.' }] });
+    // Histórico real
+    lanaHistorico.slice(0, -1).forEach(function(h){ contents.push(h); });
+    contents.push({ role:'user', parts:[{ text: texto }] });
+
+    var resp = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+lanaGeminiKey,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: contents, generationConfig: { temperature: 0.4, maxOutputTokens: 800 } })
+      }
+    );
+
+    if(!resp.ok){
+      var err = await resp.json().catch(function(){ return {}; });
+      throw new Error(err.error ? err.error.message : 'Erro '+resp.status);
+    }
+
+    var data = await resp.json();
+    var resposta = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0])
+      ? data.candidates[0].content.parts[0].text
+      : 'Não consegui gerar uma resposta. Tente novamente.';
+
+    // Remove typing e exibe resposta
+    typing.remove();
+    lanaAdicionarMsg('bot', resposta);
+    lanaHistorico.push({ role:'model', parts:[{ text: resposta }] });
+
+    // Limita histórico a 20 mensagens
+    if(lanaHistorico.length > 20) lanaHistorico = lanaHistorico.slice(-20);
+
+  } catch(e){
+    typing.remove();
+    lanaAdicionarMsg('bot', '⚠️ Erro ao conectar com a Lana: '+e.message);
+  }
+
+  sendBtn.disabled = false;
+  lanaAtualizarCtx();
+}
+
+async function lanaCarregarChave(){
+  try {
+    var { data } = await sb.from('config_metas').select('nome_display').eq('tipo','sistema').eq('chave','gemini_api_key').maybeSingle();
+    if(data && data.nome_display) lanaGeminiKey = data.nome_display;
+  } catch(e){ /* silencioso */ }
+}
+
+async function lanaSalvarChave(chave){
+  var status = document.getElementById('lana-key-status');
+  if(status) status.innerHTML = '<span style="color:#fbbf24;font-size:.7rem">Salvando...</span>';
+  try {
+    await sb.from('config_metas').upsert(
+      { tipo:'sistema', chave:'gemini_api_key', nome_display: chave, mes_referencia:'0000-00', updated_at: new Date().toISOString(), updated_by: usuarioAtual.email },
+      { onConflict:'tipo,chave,mes_referencia' }
+    );
+    lanaGeminiKey = chave;
+    if(status) status.innerHTML = '<span style="color:#4ade80;font-size:.7rem">✓ Chave salva</span>';
+    setTimeout(function(){ var el=document.getElementById('lana-key-status'); if(el) el.innerHTML=''; }, 3000);
+  } catch(e){
+    if(status) status.innerHTML = '<span style="color:#f87171;font-size:.7rem">Erro: '+e.message+'</span>';
+  }
 }
 </script>
 
