@@ -5219,10 +5219,9 @@ function renderEquipamentos(){
   }
 
   var base = leadsAtivos && leadsAtivos.length ? leadsAtivos : leadsAll;
-  var segs = _userSegmento ? [_userSegmento]
-    : SEGMENTOS.filter(function(s){
-        return base.some(function(r){return r.funil===s && r.equip;});
-      });
+  var segs = SEGMENTOS.filter(function(s){
+    return _temAcesso(s) && base.some(function(r){return r.funil===s && r.equip;});
+  });
 
   var html = '<div style="display:flex;flex-direction:column;gap:24px;padding-bottom:32px">';
 
@@ -5239,11 +5238,9 @@ function renderEquipamentos(){
       if(r.status === 'Ganho') mapa[eq].vendas++;
     });
 
-    // Top 8 por quantidade
     var top8 = Object.keys(mapa)
       .map(function(eq){ return {eq:eq, qtd:mapa[eq].qtd, vendas:mapa[eq].vendas}; })
-      .sort(function(a,b){ return b.qtd - a.qtd; })
-      .slice(0,8);
+      .sort(function(a,b){ return b.qtd - a.qtd; });
 
     var nomeS = seg.replace('Blips - ','').replace('Ideal - ','');
 
@@ -5272,7 +5269,7 @@ function renderEquipamentos(){
       '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden">'+
         '<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">'+
           '<span style="font-size:.82rem;font-weight:700;color:#a78bfa">📦 '+nomeS+'</span>'+
-          '<span style="font-size:.7rem;color:#475569">top 8 equipamentos por volume</span>'+
+          '<span style="font-size:.7rem;color:#475569">equipamentos por volume</span>'+
         '</div>'+
         '<table class="equip-seg-table">'+
           '<thead><tr><th>#</th><th>Equipamento</th><th>Quantidade</th><th>Vendas</th><th>Conversão</th></tr></thead>'+
