@@ -1171,7 +1171,7 @@ var filtroGlobal = { segmento:'all', vendedor:'', status:'all', interesse:'all' 
 
 // ── LANA ──
 var lanaGeminiKey  = '';
-var lanaHistorico  = [];   // [{role:'user'|'model', parts:[{text}]}]
+var lanaHistorico  = [];   // [{role:'user'|'assistant', content:'...'}]
 var lanaAberto     = false;
 
 function inicializarFiltroGlobal(){
@@ -4896,7 +4896,7 @@ async function renderConfig(){
         '<div class="cfg-head">🤖 Lana — Assistente IA</div>'+
         '<div style="padding:14px 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
           '<label style="font-size:.78rem;color:#94a3b8;flex-shrink:0">Chave Gemini API</label>'+
-          '<input id="lana-key-input" type="password" placeholder="AIza..." value="'+(lanaGeminiKey||'')+'" '+
+          '<input id="lana-key-input" type="password" placeholder="sk-..." value="'+(lanaGeminiKey||'')+'" '+
             'style="flex:1;min-width:220px;background:#0f1622;border:1px solid #2a3147;border-radius:8px;color:#e2e8f0;padding:8px 12px;font-size:.8rem;font-family:monospace;outline:none">'+
           '<button onclick="lanaSalvarChave(document.getElementById(\'lana-key-input\').value.trim())" '+
             'style="background:#6366f1;border:none;border-radius:8px;color:#fff;padding:8px 16px;font-size:.78rem;font-weight:600;cursor:pointer">Salvar</button>'+
@@ -6203,24 +6203,20 @@ async function lanaEnviar(){
   typing.innerHTML = '<div class="lana-typing-dots"><span></span><span></span><span></span></div>';
 
   // Adiciona ao histórico
-  lanaHistorico.push({ role:'user', parts:[{ text: texto }] });
+  lanaHistorico.push({ role:'user', content: texto });
 
   try {
     // Monta payload — sistema como primeiro turno de usuário
-    var contents = [];
-    // Injeta contexto renovado a cada envio no system turn
-    contents.push({ role:'user', parts:[{ text: lanaSistemaPrompt() }] });
-    contents.push({ role:'model', parts:[{ text: 'Entendido! Estou pronta para ajudar com os dados do dashboard.' }] });
-    // Histórico real
-    lanaHistorico.slice(0, -1).forEach(function(h){ contents.push(h); });
-    contents.push({ role:'user', parts:[{ text: texto }] });
+    var msgs = [{ role:'system', content: lanaSistemaPrompt() }];
+    lanaHistorico.slice(0, -1).forEach(function(h){ msgs.push(h); });
+    msgs.push({ role:'user', content: texto });
 
     var resp = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+lanaGeminiKey,
+      'https://api.openai.com/v1/chat/completions',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: contents, generationConfig: { temperature: 0.4, maxOutputTokens: 800 } })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+lanaGeminiKey },
+        body: JSON.stringify({ model:'gpt-4o-mini', messages: msgs, temperature: 0.4, max_tokens: 800 })
       }
     );
 
@@ -6230,14 +6226,14 @@ async function lanaEnviar(){
     }
 
     var data = await resp.json();
-    var resposta = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0])
-      ? data.candidates[0].content.parts[0].text
+    var resposta = (data.choices && data.choices[0] && data.choices[0].message)
+      ? data.choices[0].message.content
       : 'Não consegui gerar uma resposta. Tente novamente.';
 
     // Remove typing e exibe resposta
     typing.remove();
     lanaAdicionarMsg('bot', resposta);
-    lanaHistorico.push({ role:'model', parts:[{ text: resposta }] });
+    lanaHistorico.push({ role:'assistant', content: resposta });
 
     // Limita histórico a 20 mensagens
     if(lanaHistorico.length > 20) lanaHistorico = lanaHistorico.slice(-20);
