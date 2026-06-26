@@ -945,8 +945,9 @@ async function gerarDashboard(){
       dataMax = new Date(Math.max.apply(null, datasValidas));
     }
 
-    var GK_PROP = gKeys.find(function(k){return k.toLowerCase().includes('propriet');})||'';
-    var GK_DATA = gKeys.find(function(k){return k.toLowerCase().includes('ganho em');}) || gKeys.find(function(k){return k.toLowerCase().includes('ganhoem');}) || '';
+    var GK_PROP  = gKeys.find(function(k){return k.toLowerCase().includes('propriet');})||'';
+    var GK_DATA  = gKeys.find(function(k){return k.toLowerCase().includes('ganho em');}) || gKeys.find(function(k){return k.toLowerCase().includes('ganhoem');}) || '';
+    var GK_EQUIP = gKeys.find(function(k){return k.toLowerCase().includes('equipamento');})||'';
     var ganhos = dadosGanhos.map(function(r){
       var v = parseFloat(String(r[GK_VALOR]||'0').replace(/[^\d.-]/g,''))||0;
       var p = String(r[GK_PROP]||'').trim();
@@ -957,7 +958,8 @@ async function gerarDashboard(){
         proprietario:p,
         propKey:p.toLowerCase(),
         dataObj: dt,
-        dataTs:  dt ? dt.getTime() : null
+        dataTs:  dt ? dt.getTime() : null,
+        equip: GK_EQUIP ? String(r[GK_EQUIP]||'').trim() : ''
       };
     });
 
@@ -4600,10 +4602,11 @@ async function carregarMesSilencioso(ym){
   if(sampleFitness) console.log('[DEBUG Fitness sample] '+ym+':', {interesse:sampleFitness[K_INTER], cv:sampleFitness[K_CV], cl:sampleFitness[K_CL], cred:sampleFitness[K_CRED]});
 
   var gKeys = Object.keys(rawGanhos[0]||{});
-  var GK_FUNIL = gKeys.find(function(k){return k.toLowerCase().includes('funil');})||'';
-  var GK_VALOR = gKeys.find(function(k){return k.toLowerCase().includes('sum_')&&k.toLowerCase().includes('valor');})||
-                 gKeys.find(function(k){return k.toLowerCase().includes('valor do neg');})||
-                 gKeys.find(function(k){return k.toLowerCase().includes('valor');})||'';
+  var GK_FUNIL  = gKeys.find(function(k){return k.toLowerCase().includes('funil');})||'';
+  var GK_VALOR  = gKeys.find(function(k){return k.toLowerCase().includes('sum_')&&k.toLowerCase().includes('valor');})||
+                  gKeys.find(function(k){return k.toLowerCase().includes('valor do neg');})||
+                  gKeys.find(function(k){return k.toLowerCase().includes('valor');})||'';
+  var GK_EQUIP  = gKeys.find(function(k){return k.toLowerCase().includes('equipamento');})||'';
 
   // diaCorte: normaliza meses históricos ao mesmo dia do mês atual para comparação justa
   var diaCorte = new Date().getDate();
@@ -4626,7 +4629,11 @@ async function carregarMesSilencioso(ym){
   }).filter(function(r){ return r.diaMes === 0 || r.diaMes <= diaCorte; });
 
   var ganhos = rawGanhos.map(function(r){
-    return{ funil:String(r[GK_FUNIL]||'').trim(), valor:parseFloat(String(r[GK_VALOR]||'0').replace(/[^\d.-]/g,''))||0 };
+    return{
+      funil: String(r[GK_FUNIL]||'').trim(),
+      valor: parseFloat(String(r[GK_VALOR]||'0').replace(/[^\d.-]/g,''))||0,
+      equip: GK_EQUIP ? String(r[GK_EQUIP]||'').trim() : ''
+    };
   });
 
   var soma = function(arr){ return arr.reduce(function(a,r){return a+r.valor;},0); };
@@ -5223,19 +5230,29 @@ function renderEquipamentos(){
     return _temAcesso(s) && base.some(function(r){return r.funil===s && r.equip;});
   });
 
+  var ganhos = ganhosAll || [];
+
   var html = '<div style="display:flex;flex-direction:column;gap:24px;padding-bottom:32px">';
 
   segs.forEach(function(seg){
     var leadseg = base.filter(function(r){return r.funil===seg && r.equip;});
     if(!leadseg.length) return;
 
-    // Contagem por equipamento
+    // Contagem de ganhos por equipamento neste segmento
+    var ganhosSegMap = {};
+    ganhos.filter(function(g){return g.funil===seg && g.equip;}).forEach(function(g){
+      ganhosSegMap[g.equip] = (ganhosSegMap[g.equip]||0) + 1;
+    });
+
+    // Contagem de leads por equipamento
     var mapa = {};
     leadseg.forEach(function(r){
       var eq = r.equip;
       if(!mapa[eq]) mapa[eq] = {qtd:0, vendas:0};
       mapa[eq].qtd++;
-      if(r.status === 'Ganho') mapa[eq].vendas++;
+    });
+    Object.keys(mapa).forEach(function(eq){
+      mapa[eq].vendas = ganhosSegMap[eq] || 0;
     });
 
     var top8 = Object.keys(mapa)
