@@ -5983,46 +5983,162 @@ function lanaKeydown(e){
 }
 
 function lanaConstruirContexto(){
-  var linhas = [];
-  var mes = mesSelecionado || 'não selecionado';
-  linhas.push('=== DADOS DO DASHBOARD COMERCIAL BLIPS ===');
-  linhas.push('Mês de referência: ' + mes);
-  linhas.push('Segmento filtrado: ' + (filtroGlobal.segmento !== 'all' ? filtroGlobal.segmento : 'Todos'));
-  linhas.push('Total de leads no período: ' + (leadsAtivos ? leadsAtivos.length : 0));
+  var L = [];
+  var base   = leadsAtivos  || [];
+  var ganhos = ganhosAtivos || ganhosAll || [];
+  var mes    = mesSelecionado || 'não selecionado';
 
-  // KPIs por segmento
-  if(leadsAtivos && leadsAtivos.length){
-    linhas.push('\n--- KPIs por Segmento ---');
+  L.push('=== DASHBOARD COMERCIAL BLIPS ===');
+  L.push('Mês: '+mes+' | Segmento ativo: '+(filtroGlobal.segmento!=='all'?filtroGlobal.segmento:'Todos')+' | Total leads: '+base.length);
+  L.push('Usuário: '+(usuarioAtual?(usuarioAtual.user_metadata.full_name||usuarioAtual.user_metadata.name||usuarioAtual.email):'?'));
+
+  // ── 1. KPIs + METAS POR SEGMENTO ──
+  if(base.length){
+    L.push('\n--- KPIs por Segmento ---');
     SEGMENTOS.forEach(function(seg){
-      var sLeads = leadsAtivos.filter(function(r){ return r.funil===seg; });
-      if(!sLeads.length) return;
-      var nome = seg.replace('Blips - ','').replace('Ideal - ','');
-      var ganhosSeg = (ganhosAtivos||ganhosAll||[]).filter(function(g){ return g.funil===seg; });
-      var vendas = ganhosSeg.length;
-      var conv = sLeads.length ? (vendas/sLeads.length*100).toFixed(1) : 0;
-      var aprovados = sLeads.filter(function(r){ return (r.cv&&r.cv!=='')||(r.cl&&r.cl!==''); }).length;
-      var perdidos = sLeads.filter(function(r){ return r.isPerda; }).length;
-      linhas.push(nome+': '+sLeads.length+' leads | '+vendas+' vendas | '+conv+'% conv | '+aprovados+' aprovados | '+perdidos+' perdidos');
-    });
-  }
-
-  // Metas (se carregadas)
-  if(typeof metasConfig !== 'undefined' && metasConfig){
-    linhas.push('\n--- Metas Configuradas ---');
-    Object.keys(metasConfig).forEach(function(seg){
-      var m = metasConfig[seg];
-      if(m && m.meta_valor){
-        var nome = seg.replace('Blips - ','').replace('Ideal - ','');
-        linhas.push(nome+': meta R$'+Number(m.meta_valor).toLocaleString('pt-BR')+' | conv alvo '+( m.conv_alvo||0)+'%');
+      var sl  = base.filter(function(r){return r.funil===seg;});
+      if(!sl.length) return;
+      var nome= seg.replace('Blips - ','').replace('Ideal - ','');
+      var gs  = ganhos.filter(function(g){return g.funil===seg;});
+      var vds = gs.length;
+      var vlr = gs.reduce(function(a,g){return a+(g.valor||0);},0);
+      var conv= sl.length?(vds/sl.length*100).toFixed(1):0;
+      var aprov= sl.filter(function(r){return (r.cv&&r.cv!=='')||(r.cl&&r.cl!=='');}).length;
+      var perd = sl.filter(function(r){return r.isPerda;}).length;
+      var n1   = sl.filter(function(r){return r.isN1v||r.isN1l;}).length;
+      var cred = sl.filter(function(r){return r.cred&&r.cred!=='';}).length;
+      // Meta
+      var metaInfo = '';
+      if(typeof metasConfig!=='undefined'&&metasConfig&&metasConfig[seg]){
+        var m = metasConfig[seg];
+        var metaV = m.meta_valor||0;
+        var convAlvo = m.conv_alvo||0;
+        var pctMeta = metaV>0?Math.round(vlr/metaV*100):0;
+        metaInfo = ' | meta R$'+Number(metaV).toLocaleString('pt-BR')+' ('+pctMeta+'% atingido) | conv alvo '+convAlvo+'%';
       }
+      L.push(nome+': '+sl.length+' leads | '+vds+' vendas | R$'+Number(vlr.toFixed(0)).toLocaleString('pt-BR')+' | '+conv+'% conv | '+aprov+' aprovados CQL | '+perd+' perdidos | '+n1+' N1 | '+cred+' em crédito'+metaInfo);
     });
   }
 
-  // Usuários conhecidos (supervisores/gestores)
-  linhas.push('\n--- Usuários do Dashboard ---');
-  linhas.push('Usuário atual: ' + (usuarioAtual ? (usuarioAtual.user_metadata.full_name || usuarioAtual.user_metadata.name || usuarioAtual.email) : 'desconhecido'));
+  // ── 2. VENDEDORES ──
+  if(base.length){
+    L.push('\n--- Performance Vendedores ---');
+    var vendMap = {};
+    base.forEach(function(r){
+      var v = r.proprietario||'';
+      if(!v) return;
+      if(!vendMap[v]) vendMap[v]={seg:r.funil,leads:0,vendas:0,vlr:0,n1:0,aprov:0,perd:0};
+      vendMap[v].leads++;
+      if(r.isN1v||r.isN1l) vendMap[v].n1++;
+      if((r.cv&&r.cv!=='')||(r.cl&&r.cl!=='')) vendMap[v].aprov++;
+      if(r.isPerda) vendMap[v].perd++;
+    });
+    ganhos.forEach(function(g){
+      var v = g.proprietario||'';
+      if(vendMap[v]){vendMap[v].vendas++;vendMap[v].vlr+=(g.valor||0);}
+    });
+    Object.keys(vendMap).sort(function(a,b){return vendMap[b].vendas-vendMap[a].vendas;}).forEach(function(v){
+      var d = vendMap[v];
+      var conv = d.leads?(d.vendas/d.leads*100).toFixed(1):0;
+      var seg = d.seg.replace('Blips - ','').replace('Ideal - ','');
+      L.push(v+' ['+seg+']: '+d.leads+' leads | '+d.vendas+' vendas | R$'+Number(d.vlr.toFixed(0)).toLocaleString('pt-BR')+' | '+conv+'% conv | '+d.n1+' N1 | '+d.aprov+' CQL | '+d.perd+' perdidos');
+    });
+  }
 
-  return linhas.join('\n');
+  // ── 3. EQUIPAMENTOS POR SEGMENTO ──
+  var temEquip = base.some(function(r){return r.equip;});
+  if(temEquip){
+    L.push('\n--- Equipamentos por Segmento ---');
+    SEGMENTOS.forEach(function(seg){
+      var sl = base.filter(function(r){return r.funil===seg&&r.equip;});
+      if(!sl.length) return;
+      var nome= seg.replace('Blips - ','').replace('Ideal - ','');
+      var eMap={};
+      sl.forEach(function(r){eMap[r.equip]=(eMap[r.equip]||0)+1;});
+      var gs = ganhos.filter(function(g){return g.funil===seg&&g.equip;});
+      var gMap={};
+      gs.forEach(function(g){gMap[g.equip]=(gMap[g.equip]||0)+1;});
+      var top = Object.keys(eMap).sort(function(a,b){return eMap[b]-eMap[a];}).slice(0,5);
+      var txt = top.map(function(e){return e+': '+eMap[e]+' leads/'+(gMap[e]||0)+' vendas';}).join(' | ');
+      L.push(nome+': '+txt);
+    });
+  }
+
+  // ── 4. CLASSIFICAÇÕES (N1/N2/N3/N4) ──
+  if(base.length){
+    L.push('\n--- Classificações de Venda (cv) ---');
+    SEGMENTOS.forEach(function(seg){
+      var sl = base.filter(function(r){return r.funil===seg;});
+      if(!sl.length) return;
+      var nome= seg.replace('Blips - ','').replace('Ideal - ','');
+      var n1=sl.filter(function(r){return r.cv==='N1';}).length;
+      var n2=sl.filter(function(r){return r.cv==='N2';}).length;
+      var n3=sl.filter(function(r){return r.cv==='N3';}).length;
+      var n4=sl.filter(function(r){return r.cv==='N4';}).length;
+      var semCV=sl.filter(function(r){return !r.cv||r.cv==='';}).length;
+      if(n1+n2+n3+n4>0) L.push(nome+': N1='+n1+' | N2='+n2+' | N3='+n3+' | N4='+n4+' | sem condição='+semCV);
+    });
+  }
+
+  // ── 5. PERDAS E MOTIVOS ──
+  var perdidos = base.filter(function(r){return r.isPerda;});
+  if(perdidos.length){
+    L.push('\n--- Perdas e Motivos ---');
+    SEGMENTOS.forEach(function(seg){
+      var sp = perdidos.filter(function(r){return r.funil===seg;});
+      if(!sp.length) return;
+      var nome= seg.replace('Blips - ','').replace('Ideal - ','');
+      var mMap={};
+      sp.forEach(function(r){var m=r.motivo||'(sem motivo)';mMap[m]=(mMap[m]||0)+1;});
+      var top=Object.keys(mMap).sort(function(a,b){return mMap[b]-mMap[a];}).slice(0,5);
+      L.push(nome+' ('+sp.length+' perdidos): '+top.map(function(m){return m+'='+mMap[m];}).join(' | '));
+    });
+  }
+
+  // ── 6. ORIGEM MARKETING ──
+  var temOrigem = base.some(function(r){return r.origem;});
+  if(temOrigem){
+    L.push('\n--- Origem de Marketing ---');
+    SEGMENTOS.forEach(function(seg){
+      var sl = base.filter(function(r){return r.funil===seg&&r.origem;});
+      if(!sl.length) return;
+      var nome= seg.replace('Blips - ','').replace('Ideal - ','');
+      var oMap={};
+      sl.forEach(function(r){oMap[r.origem]=(oMap[r.origem]||0)+1;});
+      var top=Object.keys(oMap).sort(function(a,b){return oMap[b]-oMap[a];}).slice(0,4);
+      L.push(nome+': '+top.map(function(o){return o+'='+oMap[o];}).join(' | '));
+    });
+  }
+
+  // ── 7. CRÉDITO/APROVAÇÃO ──
+  var temCred = base.some(function(r){return r.cred;});
+  if(temCred){
+    L.push('\n--- Análise de Crédito ---');
+    SEGMENTOS.forEach(function(seg){
+      var sl = base.filter(function(r){return r.funil===seg&&r.cred;});
+      if(!sl.length) return;
+      var nome= seg.replace('Blips - ','').replace('Ideal - ','');
+      var cMap={};
+      sl.forEach(function(r){cMap[r.cred]=(cMap[r.cred]||0)+1;});
+      L.push(nome+': '+Object.keys(cMap).map(function(c){return c+'='+cMap[c];}).join(' | '));
+    });
+  }
+
+  // ── 8. INTERESSE (VENDA vs LOCAÇÃO) ──
+  if(base.length){
+    L.push('\n--- Interesse por Segmento ---');
+    SEGMENTOS.forEach(function(seg){
+      var sl = base.filter(function(r){return r.funil===seg;});
+      if(!sl.length) return;
+      var nome= seg.replace('Blips - ','').replace('Ideal - ','');
+      var venda  = sl.filter(function(r){return r.interesse==='VENDA';}).length;
+      var locacao= sl.filter(function(r){return r.interesse==='LOCACAO';}).length;
+      var outros = sl.length-venda-locacao;
+      L.push(nome+': venda='+venda+' | locação='+locacao+(outros?' | outros='+outros:''));
+    });
+  }
+
+  return L.join('\n');
 }
 
 function lanaSistemaPrompt(){
