@@ -1207,6 +1207,20 @@ async function renderizarBotoesMes(){
     });
     btnsBox.innerHTML = html;
     mfBox.classList.add('active-filter');
+
+    // Badge de última atualização — usa o created_at do upload mais recente
+    var maisRecente = bases[0];
+    if(maisRecente && maisRecente.created_at){
+      var dt = new Date(maisRecente.created_at);
+      var pad = function(n){ return String(n).padStart(2,'0'); };
+      var label = pad(dt.getDate())+'/'+pad(dt.getMonth()+1)+'/'+dt.getFullYear()+
+                  ' às '+pad(dt.getHours())+':'+pad(dt.getMinutes());
+      var sub = document.getElementById('hd-sub');
+      if(sub) sub.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px;background:#0f1622;border:1px solid #1e2535;border-radius:20px;padding:3px 12px;font-size:.72rem;color:#64748b">'+
+        '<span style="width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block"></span>'+
+        'Dados atualizados em <strong style="color:#94a3b8;margin-left:3px">'+label+'</strong>'+
+      '</span>';
+    }
   } catch(err){
     console.error('Erro buscar meses:', err);
     renderizarMesesDoArquivoLocal();
