@@ -743,6 +743,7 @@ tfoot td.sep{border-left:1px solid #1e2535}
         <div class="lana-hname">Lana</div>
         <div class="lana-hstatus"><span class="lana-dot"></span>Online · Dados ativos</div>
       </div>
+      <button class="lana-min" onclick="lanaMinimizar()" title="Minimizar">—</button>
       <button class="lana-close" onclick="lanaToggle()">✕</button>
     </div>
   </div>
@@ -6182,6 +6183,11 @@ function lanaSistemaPrompt(){
 '- Se perguntarem fora do escopo do dashboard (previsão de mercado, concorrentes, etc.), redirecione: "Isso está fora dos dados que tenho agora. Posso te ajudar com os números do dashboard?"\n'+
 '- Responda sempre em português brasileiro\n\n'+
 '**Contexto atual do dashboard:**\n'+contexto;
+}
+
+function lanaMinimizar(){
+  var p = document.getElementById('lana-panel');
+  if(p) p.classList.toggle('minimized');
 }
 
 async function lanaEnviar(){
