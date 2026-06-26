@@ -6165,33 +6165,24 @@ function lanaConstruirContexto(){
     });
   }
 
-  // Seção 9: Leads por dia (últimos 15 dias com dados) por vendedor
-  if(base.length){
-    var diaMap = {};
-    base.forEach(function(r){
-      if(!r.dataTs) return;
-      var d = new Date(r.dataTs);
-      var dia = d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();
-      if(!diaMap[dia]) diaMap[dia] = {};
-      var vnd = r.vendedor || 'S/N';
-      diaMap[dia][vnd] = (diaMap[dia][vnd]||0)+1;
-    });
-    var dias = Object.keys(diaMap).sort().reverse().slice(0,15);
-    if(dias.length){
-      L.push('\n=== SEÇÃO 9: LEADS POR DIA (por vendedor) ===');
-      L.push('(Use esta seção para responder perguntas como "quantos leads X recebeu ontem/hoje/dia tal")');
-      var hoje = new Date();
-      var hojeStr = hoje.getFullYear()+'-'+(hoje.getMonth()<9?'0':'')+(hoje.getMonth()+1)+'-'+(hoje.getDate()<10?'0':'')+hoje.getDate();
-      var ontem = new Date(hoje); ontem.setDate(ontem.getDate()-1);
-      var ontemStr = ontem.getFullYear()+'-'+(ontem.getMonth()<9?'0':'')+(ontem.getMonth()+1)+'-'+(ontem.getDate()<10?'0':'')+ontem.getDate();
-      L.push('Hoje = '+hojeStr+' | Ontem = '+ontemStr);
-      dias.forEach(function(dia){
-        var label = dia === hojeStr ? dia+' (HOJE)' : dia === ontemStr ? dia+' (ONTEM)' : dia;
-        var partes = Object.keys(diaMap[dia]).sort().map(function(v){ return v+': '+diaMap[dia][v]; });
-        L.push(label+' → '+partes.join(' | '));
-      });
-    }
-  }
+  // Dados diários por dia (últimos 15 dias)
+  var hoje = new Date();
+  var hojeStr = hoje.getFullYear()+'-'+(hoje.getMonth()<9?'0':'')+(hoje.getMonth()+1)+'-'+(hoje.getDate()<10?'0':'')+hoje.getDate();
+  var ontem = new Date(hoje); ontem.setDate(ontem.getDate()-1);
+  var ontemStr = ontem.getFullYear()+'-'+(ontem.getMonth()<9?'0':'')+(ontem.getMonth()+1)+'-'+(ontem.getDate()<10?'0':'')+ontem.getDate();
+  function toDiaStr(ts){ var d=new Date(ts); return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate(); }
+  function diaLabel(dia){ return dia===hojeStr?dia+' (HOJE)':dia===ontemStr?dia+' (ONTEM)':dia; }
+  L.push('\n=== DADOS DIÁRIOS — Hoje='+hojeStr+' | Ontem='+ontemStr+' ===');
+  // 9. Leads por vendedor
+  if(base.length){var m9={};base.forEach(function(r){if(!r.dataTs)return;var d=toDiaStr(r.dataTs),v=r.vendedor||'S/N';if(!m9[d])m9[d]={};m9[d][v]=(m9[d][v]||0)+1;});var dias9=Object.keys(m9).sort().reverse().slice(0,15);if(dias9.length){L.push('\n--- 9. Leads por dia por vendedor ---');dias9.forEach(function(d){L.push(diaLabel(d)+' -> '+Object.keys(m9[d]).sort().map(function(v){return v+':'+m9[d][v];}).join(' | '));});}}
+  // 10. Leads por segmento
+  if(base.length){var m10={};base.forEach(function(r){if(!r.dataTs)return;var d=toDiaStr(r.dataTs),s=r.funil||'S/N';if(!m10[d])m10[d]={};m10[d][s]=(m10[d][s]||0)+1;});var dias10=Object.keys(m10).sort().reverse().slice(0,15);if(dias10.length){L.push('\n--- 10. Leads por dia por segmento ---');dias10.forEach(function(d){L.push(diaLabel(d)+' -> '+Object.keys(m10[d]).sort().map(function(s){return s+':'+m10[d][s];}).join(' | '));});}}
+  // 11. Vendas por vendedor
+  if(ganhos.length){var m11={};ganhos.forEach(function(r){if(!r.dataTs)return;var d=toDiaStr(r.dataTs),v=r.vendedor||'S/N';if(!m11[d])m11[d]={};m11[d][v]=(m11[d][v]||0)+1;});var dias11=Object.keys(m11).sort().reverse().slice(0,15);if(dias11.length){L.push('\n--- 11. Vendas fechadas por dia por vendedor ---');dias11.forEach(function(d){L.push(diaLabel(d)+' -> '+Object.keys(m11[d]).sort().map(function(v){return v+':'+m11[d][v];}).join(' | '));});}}
+  // 12. Perdas por motivo
+  if(base.length){var perdas12=base.filter(function(r){return r.isPerda;});var m12={};perdas12.forEach(function(r){if(!r.dataTs)return;var d=toDiaStr(r.dataTs),mt=r.motivo||'Sem motivo';if(!m12[d])m12[d]={};m12[d][mt]=(m12[d][mt]||0)+1;});var dias12=Object.keys(m12).sort().reverse().slice(0,15);if(dias12.length){L.push('\n--- 12. Perdas por dia por motivo ---');dias12.forEach(function(d){L.push(diaLabel(d)+' -> '+Object.keys(m12[d]).sort().map(function(mt){return mt+':'+m12[d][mt];}).join(' | '));});}}
+  // 13. N1/N2/N3 por segmento por dia
+  if(base.length){var m13={};base.forEach(function(r){if(!r.dataTs)return;var d=toDiaStr(r.dataTs),s=r.funil||'S/N';if(!m13[d])m13[d]={};if(!m13[d][s])m13[d][s]={n1:0,n2:0,n3:0};if((r.cv&&r.cv!=='')||(r.cl&&r.cl!==''))m13[d][s].n1++;else if(r.isPerda)m13[d][s].n3++;else m13[d][s].n2++;});var dias13=Object.keys(m13).sort().reverse().slice(0,15);if(dias13.length){L.push('\n--- 13. N1/N2/N3 por dia por segmento ---');dias13.forEach(function(d){L.push(diaLabel(d)+' -> '+Object.keys(m13[d]).sort().map(function(s){return s+'(N1:'+m13[d][s].n1+' N2:'+m13[d][s].n2+' N3:'+m13[d][s].n3+')';}).join(' | '));});}}
 
   return L.join('\n');
 }
