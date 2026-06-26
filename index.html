@@ -6165,6 +6165,34 @@ function lanaConstruirContexto(){
     });
   }
 
+  // Seção 9: Leads por dia (últimos 15 dias com dados) por vendedor
+  if(base.length){
+    var diaMap = {};
+    base.forEach(function(r){
+      if(!r.dataTs) return;
+      var d = new Date(r.dataTs);
+      var dia = d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();
+      if(!diaMap[dia]) diaMap[dia] = {};
+      var vnd = r.vendedor || 'S/N';
+      diaMap[dia][vnd] = (diaMap[dia][vnd]||0)+1;
+    });
+    var dias = Object.keys(diaMap).sort().reverse().slice(0,15);
+    if(dias.length){
+      L.push('\n=== SEÇÃO 9: LEADS POR DIA (por vendedor) ===');
+      L.push('(Use esta seção para responder perguntas como "quantos leads X recebeu ontem/hoje/dia tal")');
+      var hoje = new Date();
+      var hojeStr = hoje.getFullYear()+'-'+(hoje.getMonth()<9?'0':'')+(hoje.getMonth()+1)+'-'+(hoje.getDate()<10?'0':'')+hoje.getDate();
+      var ontem = new Date(hoje); ontem.setDate(ontem.getDate()-1);
+      var ontemStr = ontem.getFullYear()+'-'+(ontem.getMonth()<9?'0':'')+(ontem.getMonth()+1)+'-'+(ontem.getDate()<10?'0':'')+ontem.getDate();
+      L.push('Hoje = '+hojeStr+' | Ontem = '+ontemStr);
+      dias.forEach(function(dia){
+        var label = dia === hojeStr ? dia+' (HOJE)' : dia === ontemStr ? dia+' (ONTEM)' : dia;
+        var partes = Object.keys(diaMap[dia]).sort().map(function(v){ return v+': '+diaMap[dia][v]; });
+        L.push(label+' → '+partes.join(' | '));
+      });
+    }
+  }
+
   return L.join('\n');
 }
 
