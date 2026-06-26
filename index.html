@@ -6252,13 +6252,32 @@ function lanaConstruirContexto(){
     if(_dd4.length){ L.push('\n--- D4. Perdas por dia por motivo ---'); _dd4.forEach(function(d){ L.push(_lbl(d)+' -> '+Object.keys(_dm4[d]).sort().map(function(mt){return mt+':'+_dm4[d][mt];}).join(' | ')); }); }
   }
 
-  // D5. CQL (N1) por dia × vendedor
-  var _cqls = base.filter(function(r){return (r.cv&&r.cv!=='')||(r.cl&&r.cl!=='');});
-  if(_cqls.length){
+  // D5. Aprovados por dia × vendedor × tier (N1v/N2v/N3v/N4v/N1l)
+  if(base.length){
     var _dm5 = {};
-    _cqls.forEach(function(r){ if(!r.dataTs) return; var d=_toDay(r.dataTs); if(!_dm5[d])_dm5[d]={}; var v=r.vendedor||'S/N'; _dm5[d][v]=(_dm5[d][v]||0)+1; });
+    base.forEach(function(r){
+      if(!r.dataTs) return;
+      var tier = '';
+      if(r.cv==='N1') tier='N1v'; else if(r.cv==='N2') tier='N2v'; else if(r.cv==='N3') tier='N3v'; else if(r.cv==='N4') tier='N4v';
+      else if(r.cl==='N1') tier='N1l';
+      if(!tier) return;
+      var d=_toDay(r.dataTs), v=r.vendedor||'S/N';
+      if(!_dm5[d])_dm5[d]={};
+      if(!_dm5[d][v])_dm5[d][v]={N1v:0,N2v:0,N3v:0,N4v:0,N1l:0};
+      _dm5[d][v][tier]++;
+    });
     var _dd5 = Object.keys(_dm5).sort().reverse().slice(0,15);
-    if(_dd5.length){ L.push('\n--- D5. CQL (N1 aprovados) por dia por vendedor ---'); _dd5.forEach(function(d){ L.push(_lbl(d)+' -> '+Object.keys(_dm5[d]).sort().map(function(v){return v+':'+_dm5[d][v];}).join(' | ')); }); }
+    if(_dd5.length){
+      L.push('\n--- D5. Aprovados por dia por vendedor (N1v=venda-N1, N2v=venda-N2, N3v=venda-N3, N4v=venda-N4, N1l=locacao-N1) ---');
+      _dd5.forEach(function(d){
+        var partes = Object.keys(_dm5[d]).sort().map(function(v){
+          var t=_dm5[d][v], tot=t.N1v+t.N2v+t.N3v+t.N4v+t.N1l;
+          var detalhe=[]; if(t.N1v)detalhe.push('N1v:'+t.N1v); if(t.N2v)detalhe.push('N2v:'+t.N2v); if(t.N3v)detalhe.push('N3v:'+t.N3v); if(t.N4v)detalhe.push('N4v:'+t.N4v); if(t.N1l)detalhe.push('N1l:'+t.N1l);
+          return v+'(total:'+tot+' '+detalhe.join(',')+')';
+        });
+        L.push(_lbl(d)+' -> '+partes.join(' | '));
+      });
+    } else { L.push('D5: nenhum lead aprovado no periodo'); }
   }
 
   return L.join('\n');
