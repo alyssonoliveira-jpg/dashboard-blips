@@ -702,7 +702,8 @@ var dadosGanhos = null;
 // Estado pós-parsing — mantém leads/ganhos processados para refiltro por data
 var leadsAll  = null;   // todos os leads parseados (com .dataObj)
 var ganhosAll = null;   // todos os ganhos parseados (com .dataObj se houver)
-var leadsAtivos = [];   // leads do mes/periodo selecionado (usado na aba Equipamento)
+var leadsAtivos  = [];   // leads do mes/periodo selecionado (usado na aba Equipamento)
+var ganhosAtivos = [];   // ganhos cujo dataTs cai no mesmo periodo de leadsAtivos
 var dadosPorMes = {};  // { 'YYYY-MM': [{metricas por segmento}] } para Análise Trimestral
 var dataMin   = null;   // menor data encontrada nos leads
 var dataMax   = null;   // maior data encontrada nos leads
@@ -973,9 +974,10 @@ async function gerarDashboard(){
     });
 
     // Salva globalmente para refiltro (sem filtro de segmento)
-    leadsAll  = leads;
-    ganhosAll = ganhos;
-    leadsAtivos = leads;
+    leadsAll     = leads;
+    ganhosAll    = ganhos;
+    leadsAtivos  = leads;
+    ganhosAtivos = ganhos;
 
     // Para o render inicial aplica filtro de segmento se restrito
     var leadsR  = _userSegmentos ? leads.filter(function(r){return _temAcesso(r.funil);}) : leads;
@@ -1496,7 +1498,8 @@ function filtrarPorMesLocal(ym){
   var iniTs = ini.getTime();
   var fimTs = fim.getTime();
   var leadsF = leadsAll.filter(function(r){return r.dataTs && r.dataTs>=iniTs && r.dataTs<=fimTs;});
-  leadsAtivos = leadsF;
+  leadsAtivos  = leadsF;
+  ganhosAtivos = (ganhosAll||[]).filter(function(g){return g.dataTs && g.dataTs>=iniTs && g.dataTs<=fimTs;});
 
   // Calcula KPIs do mês anterior para trend
   var prevIni = new Date(ano, mes-2, 1);
@@ -1588,6 +1591,8 @@ function aplicarFiltroData(){
     ? ganhosAll.filter(function(r){return r.dataTs && r.dataTs >= iniTs && r.dataTs <= fimTs;})
     : ganhosAll;
 
+  leadsAtivos  = leadsF;
+  ganhosAtivos = ganhosF;
   atualizarInfoFiltro();
   reprocessar(leadsF, ganhosF);
 }
@@ -1604,7 +1609,8 @@ function limparFiltroData(){
   var btnAll = document.querySelector('.mf-btn[data-mes="all"]');
   if(btnAll) btnAll.classList.add('active');
 
-  leadsAtivos = leadsAll;
+  leadsAtivos  = leadsAll;
+  ganhosAtivos = ganhosAll;
   atualizarInfoFiltro();
   reprocessar(leadsAll, ganhosAll);
 }
@@ -5296,7 +5302,7 @@ function renderEquipamentos(){
     return _temAcesso(s) && base.some(function(r){return r.funil===s && r.equip;});
   });
 
-  var ganhos = ganhosAll || [];
+  var ganhos = ganhosAtivos && ganhosAtivos.length ? ganhosAtivos : (ganhosAll || []);
 
   var html = '<div style="display:flex;flex-direction:column;gap:24px;padding-bottom:32px">';
 
@@ -5304,7 +5310,7 @@ function renderEquipamentos(){
     var leadseg = base.filter(function(r){return r.funil===seg && r.equip;});
     if(!leadseg.length) return;
 
-    // Contagem de ganhos por equipamento neste segmento
+    // Contagem de ganhos por equipamento neste segmento (apenas do período do mês referência)
     var ganhosSegMap = {};
     ganhos.filter(function(g){return g.funil===seg && g.equip;}).forEach(function(g){
       ganhosSegMap[g.equip] = (ganhosSegMap[g.equip]||0) + 1;
