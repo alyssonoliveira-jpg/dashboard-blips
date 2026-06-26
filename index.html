@@ -5971,6 +5971,12 @@ function lanaToggle(){
     lanaAtualizarCtx();
     if(!lanaHistorico.length) lanaBoasVindas();
     setTimeout(function(){ document.getElementById('lana-input').focus(); }, 150);
+  } else {
+    lanaHistorico = [];
+    var msgs = document.getElementById('lana-msgs');
+    if(msgs) msgs.innerHTML = '';
+    var p2 = document.getElementById('lana-panel');
+    if(p2) p2.classList.remove('minimized');
   }
 }
 
