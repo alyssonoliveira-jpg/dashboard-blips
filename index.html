@@ -349,6 +349,11 @@ tfoot td.sep{border-left:1px solid #1e2535}
 .cfg-saved{font-size:.7rem;color:#4ade80;margin-left:8px}
 .page{max-width:1300px;margin:0 auto}
 
+/* FILTRO SEGMENTO GLOBAL */
+.sf-btn{padding:5px 14px;border-radius:20px;border:1px solid #2a3147;background:#0f1622;color:#94a3b8;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .15s}
+.sf-btn:hover{border-color:#475569;color:#cbd5e1}
+.sf-btn.active{background:linear-gradient(135deg,#0f4c8a,#4c1d95);border-color:#6366f1;color:#a5b4fc}
+
 /* FILTRO SEGMENTOS na aba vendedores */
 .filter-segs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;padding:0 4px}
 .fseg{padding:5px 14px;border-radius:20px;border:1px solid #1e2535;background:#161b27;color:#64748b;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s}
@@ -540,6 +545,12 @@ tfoot td.sep{border-left:1px solid #1e2535}
   <div class="mf-buttons" id="mf-buttons"></div>
 </div>
 
+<!-- FILTRO DE SEGMENTO GLOBAL -->
+<div class="month-filter" id="seg-filter" style="display:none">
+  <span class="mf-label">🏷️ Segmento:</span>
+  <div class="mf-buttons" id="sf-buttons"></div>
+</div>
+
 <!-- FILTRO DE DATA AVANCADO (collapsible) -->
 <div class="date-filter" id="date-filter">
   <div class="df-inner">
@@ -698,11 +709,9 @@ var dataMax   = null;   // maior data encontrada nos leads
 
 var SEGMENTOS = [
   'Blips - Artesanato','Blips - Confeccao','Blips - Construcao','Blips - CV',
-  'Blips - Estetica','Blips - Fitness','Blips - Food','Blips - Pizza','Blips - Sorvete',
-  'Ideal - Suprimentos'
+  'Blips - Estetica','Blips - Fitness','Blips - Food','Blips - Pizza','Blips - Sorvete'
 ];
-// Segmentos que NÃO entram em certas abas (Crédito, Visão Aprovação, Ranking N1)
-var SEGMENTOS_SEM_CREDITO = ['Ideal - Suprimentos'];
+var SEGMENTOS_SEM_CREDITO = [];
 
 // Metas dinamicas — carregadas do Supabase em carregarMetasConfig()
 var CONV_ALVO = {};      // segmento -> conv alvo %
@@ -1113,9 +1122,55 @@ function resetarFiltros(){
   document.getElementById('fg-status').value    = 'all';
   document.getElementById('fg-interesse').value = 'all';
   document.getElementById('fg-vendedor').value  = '';
+  // sincroniza strip de segmento
+  document.querySelectorAll('#sf-buttons .sf-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.seg === 'all');
+  });
   atualizarContadorFiltros();
   var abaAtiva = document.querySelector('.tab.active');
   if(abaAtiva) trocarAba(abaAtiva.dataset.tab);
+}
+
+function filtrarSegmentoGlobal(seg){
+  filtroGlobal.segmento = seg;
+  // sincroniza dropdown avançado
+  var sel = document.getElementById('fg-segmento');
+  if(sel) sel.value = seg;
+  // destaca botão ativo no strip
+  document.querySelectorAll('#sf-buttons .sf-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.seg === seg);
+  });
+  atualizarContadorFiltros();
+  var abaAtiva = document.querySelector('.tab.active');
+  if(abaAtiva) trocarAba(abaAtiva.dataset.tab);
+}
+
+function renderizarFiltroSegmento(){
+  var box = document.getElementById('sf-buttons');
+  var wrap = document.getElementById('seg-filter');
+  if(!box || !wrap) return;
+  var segs = SEGMENTOS.filter(function(s){ return _temAcesso(s); });
+  if(segs.length <= 1){ wrap.style.display='none'; return; }
+  wrap.style.display = 'flex';
+  var labels = {
+    'Blips - Artesanato':'Artesanato','Blips - Confeccao':'Confecção',
+    'Blips - Construcao':'Construção','Blips - CV':'CV',
+    'Blips - Estetica':'Estética','Blips - Fitness':'Fitness',
+    'Blips - Food':'Food','Blips - Pizza':'Pizza',
+    'Blips - Sorvete':'Sorvete','Ideal - Suprimentos':'Suprimentos'
+  };
+  var html = '<button class="sf-btn active" data-seg="all" onclick="filtrarSegmentoGlobal(\'all\')">Todos</button>';
+  segs.forEach(function(s){
+    var lbl = labels[s] || s.replace(/^Blips - /,'').replace(/^Ideal - /,'');
+    html += '<button class="sf-btn" data-seg="'+s+'" onclick="filtrarSegmentoGlobal(\''+s+'\')">'+lbl+'</button>';
+  });
+  box.innerHTML = html;
+  // Se RBAC restrito a 1 segmento ativo, pre-seleciona
+  if(filtroGlobal.segmento !== 'all'){
+    document.querySelectorAll('#sf-buttons .sf-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.seg === filtroGlobal.segmento);
+    });
+  }
 }
 
 function atualizarContadorFiltros(){
@@ -5148,6 +5203,7 @@ async function validarUsuario(user){
   carregarMetasConfig().then(function(){
     carregarUltimaBase().then(function(){
       if(_userSegmentos) aplicarBloqueioSegmento();
+      renderizarFiltroSegmento();
     });
   });
 }
@@ -5181,6 +5237,9 @@ function aplicarBloqueioSegmento(){
 
   // 3. Garante filtro global (1 segmento = filtra; múltiplos = acesso total mas filtrado no render)
   if(_userSegmentos.length === 1) filtroGlobal.segmento = _userSegmentos[0];
+
+  // 4. Renderiza strip de segmento global
+  renderizarFiltroSegmento();
 }
 
 // ── TAB DOTS ──
