@@ -1359,7 +1359,7 @@ async function aplicarMultiplasBases(bases, ym){
       });
     }
 
-    // Agrega ganhos por proprietario+funil (soma todos os deals — compatível com export individual e acumulado)
+    // Deduplica ganhos por funil+proprietario+equipamento+data+valor (evita contar o mesmo deal duas vezes quando há múltiplos uploads)
     var gMap = {}, gOrder = [];
     todosGanhos.forEach(function(r){
       var rk = Object.keys(r);
@@ -1368,10 +1368,17 @@ async function aplicarMultiplasBases(bases, ym){
       var kValor = rk.find(function(k){return k.toLowerCase().includes('sum_')&&k.toLowerCase().includes('valor');})||
                    rk.find(function(k){return k.toLowerCase().includes('valor do neg');})||
                    rk.find(function(k){return k.toLowerCase().includes('valor');})||'';
-      var key = String(r[kFunil]||'')+'|'+String(r[kProp]||'');
-      var val = parseFloat(String(r[kValor]||'0').replace(/[^\d.-]/g,''))||0;
-      if(!gMap[key]){ gMap[key] = Object.assign({},r); gOrder.push(key); if(kValor) gMap[key][kValor]=0; }
-      if(kValor) gMap[key][kValor] += val;
+      var kEquip = rk.find(function(k){return k.toLowerCase().includes('equipamento');}) || '';
+      var kData  = rk.find(function(k){return k.toLowerCase().includes('ganho');}) || '';
+      // Chave única por deal: funil + proprietário + equipamento + data + valor
+      var key = [
+        String(r[kFunil]||''),
+        String(r[kProp]||''),
+        kEquip ? String(r[kEquip]||'') : '',
+        kData  ? String(r[kData]||'')  : '',
+        kValor ? String(r[kValor]||'') : ''
+      ].join('|');
+      if(!gMap[key]){ gMap[key] = r; gOrder.push(key); }
     });
     todosGanhos = gOrder.map(function(k){return gMap[k];});
 
