@@ -1175,6 +1175,8 @@ var filtroGlobal = { segmento:'all', vendedor:'', status:'all', interesse:'all' 
 // ── LANA ──
 var lanaGeminiKey  = '';
 var lanaHistorico  = [];   // [{role:'user'|'assistant', content:'...'}]
+var _lastVendArr  = [];   // cache para renderBatedores ao trocar aba
+var _lastSegsVend = {};
 var lanaAberto     = false;
 
 function inicializarFiltroGlobal(){
@@ -1818,6 +1820,7 @@ function trocarAba(nome){
   if(nome==='analise-trimestral')  renderAnaliseTrimestral();
   if(nome==='visao-marketing')      renderVisaoMarketing();
   if(nome==='cql-perdas')           renderCQLPerdas();
+  if(nome==='batedores' && _lastVendArr.length) renderBatedores(_lastVendArr, _lastSegsVend);
 }
 
 // ── VENDEDORES ──
