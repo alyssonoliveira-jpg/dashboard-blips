@@ -6253,8 +6253,8 @@ async function lanaEnviar(){
 
 async function lanaCarregarChave(){
   try {
-    var { data } = await sb.from('config_metas').select('nome_display').eq('tipo','sistema').eq('chave','gemini_api_key').maybeSingle();
-    if(data && data.nome_display) lanaGeminiKey = data.nome_display;
+    var stored = localStorage.getItem('blips_gemini_key');
+    if(stored) { lanaGeminiKey = stored; } else { var { data } = await sb.from('config_metas').select('nome_display').eq('tipo','sistema').eq('chave','gemini_api_key').maybeSingle(); if(data && data.nome_display) lanaGeminiKey = data.nome_display; }
   } catch(e){ /* silencioso */ }
 }
 
@@ -6266,7 +6266,7 @@ async function lanaSalvarChave(chave){
       { tipo:'sistema', chave:'gemini_api_key', nome_display: chave, mes_referencia:'0000-00', updated_at: new Date().toISOString(), updated_by: usuarioAtual.email },
       { onConflict:'tipo,chave,mes_referencia' }
     );
-    lanaGeminiKey = chave;
+    lanaGeminiKey = chave; localStorage.setItem('blips_gemini_key', chave);
     if(status) status.innerHTML = '<span style="color:#4ade80;font-size:.7rem">✓ Chave salva</span>';
     setTimeout(function(){ var el=document.getElementById('lana-key-status'); if(el) el.innerHTML=''; }, 3000);
   } catch(e){
