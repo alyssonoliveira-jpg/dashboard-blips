@@ -5403,7 +5403,7 @@ async function aplicarBaseDoSupabase(base){
     // Le os blobs como ArrayBuffer e parseia
     dadosLeads  = await blobParaJson(leadsBlob);
     var rawGanhos = await blobParaJson(ganhosBlob);
-    // Agrega ganhos por proprietario+funil (suporte a export individual e acumulado)
+    // Mantém uma linha por deal — deduplica só se o mesmo deal aparecer duplicado
     var gMap2={}, gOrder2=[];
     rawGanhos.forEach(function(r){
       var rk=Object.keys(r);
@@ -5412,10 +5412,10 @@ async function aplicarBaseDoSupabase(base){
       var kV=rk.find(function(k){return k.toLowerCase().includes('sum_')&&k.toLowerCase().includes('valor');})||
              rk.find(function(k){return k.toLowerCase().includes('valor do neg');})||
              rk.find(function(k){return k.toLowerCase().includes('valor');})||'';
-      var key=String(r[kF]||'')+'|'+String(r[kP]||'');
-      var val=parseFloat(String(r[kV]||'0').replace(/[^\d.-]/g,''))||0;
-      if(!gMap2[key]){gMap2[key]=Object.assign({},r);gOrder2.push(key);if(kV)gMap2[key][kV]=0;}
-      if(kV)gMap2[key][kV]+=val;
+      var kE=rk.find(function(k){return k.toLowerCase().includes('equipamento');})||'';
+      var kD=rk.find(function(k){return k.toLowerCase().includes('ganho');})||'';
+      var key=[String(r[kF]||''),String(r[kP]||''),kE?String(r[kE]||''):'',kD?String(r[kD]||''):'',kV?String(r[kV]||''):''].join('|');
+      if(!gMap2[key]){gMap2[key]=r;gOrder2.push(key);}
     });
     dadosGanhos = gOrder2.map(function(k){return gMap2[k];});
 
