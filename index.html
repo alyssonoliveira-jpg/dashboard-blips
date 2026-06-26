@@ -6165,7 +6165,45 @@ function lanaConstruirContexto(){
     });
   }
 
-  // Dados diários por dia (últimos 15 dias)
+  // ── 7b. CRÉDITO POR VENDEDOR ──
+  if(temCred){
+    L.push('\n--- Crédito por Vendedor ---');
+    var credVMap={};
+    base.forEach(function(r){ if(!r.cred) return; if(!credVMap[r.vendedor])credVMap[r.vendedor]={}; credVMap[r.vendedor][r.cred]=(credVMap[r.vendedor][r.cred]||0)+1; });
+    Object.keys(credVMap).sort().forEach(function(v){ L.push(v+': '+Object.keys(credVMap[v]).map(function(c){return c+'='+credVMap[v][c];}).join(' | ')); });
+  }
+
+  // ── 9. RANKING N1 POR VENDEDOR ──
+  if(base.length){
+    L.push('\n--- Ranking N1 (aprovados - venda+locacao) por vendedor ---');
+    var rn1={};
+    base.forEach(function(r){ if(!r.vendedor) return; if(!rn1[r.vendedor])rn1[r.vendedor]={n1:0,leads:0}; rn1[r.vendedor].leads++; if((r.cv&&r.cv!=='')||(r.cl&&r.cl!==''))rn1[r.vendedor].n1++; });
+    Object.keys(rn1).sort(function(a,b){return rn1[b].n1-rn1[a].n1;}).forEach(function(v){ L.push(v+': N1='+rn1[v].n1+' leads='+rn1[v].leads+' tx='+(rn1[v].leads>0?(rn1[v].n1/rn1[v].leads*100).toFixed(1)+'%':'0%')); });
+  }
+
+  // ── 10. RANKING VENDA POR VENDEDOR ──
+  if(ganhos.length){
+    L.push('\n--- Ranking Venda (ganhos fechados) por vendedor ---');
+    var rv={};
+    ganhos.forEach(function(r){ if(!r.vendedor) return; if(!rv[r.vendedor])rv[r.vendedor]={qtd:0,val:0}; rv[r.vendedor].qtd++; rv[r.vendedor].val+=(r.valor||0); });
+    Object.keys(rv).sort(function(a,b){return rv[b].qtd-rv[a].qtd;}).forEach(function(v){ L.push(v+': vendas='+rv[v].qtd+' valor=R$'+(rv[v].val||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})); });
+  }
+
+  // ── 11. PERFORMANCE (conv. por etapa) POR SEGMENTO ──
+  if(base.length){
+    L.push('\n--- Performance (funil de conversão) por segmento ---');
+    SEGMENTOS.forEach(function(seg){
+      var s=base.filter(function(r){return r.funil===seg;}); if(!s.length) return;
+      var nome=seg.replace('Blips - ','').replace('Ideal - ','');
+      var cql=s.filter(function(r){return (r.cv&&r.cv!=='')||(r.cl&&r.cl!=='');});
+      var gSeg=ganhos.filter(function(g){return g.funil===seg;});
+      var txCQL=s.length?((cql.length/s.length)*100).toFixed(1):'0';
+      var txFech=cql.length?((gSeg.length/cql.length)*100).toFixed(1):'0';
+      L.push(nome+': leads='+s.length+' CQL='+cql.length+'('+txCQL+'%) vendas='+gSeg.length+' txFech='+txFech+'%');
+    });
+  }
+
+    // Dados diários por dia (últimos 15 dias)
   var hoje = new Date();
   var hojeStr = hoje.getFullYear()+'-'+(hoje.getMonth()<9?'0':'')+(hoje.getMonth()+1)+'-'+(hoje.getDate()<10?'0':'')+hoje.getDate();
   var ontem = new Date(hoje); ontem.setDate(ontem.getDate()-1);
@@ -6192,7 +6230,7 @@ function lanaSistemaPrompt(){
   return 'Você é a **Lana**, assistente comercial inteligente da Blips. Seu papel é apoiar gestores e supervisores com análises rápidas, precisas e simpáticas dos dados do Dashboard Comercial.\n\n'+
 '**Regras inegociáveis:**\n'+
 '- Use SOMENTE os dados fornecidos no contexto abaixo. Nunca invente números, percentuais ou informações\n'+
-'- O dashboard exibe dados MENSAIS, não diários. Se perguntarem sobre "ontem", "hoje" ou um dia específico, explique que só tem o acumulado do mês e responda com esse dado\n'+
+'- O dashboard exibe dados MENSAIS e DIÁRIOS (últimos 15 dias). Para perguntas sobre dias específicos use a seção de dados diários; para visão geral do mês use as demais seções\n'+
 '- Quando perguntarem sobre um vendedor pelo nome, busque no contexto pelo nome mais próximo (sem ser rígido com capitalização ou segmento) e responda com os dados que encontrar\n'+
 '- Só diga "não está disponível" se o dado realmente não existir no contexto — exemplo: dados históricos de meses anteriores, informações fora do dashboard\n'+
 '- Seja simpática, próxima e use o nome da pessoa ao responder sempre que possível\n'+
