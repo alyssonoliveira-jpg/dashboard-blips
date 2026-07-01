@@ -1993,6 +1993,8 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
   box.innerHTML = html;
 
   // Após renderizar vendedores, gera a aba Batedores de Meta
+  _lastVendArr  = arr;
+  _lastSegsVend = segsVend;
   renderBatedores(arr, segsVend);
 
   // Dispara alertas automaticamente ao carregar vendedores
