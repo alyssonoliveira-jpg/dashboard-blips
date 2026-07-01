@@ -1009,7 +1009,7 @@ async function gerarDashboard(){
       var v = parseFloat(String(r[K_VALOR]||'0').replace(/[^\d.-]/g,''))||0;
       var cl = String(r[K_CL]||'').trim();
       var cv = String(r[K_CV]||'').trim();
-      var int_ = String(r[K_INTER]||'').trim().toUpperCase();
+      var int_ = String(r[K_INTER]||'').trim().toUpperCase() || 'VENDA';
       var prop = String(r[K_PROP]||'').trim();
       var dt = K_DATA ? parseData(r[K_DATA]) : null;
       return{
@@ -4779,7 +4779,7 @@ async function carregarMesSilencioso(ym){
   var diaCorte = new Date().getDate();
 
   var leads = rawLeads.map(function(r){
-    var int_ = String(r[K_INTER]||'').trim().toUpperCase();
+    var int_ = String(r[K_INTER]||'').trim().toUpperCase() || 'VENDA';
     var cl = String(r[K_CL]||'').trim();
     var cv = String(r[K_CV]||'').trim();
     var dataStr = K_DATA ? String(r[K_DATA]||'').trim() : '';
