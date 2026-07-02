@@ -4294,6 +4294,9 @@ async function renderVisaoMarketing(){
 
   renderMes(mesSel);
 }
+var _atDiaInicio = 1;
+var _atDiaFim    = new Date().getDate();
+
 async function renderAnaliseTrimestral(){
   var box = document.getElementById('at-content');
   box.innerHTML = '<div class="proj-info">Carregando dados...</div>';
@@ -4301,44 +4304,62 @@ async function renderAnaliseTrimestral(){
   var meses = Object.keys(basesPorMes).sort().slice(-3);
   if(!meses.length){ box.innerHTML = '<div class="proj-info">Nenhum mes carregado.</div>'; return; }
 
-  // Mês atual sempre usa dados do reprocessar (ultimosSegmentos) — nunca do silent loader
-  if(mesSelecionado && ultimosSegmentos && ultimosSegmentos.length){
-    dadosPorMes[mesSelecionado] = ultimosSegmentos;
-  }
-
-  for(var i=0;i<meses.length;i++){
-    if(!dadosPorMes[meses[i]]){
-      try{ await carregarMesSilencioso(meses[i]); } catch(e){ console.error('Erro carregar',meses[i],e); }
-    }
-  }
-
-  // Restaura META_SEG do mês atual após carregamentos silenciosos
-  if(mesSelecionado) await carregarMetasConfig(mesSelecionado);
-
-  var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
-
   if(!document.getElementById('at-css')){
     var s=document.createElement('style'); s.id='at-css';
     s.textContent='.at-sel{background:#1e2535;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 12px;font-size:.85rem;cursor:pointer;outline:none}.at-card{background:#0f1622;border:1px solid #1e2535;border-radius:10px;padding:16px 20px}.at-badge-up{display:inline-flex;align-items:center;gap:4px;background:#14532d33;color:#4ade80;border-radius:20px;padding:2px 10px;font-size:.78rem;font-weight:700}.at-badge-dn{display:inline-flex;align-items:center;gap:4px;background:#7f1d1d33;color:#f87171;border-radius:20px;padding:2px 10px;font-size:.78rem;font-weight:700}.at-badge-eq{display:inline-flex;align-items:center;gap:4px;background:#1e293b;color:#94a3b8;border-radius:20px;padding:2px 10px;font-size:.78rem;font-weight:700}.at-prog-bg{background:#1e2535;border-radius:4px;height:6px;flex:1;min-width:60px}.at-prog-fill{height:6px;border-radius:4px}.at-metrow:hover{background:#1a2235!important}';
     document.head.appendChild(s);
   }
 
-  var opts = meses.map(function(m,i){ return '<option value="'+m+'"'+(i===0?' selected':'')+'>'+labelMes(m)+'</option>'; }).join('');
-  var optsComp = meses.map(function(m,i){ return '<option value="'+m+'"'+(i===meses.length-1?' selected':'')+'>'+labelMes(m)+'</option>'; }).join('');
+  var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labelMes = function(ym){ var p=ym.split('-'); return nomesMes[+p[1]-1]+'/'+p[0].slice(2); };
 
   box.innerHTML =
-    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">'+
-      '<button onclick="atGerarAnalise()" style="background:#0f766e;color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:.85rem;cursor:pointer;font-weight:600">&#128200; Gerar An&#225;lise</button>'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">'+
+      '<span style="font-size:.82rem;color:#94a3b8;font-weight:600">&#128197; Período:</span>'+
+      '<span style="font-size:.82rem;color:#94a3b8">Dia</span>'+
+      '<input id="at-dia-ini" type="number" min="1" max="31" value="'+_atDiaInicio+'" style="width:54px;background:#1e2535;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:5px 8px;font-size:.85rem;text-align:center">'+
+      '<span style="font-size:.82rem;color:#94a3b8">até dia</span>'+
+      '<input id="at-dia-fim" type="number" min="1" max="31" value="'+_atDiaFim+'" style="width:54px;background:#1e2535;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:5px 8px;font-size:.85rem;text-align:center">'+
+      '<button onclick="atAplicarFiltro()" style="background:#0f766e;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:.82rem;cursor:pointer;font-weight:600">Aplicar</button>'+
+      '<span style="font-size:.75rem;color:#475569">— mesmo intervalo em todos os meses</span>'+
     '</div>'+
-    '<div style="display:inline-flex;align-items:center;gap:6px;background:#0c1a2e;border:1px solid #1e3a5f;border-radius:6px;padding:5px 12px;font-size:.78rem;color:#60a5fa;margin-bottom:12px">'+
-      '&#128197; Meses hist&#243;ricos normalizados at&#233; dia '+new Date().getDate()+' para comparação justa com o mês atual'+
-    '</div>'+
-    '<div id="at-depara-content"></div>'+
+    '<div id="at-depara-content"><div class="proj-info">Carregando...</div></div>'+
     '<div id="at-analise-box"></div>';
 
+  await atCarregarMeses(meses);
   atRenderDepara();
 }
+
+async function atCarregarMeses(meses){
+  var diaIni = _atDiaInicio, diaFim = _atDiaFim;
+
+  // Limpa cache histórico para forçar recarregamento com o intervalo correto
+  meses.forEach(function(m){ if(m !== mesSelecionado) delete dadosPorMes[m]; });
+
+  // Mês atual: reprocessa ultimosSegmentos filtrando pelo intervalo de dias
+  if(mesSelecionado && ultimosSegmentos && ultimosSegmentos.length){
+    dadosPorMes[mesSelecionado] = ultimosSegmentos;
+  }
+
+  for(var i=0;i<meses.length;i++){
+    if(!dadosPorMes[meses[i]]){
+      try{ await carregarMesSilencioso(meses[i], diaIni, diaFim); } catch(e){ console.error('Erro carregar',meses[i],e); }
+    }
+  }
+
+  if(mesSelecionado) await carregarMetasConfig(mesSelecionado);
+}
+
+window.atAplicarFiltro = async function(){
+  var ini = parseInt(document.getElementById('at-dia-ini').value)||1;
+  var fim = parseInt(document.getElementById('at-dia-fim').value)||new Date().getDate();
+  if(ini < 1) ini = 1; if(fim > 31) fim = 31; if(ini > fim) ini = 1;
+  _atDiaInicio = ini; _atDiaFim = fim;
+  document.getElementById('at-depara-content').innerHTML = '<div class="proj-info">Recarregando...</div>';
+  var meses = Object.keys(basesPorMes).sort().slice(-3);
+  await atCarregarMeses(meses);
+  atRenderDepara();
+};
 
 window.atRenderDepara = function(){
   var container = document.getElementById('at-depara-content');
@@ -4737,7 +4758,7 @@ window.atGerarAnalise = function(){
   box.scrollIntoView({behavior:'smooth', block:'start'});
 };
 // Carrega e processa um mês silenciosamente sem alterar estado global
-async function carregarMesSilencioso(ym){
+async function carregarMesSilencioso(ym, diaInicio, diaFim){
   var base = basesPorMes[ym];
   if(!base) return;
   await carregarMetasConfig(ym);
@@ -4777,8 +4798,9 @@ async function carregarMesSilencioso(ym){
                   gKeys.find(function(k){return k.toLowerCase().includes('valor');})||'';
   var GK_EQUIP  = gKeys.find(function(k){return k.toLowerCase().includes('equipamento');})||'';
 
-  // diaCorte: normaliza meses históricos ao mesmo dia do mês atual para comparação justa
-  var diaCorte = new Date().getDate();
+  // diaInicio/diaFim: intervalo de dias do mês para comparação justa entre meses
+  var _diaFim   = diaFim   || new Date().getDate();
+  var _diaInicio = diaInicio || 1;
 
   var leads = rawLeads.map(function(r){
     var int_ = String(r[K_INTER]||'').trim().toUpperCase() || 'VENDA';
@@ -4795,7 +4817,7 @@ async function carregarMesSilencioso(ym){
       cred: K_CRED ? String(r[K_CRED]||'').trim() : '',
       origem: K_ORIG ? String(r[K_ORIG]||'').trim() : ''
     };
-  }).filter(function(r){ return r.diaMes === 0 || r.diaMes <= diaCorte; });
+  }).filter(function(r){ return r.diaMes === 0 || (r.diaMes >= _diaInicio && r.diaMes <= _diaFim); });
 
   var ganhos = rawGanhos.map(function(r){
     return{
