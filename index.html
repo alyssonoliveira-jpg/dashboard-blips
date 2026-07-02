@@ -4797,6 +4797,8 @@ async function carregarMesSilencioso(ym, diaInicio, diaFim){
                   gKeys.find(function(k){return k.toLowerCase().includes('valor do neg');})||
                   gKeys.find(function(k){return k.toLowerCase().includes('valor');})||'';
   var GK_EQUIP  = gKeys.find(function(k){return k.toLowerCase().includes('equipamento');})||'';
+  var GK_DATA   = gKeys.find(function(k){return n(k).includes('ganho')&&n(k).includes('em');})||
+                  gKeys.find(function(k){return n(k).includes('ganho');})||'';
 
   // diaInicio/diaFim: intervalo de dias do mês para comparação justa entre meses
   var _diaFim   = diaFim   || new Date().getDate();
@@ -4820,12 +4822,15 @@ async function carregarMesSilencioso(ym, diaInicio, diaFim){
   }).filter(function(r){ return r.diaMes === 0 || (r.diaMes >= _diaInicio && r.diaMes <= _diaFim); });
 
   var ganhos = rawGanhos.map(function(r){
+    var dataGanhoStr = GK_DATA ? String(r[GK_DATA]||'').trim() : '';
+    var diaGanho = dataGanhoStr ? new Date(dataGanhoStr.replace(' ','T')).getDate() : 0;
     return{
       funil: String(r[GK_FUNIL]||'').trim(),
       valor: parseFloat(String(r[GK_VALOR]||'0').replace(/[^\d.-]/g,''))||0,
-      equip: GK_EQUIP ? String(r[GK_EQUIP]||'').trim() : ''
+      equip: GK_EQUIP ? String(r[GK_EQUIP]||'').trim() : '',
+      diaGanho: diaGanho
     };
-  });
+  }).filter(function(r){ return r.diaGanho === 0 || (r.diaGanho >= _diaInicio && r.diaGanho <= _diaFim); });
 
   var soma = function(arr){ return arr.reduce(function(a,r){return a+r.valor;},0); };
   var segsPresentes = leads.map(function(r){return r.funil;}).filter(function(f,i,a){return f&&a.indexOf(f)===i;});
