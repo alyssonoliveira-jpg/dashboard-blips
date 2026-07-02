@@ -4409,7 +4409,7 @@ window.atRenderDepara = function(){
 
   var badge = function(a, b){
     if(!b && !a) return '<span class="at-badge-eq">&#8212;</span>';
-    if(!b) return '<span class="at-badge-up">&#9650; novo</span>';
+    if(!b) return '<span class="at-badge-up">+'+(a||0).toLocaleString('pt-BR')+'</span>';
     var d=(a-b)/b*100;
     if(Math.abs(d)<0.5) return '<span class="at-badge-eq">&#8776;0%</span>';
     if(d>0) return '<span class="at-badge-up">&#9650; '+d.toFixed(1)+'%</span>';
