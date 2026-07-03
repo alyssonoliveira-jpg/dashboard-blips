@@ -1024,7 +1024,7 @@ async function gerarDashboard(){
       return{
         funil:    String(r[K_FUNIL]||'').trim(),
         proprietario: prop,
-        propKey:  prop.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''),
+        propKey:  (function(p){p=p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');if(p.indexOf('@')!==-1)p=p.split('@')[0].replace(/\./g,' ');return p;})(prop),
         valor:    v,
         interesse: int_,
         cl: cl, cv: cv,
@@ -1064,7 +1064,7 @@ async function gerarDashboard(){
         funil:String(r[GK_FUNIL]||'').trim(),
         valor:v,
         proprietario:p,
-        propKey:p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''),
+        propKey:(function(p){p=p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');if(p.indexOf('@')!==-1)p=p.split('@')[0].replace(/\./g,' ');return p;})(p),
         dataObj: dt,
         dataTs:  dt ? dt.getTime() : null,
         equip: GK_EQUIP ? String(r[GK_EQUIP]||'').trim() : ''
