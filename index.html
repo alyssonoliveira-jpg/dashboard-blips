@@ -1015,7 +1015,7 @@ async function gerarDashboard(){
       return{
         funil:    String(r[K_FUNIL]||'').trim(),
         proprietario: prop,
-        propKey:  prop.toLowerCase(),
+        propKey:  prop.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''),
         valor:    v,
         interesse: int_,
         cl: cl, cv: cv,
@@ -1055,7 +1055,7 @@ async function gerarDashboard(){
         funil:String(r[GK_FUNIL]||'').trim(),
         valor:v,
         proprietario:p,
-        propKey:p.toLowerCase(),
+        propKey:p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''),
         dataObj: dt,
         dataTs:  dt ? dt.getTime() : null,
         equip: GK_EQUIP ? String(r[GK_EQUIP]||'').trim() : ''
