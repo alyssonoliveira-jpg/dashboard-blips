@@ -1239,8 +1239,8 @@ function filtrarSegmentoGlobal(seg){
     b.classList.toggle('active', b.dataset.seg === seg);
   });
   atualizarContadorFiltros();
-  var abaAtiva = document.querySelector('.tab.active');
-  if(abaAtiva) trocarAba(abaAtiva.dataset.tab);
+  if(leadsAll) reprocessar(leadsAll, ganhosAll);
+  else { var abaAtiva = document.querySelector('.tab.active'); if(abaAtiva) trocarAba(abaAtiva.dataset.tab); }
 }
 
 function renderizarFiltroSegmento(){
