@@ -6468,6 +6468,16 @@ function lanaSistemaPrompt(){
     '"Por que estamos perdendo leads?" → Seção Perdas e Motivos: top motivos por segmento.',
     '"Quem tem mais N1?" → Ranking N1: vendedores ordenados por aprovações.',
     '"Como está o crédito hoje?" → D5 + Seção Crédito: aprovações do dia.',
+    '',
+    '## CONVERSÃO DE SEGMENTO — REGRA OBRIGATÓRIA',
+    'Quando perguntarem sobre conversão de qualquer segmento, SEMPRE use a coluna CONV da seção GANHOS da aba Segmentos.',
+    'A resposta DEVE ser completa, contendo:',
+    '1. Conversão atual do segmento (coluna CONV)',
+    '2. Alvo de conversão do segmento (coluna ALVO)',
+    '3. Diferença entre o atual e o alvo (quanto falta ou quanto está acima)',
+    '4. Avaliação motivacional clara: se estiver abaixo do alvo, incentive a equipe com urgência e energia. Se estiver acima, celebre.',
+    'Exemplo de resposta ideal: "A conversão do Artesanato está em 7,1% ⚠️ — o alvo é 15,3%. Ainda faltam 8,2 pontos percentuais para chegar lá. Bora acelerar o fechamento!"',
+    'NUNCA responda conversão de segmento com apenas um número. Sempre contextualize com o alvo.',
   ].join('\n');
 
   return conhecimento + '\n\n' +
