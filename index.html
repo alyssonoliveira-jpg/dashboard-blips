@@ -819,6 +819,7 @@ var VEND_SEG = {};
 
 // Metas R$ — carregadas do Supabase via carregarMetasConfig()
 var META_VEND = {};   // chave (lowercase) -> meta R$
+var META_GERAL_MES = 0; // meta geral do mês (independente de segmentos)
 var META_SEG  = {};   // Blips - X -> meta R$
 
 // Cache de resolução: "propKey|funil" -> chave real no banco
@@ -5122,7 +5123,7 @@ function renderizar(met,totalLeads){
   var kpis=document.getElementById('kpis');
   kpis.style.display='grid';
   kpis.innerHTML=
-    '<div class="kpi"><div class="kpi-lbl">Meta Geral</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(47161564)+'</div><div class="kpi-sub">todos os segmentos</div></div>'+
+    '<div class="kpi"><div class="kpi-lbl">Meta Geral</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(META_GERAL_MES||0)+'</div><div class="kpi-sub">todos os segmentos</div></div>'+
     (SEM_META_SEG.includes(usuarioAtual&&usuarioAtual.email) ? '' : '<div class="kpi"><div class="kpi-lbl">Meta do Segmento</div><div class="kpi-val" style="color:#fbbf24">'+fmtBRL(metaTotal)+'</div><div class="kpi-sub">'+met.length+' segmento'+(met.length!==1?'s':'')+'</div></div>')+
     '<div class="kpi"><div class="kpi-lbl">Valor CQL Total</div><div class="kpi-val kc">'+fmtBRL(tc)+trend(tc,prev&&prev.tc)+'</div><div class="kpi-sub">'+s('cnt_cql').toLocaleString('pt-BR')+' leads CQL</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+trend(tn,prev&&prev.tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
@@ -5672,7 +5673,7 @@ async function carregarMetasConfig(mes){
     if(!registros.length){ console.warn('Nenhuma meta encontrada para', mesAlvo); return; }
 
     // Limpa caches
-    CONV_ALVO = {}; META_SEG = {}; META_VEND = {}; VEND_SEG = {};
+    CONV_ALVO = {}; META_SEG = {}; META_VEND = {}; VEND_SEG = {}; META_GERAL_MES = 0;
     SEG_NOME_DISPLAY = {}; VENDS_DISPLAY = {}; _resolveCache = {};
 
     registros.forEach(function(r){
@@ -5684,6 +5685,8 @@ async function carregarMetasConfig(mes){
         META_VEND[r.chave] = Number(r.meta_valor || 0);
         if(r.segmento) VEND_SEG[r.chave] = r.segmento;
         VENDS_DISPLAY[r.chave] = r.nome_display || r.chave;
+      } else if(r.tipo === 'geral' && r.chave === 'meta_geral'){
+        META_GERAL_MES = Number(r.meta_valor || 0);
       }
     });
     console.log('Metas carregadas para', mesAlvo+':', Object.keys(META_SEG).length, 'segmentos,', Object.keys(META_VEND).length, 'vendedores');
