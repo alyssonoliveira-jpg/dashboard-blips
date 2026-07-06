@@ -6123,19 +6123,21 @@ function lanaConstruirContexto(){
       var gs  = ganhos.filter(function(g){return g.funil===seg;});
       var vds = gs.length;
       var vlr = gs.reduce(function(a,g){return a+(g.valor||0);},0);
-      var conv= sl.length?(vds/sl.length*100).toFixed(1):0;
       var aprov= sl.filter(function(r){return (r.cv&&r.cv!=='')||(r.cl&&r.cl!=='');}).length;
       var perd = sl.filter(function(r){return r.isPerda;}).length;
       var n1   = sl.filter(function(r){return r.isN1v||r.isN1l;}).length;
       var cred = sl.filter(function(r){return r.cred&&r.cred!=='';}).length;
+      // Usa conv_g do ultimosSegmentos (mesmo valor exibido na aba Segmentos/Ganhos)
+      var segDash = (typeof ultimosSegmentos!=='undefined'&&ultimosSegmentos) ? ultimosSegmentos.find(function(s){return s.funilOrig===seg;}) : null;
+      var conv = segDash ? segDash.conv_g.toFixed(1) : (sl.length?(vds/sl.length*100).toFixed(1):0);
       // Meta
       var metaInfo = '';
       if(typeof metasConfig!=='undefined'&&metasConfig&&metasConfig[seg]){
         var m = metasConfig[seg];
         var metaV = m.meta_valor||0;
-        var convAlvo = m.conv_alvo||0;
+        var convAlvo = segDash ? (segDash.conv_alvo||m.conv_alvo||0) : (m.conv_alvo||0);
         var pctMeta = metaV>0?Math.round(vlr/metaV*100):0;
-        metaInfo = ' | meta R$'+Number(metaV).toLocaleString('pt-BR')+' ('+pctMeta+'% atingido) | conv alvo '+convAlvo+'%';
+        metaInfo = ' | meta R$'+Number(metaV).toLocaleString('pt-BR')+' ('+pctMeta+'% atingido) | conv atual '+conv+'% | conv alvo '+convAlvo+'%';
       }
       L.push(nome+': '+sl.length+' leads | '+vds+' vendas | R$'+Number(vlr.toFixed(0)).toLocaleString('pt-BR')+' | '+conv+'% conv | '+aprov+' aprovados CQL | '+perd+' perdidos | '+n1+' N1 | '+cred+' em crédito'+metaInfo);
     });
