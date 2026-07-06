@@ -5100,7 +5100,8 @@ function renderizar(met,totalLeads){
   var tcv=s('cql_v'),tcl=s('cql_l');
   var pg=tc?tn/tc*100:0, pv=tcv?tv/tcv*100:0, pl=tcl?tl/tcl*100:0, cg=tn?tg/tn*100:0;
   var metaTotal = s('meta_valor') || s('meta');
-  var pctMetaTotal = metaTotal ? tg/metaTotal*100 : 0;
+  var metaGeralEfetiva = META_GERAL_MES || metaTotal;
+  var pctMetaTotal = metaGeralEfetiva ? tg/metaGeralEfetiva*100 : 0;
   var metaTotalClass = 'pill-miss';
   if(pctMetaTotal >= 100) metaTotalClass = 'pill-hit';
   else if(pctMetaTotal >= 70) metaTotalClass = 'pill-alvo';
@@ -5129,7 +5130,7 @@ function renderizar(met,totalLeads){
     '<div class="kpi"><div class="kpi-lbl">Total Aprovado</div><div class="kpi-val kp">'+fmtBRL(tn)+trend(tn,prev&&prev.tn)+'</div><div class="kpi-sub">% Aprov: '+fmtPct(pg)+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Aprov. Venda</div><div class="kpi-val ko">'+fmtBRL(tv)+trend(tv,prev&&prev.tv)+'</div><div class="kpi-sub">Conv: '+fmtPct(pv)+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">N1 Locação</div><div class="kpi-val ko">'+fmtBRL(tl)+trend(tl,prev&&prev.tl)+'</div><div class="kpi-sub">Conv: '+fmtPct(pl)+'</div></div>'+
-    '<div class="kpi"><div class="kpi-lbl">Resultado / Meta</div><div class="kpi-val kg">'+fmtBRL(tg)+trend(tg,prev&&prev.tg)+'</div><div class="kpi-sub">Meta: '+fmtBRL(metaTotal)+' &middot; <strong style="color:'+(pctMetaTotal>=100?'#4ade80':pctMetaTotal>=70?'#fbbf24':'#f87171')+'">'+fmtPct(pctMetaTotal)+'</strong></div></div>';
+    '<div class="kpi"><div class="kpi-lbl">Resultado / Meta</div><div class="kpi-val kg">'+fmtBRL(tg)+trend(tg,prev&&prev.tg)+'</div><div class="kpi-sub">Meta: '+fmtBRL(metaGeralEfetiva)+' &middot; <strong style="color:'+(pctMetaTotal>=100?'#4ade80':pctMetaTotal>=70?'#fbbf24':'#f87171')+'">'+fmtPct(pctMetaTotal)+'</strong></div></div>';
 
   // ── Header fixo ──
   var shMes = document.getElementById('sh-mes');
