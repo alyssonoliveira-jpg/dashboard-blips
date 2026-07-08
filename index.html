@@ -858,8 +858,15 @@ var CONV_ALVO_VEND_MES = {
     'Blips - Fitness':     16.66,
   },
 };
-function _convAlvoLoc(mes, seg){ var m=CONV_ALVO_LOC_MES[mes]||{}; return m[seg]||0; }
-function _convAlvoVend(mes, seg){ var m=CONV_ALVO_VEND_MES[mes]||{}; return m[seg]||0; }
+var _CONV_MESES_KEYS = Object.keys(CONV_ALVO_LOC_MES).sort();
+function _convAlvoLoc(mes, seg){
+  var m = CONV_ALVO_LOC_MES[mes] || CONV_ALVO_LOC_MES[_CONV_MESES_KEYS[_CONV_MESES_KEYS.length-1]] || {};
+  return m[seg] || 0;
+}
+function _convAlvoVend(mes, seg){
+  var m = CONV_ALVO_VEND_MES[mes] || CONV_ALVO_VEND_MES[_CONV_MESES_KEYS[_CONV_MESES_KEYS.length-1]] || {};
+  return m[seg] || 0;
+}
 var SEG_NOME_DISPLAY = {};  // segmento -> nome bonito
 var VENDS_DISPLAY = {};  // vendedor key -> nome bonito
 
