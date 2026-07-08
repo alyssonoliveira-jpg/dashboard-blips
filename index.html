@@ -812,27 +812,54 @@ var SEGMENTOS_SEM_CREDITO = [];
 
 // Metas dinamicas — carregadas do Supabase em carregarMetasConfig()
 var CONV_ALVO = {};      // segmento -> conv alvo % (legado/fallback)
-var CONV_ALVO_LOC = {
-  'Blips - CV':          15.58,
-  'Blips - Artesanato':  16.06,
-  'Blips - Confeccao':   17.41,
-  'Blips - Sorvete':     13.18,
-  'Blips - Pizza':        6.74,
-  'Blips - Food':         7.77,
-  'Blips - Estetica':    36.40,
-  'Blips - Fitness':     24.33,
+var CONV_ALVO_LOC_MES = {
+  '2026-06': {
+    'Blips - CV':          14.98,
+    'Blips - Artesanato':  15.44,
+    'Blips - Confeccao':   16.74,
+    'Blips - Sorvete':     12.68,
+    'Blips - Pizza':        6.48,
+    'Blips - Food':         7.47,
+    'Blips - Estetica':    35.00,
+    'Blips - Fitness':     23.40,
+  },
+  '2026-07': {
+    'Blips - CV':          15.58,
+    'Blips - Artesanato':  16.06,
+    'Blips - Confeccao':   17.41,
+    'Blips - Sorvete':     13.18,
+    'Blips - Pizza':        6.74,
+    'Blips - Food':         7.77,
+    'Blips - Estetica':    36.40,
+    'Blips - Fitness':     24.33,
+  },
 };
-var CONV_ALVO_VEND = {
-  'Blips - CV':          20.41,
-  'Blips - Artesanato':  15.81,
-  'Blips - Confeccao':   13.26,
-  'Blips - Sorvete':     14.56,
-  'Blips - Pizza':        8.31,
-  'Blips - Food':         9.06,
-  'Blips - Construcao':  23.26,
-  'Blips - Estetica':    13.47,
-  'Blips - Fitness':     16.66,
+var CONV_ALVO_VEND_MES = {
+  '2026-06': {
+    'Blips - CV':          19.62,
+    'Blips - Artesanato':  15.20,
+    'Blips - Confeccao':   12.75,
+    'Blips - Sorvete':     14.00,
+    'Blips - Pizza':        7.99,
+    'Blips - Food':         8.71,
+    'Blips - Construcao':  23.26,
+    'Blips - Estetica':    12.95,
+    'Blips - Fitness':     16.02,
+  },
+  '2026-07': {
+    'Blips - CV':          20.41,
+    'Blips - Artesanato':  15.81,
+    'Blips - Confeccao':   13.26,
+    'Blips - Sorvete':     14.56,
+    'Blips - Pizza':        8.31,
+    'Blips - Food':         9.06,
+    'Blips - Construcao':  23.26,
+    'Blips - Estetica':    13.47,
+    'Blips - Fitness':     16.66,
+  },
 };
+function _convAlvoLoc(mes, seg){ var m=CONV_ALVO_LOC_MES[mes]||{}; return m[seg]||0; }
+function _convAlvoVend(mes, seg){ var m=CONV_ALVO_VEND_MES[mes]||{}; return m[seg]||0; }
 var SEG_NOME_DISPLAY = {};  // segmento -> nome bonito
 var VENDS_DISPLAY = {};  // vendedor key -> nome bonito
 
@@ -1134,7 +1161,7 @@ async function gerarDashboard(){
       var gv_vend=0,gv_loc=0;
       gs.forEach(function(g){var vv=vdKM[g.propKey]||0,ll=lcKM[g.propKey]||0,tot=vv+ll;if(tot===0){gv_vend+=g.valor*0.5;gv_loc+=g.valor*0.5;}else{gv_vend+=g.valor*(vv/tot);gv_loc+=g.valor*(ll/tot);}});
       var cv_vend=navV>0?gv_vend/navV*100:0, cv_loc=nl>0?gv_loc/nl*100:0;
-      var alvoL=CONV_ALVO_LOC[seg]||0, alvoV=CONV_ALVO_VEND[seg]||0;
+      var alvoL=_convAlvoLoc(mesSelecionado,seg), alvoV=_convAlvoVend(mesSelecionado,seg);
       var convAlvoTot=alvoL>0&&alvoV>0?(alvoL+alvoV)/2:alvoL||alvoV||CONV_ALVO[seg]||0;
       var convGTot=navV>0&&nl>0?(cv_vend+cv_loc)/2:navV>0?cv_vend:nl>0?cv_loc:0;
       return{
@@ -1797,7 +1824,7 @@ function reprocessar(leads, ganhos){
     var gv_vend2=0,gv_loc2=0;
     gs.forEach(function(g){var vv=vdKM2[g.propKey]||0,ll=lcKM2[g.propKey]||0,tot=vv+ll;if(tot===0){gv_vend2+=g.valor*0.5;gv_loc2+=g.valor*0.5;}else{gv_vend2+=g.valor*(vv/tot);gv_loc2+=g.valor*(ll/tot);}});
     var cv_vend2=navV>0?gv_vend2/navV*100:0, cv_loc2=nl>0?gv_loc2/nl*100:0;
-    var alvoL2=CONV_ALVO_LOC[seg]||0, alvoV2=CONV_ALVO_VEND[seg]||0;
+    var alvoL2=_convAlvoLoc(mesSelecionado,seg), alvoV2=_convAlvoVend(mesSelecionado,seg);
     var convAlvoTot2=alvoL2>0&&alvoV2>0?(alvoL2+alvoV2)/2:alvoL2||alvoV2||CONV_ALVO[seg]||0;
     var convGTot2=navV>0&&nl>0?(cv_vend2+cv_loc2)/2:navV>0?cv_vend2:nl>0?cv_loc2:0;
     return {
