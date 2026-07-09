@@ -2031,7 +2031,11 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
         '<td style="color:#c084fc">'+fmtBRL(r.aprov_vv)+'</td>'+
         '<td><span class="pill-b">'+fmtPct(r.pct_v)+'</span></td>'+
         '<td class="sep">'+fmtBRL(r.cql_l)+'</td><td>'+fmtBRL(r.n1_ll)+'</td><td><span class="pill-b">'+fmtPct(r.pct_l)+'</span></td>'+
-        '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="'+(r.conv_alvo>0?(r.conv_g>=r.conv_alvo?'pill-g':'pill-miss'):'pill-g')+'">'+fmtPct(r.conv_g)+'</span></td><td style="color:#fbbf24;font-size:.72rem">'+(r.conv_alvo>0?fmtPct(r.conv_alvo):'—')+'</td>'+
+        (function(){
+          var aL=_convAlvoLoc(mesSelecionado,seg),aV=_convAlvoVend(mesSelecionado,seg);
+          var ca=aL>0&&aV>0?(aL+aV)/2:aL||aV||CONV_ALVO[seg]||0;
+          return '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="'+(ca>0?(r.conv_g>=ca?'pill-g':'pill-miss'):'pill-g')+'">'+fmtPct(r.conv_g)+'</span></td><td style="color:#fbbf24;font-size:.72rem">'+(ca>0?fmtPct(ca):'—')+'</td>';
+        })()+
         '<td class="sep">'+metaTxt+'</td><td><span class="'+metaPctCls+'">'+metaPctTxt+'</span></td>'+
       '</tr>';
     }).join('');
