@@ -1950,6 +1950,15 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
     var ct  = soma(cql), cv2 = soma(vd), cl2 = soma(lc);
     var nv1=soma(n1v),nv2=soma(n2v),nv3=soma(n3v),nv4=soma(n4v);
     var navV=nv1+nv2+nv3+nv4, nl=soma(n1l), nt=navV+nl;
+    var vdKMv={},lcKMv={};
+    vd.forEach(function(r){vdKMv[r.propKey]=(vdKMv[r.propKey]||0)+r.valor;});
+    lc.forEach(function(r){lcKMv[r.propKey]=(lcKMv[r.propKey]||0)+r.valor;});
+    var gvv=0,gvl=0;
+    v.ganhos.forEach(function(g){var vv=vdKMv[g.propKey]||0,ll=lcKMv[g.propKey]||0,tot=vv+ll;if(tot===0){gvv+=g.valor*0.5;gvl+=g.valor*0.5;}else{gvv+=g.valor*(vv/tot);gvl+=g.valor*(ll/tot);}});
+    var cvv=navV>0?gvv/navV*100:0, cvl=nl>0?gvl/nl*100:0;
+    var convGv=navV>0&&nl>0?(cvv+cvl)/2:navV>0?cvv:nl>0?cvl:0;
+    var alvoLv=_convAlvoLoc(mesSelecionado,v.seg), alvoVv=_convAlvoVend(mesSelecionado,v.seg);
+    var convAlvoVend=alvoLv>0&&alvoVv>0?(alvoLv+alvoVv)/2:alvoLv||alvoVv||CONV_ALVO[v.seg]||0;
     var metaV = META_VEND[k] !== undefined ? META_VEND[k] : null;
     return {
       nome: VENDS_DISPLAY[k] || v.nome,
@@ -1957,7 +1966,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
       cql_t:ct, cql_v:cv2, cql_l:cl2,
       n1_t:nt, n1_vv:nv1, n2_vv:nv2, n3_vv:nv3, n4_vv:nv4, aprov_vv:navV, n1_ll:nl,
       pct_t: ct?nt/ct*100:0, pct_v:cv2?navV/cv2*100:0, pct_l:cl2?nl/cl2*100:0,
-      g_val:gv, g_qtd:v.ganhos.length, conv_g:nt?gv/nt*100:0,
+      g_val:gv, g_qtd:v.ganhos.length, conv_g:convGv, conv_alvo:convAlvoVend,
       meta: metaV,
       pct_meta: (metaV && metaV>0) ? gv/metaV*100 : 0
     };
@@ -2022,7 +2031,7 @@ function renderVendedores(leads, ganhos, segOrdenados, soma){
         '<td style="color:#c084fc">'+fmtBRL(r.aprov_vv)+'</td>'+
         '<td><span class="pill-b">'+fmtPct(r.pct_v)+'</span></td>'+
         '<td class="sep">'+fmtBRL(r.cql_l)+'</td><td>'+fmtBRL(r.n1_ll)+'</td><td><span class="pill-b">'+fmtPct(r.pct_l)+'</span></td>'+
-        '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="'+(CONV_ALVO[r.seg]>0?(r.conv_g>=CONV_ALVO[r.seg]?'pill-g':'pill-miss'):'pill-g')+'">'+fmtPct(r.conv_g)+'</span></td><td style="color:#fbbf24;font-size:.72rem">'+(CONV_ALVO[r.seg]>0?fmtPct(CONV_ALVO[r.seg]):'—')+'</td>'+
+        '<td class="sep hi">'+fmtBRL(r.g_val)+'</td><td><span class="'+(r.conv_alvo>0?(r.conv_g>=r.conv_alvo?'pill-g':'pill-miss'):'pill-g')+'">'+fmtPct(r.conv_g)+'</span></td><td style="color:#fbbf24;font-size:.72rem">'+(r.conv_alvo>0?fmtPct(r.conv_alvo):'—')+'</td>'+
         '<td class="sep">'+metaTxt+'</td><td><span class="'+metaPctCls+'">'+metaPctTxt+'</span></td>'+
       '</tr>';
     }).join('');
