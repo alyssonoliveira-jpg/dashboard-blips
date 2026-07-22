@@ -6706,7 +6706,12 @@ async function lanaEnviar(){
 
   try {
     // Monta payload — sistema como primeiro turno de usuário
-    var msgs = [{ role:'system', content: lanaSistemaPrompt() }];
+    var _sp = lanaSistemaPrompt();
+    console.group('%c[LANA] Pergunta: '+texto, 'color:#a78bfa;font-weight:bold');
+    console.log('%cContexto enviado (system prompt):', 'color:#34d399;font-weight:bold');
+    console.log(_sp);
+    console.groupEnd();
+    var msgs = [{ role:'system', content: _sp }];
     lanaHistorico.slice(0, -1).forEach(function(h){ msgs.push(h); });
     msgs.push({ role:'user', content: texto });
 
