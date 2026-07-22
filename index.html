@@ -6224,10 +6224,24 @@ function lanaConstruirContexto(){
       var gs  = ganhos.filter(function(g){return g.funil===seg;});
       var vds = gs.length;
       var vlr = gs.reduce(function(a,g){return a+(g.valor||0);},0);
-      var aprov= sl.filter(function(r){return (r.cv&&r.cv!=='')||(r.cl&&r.cl!=='');}).length;
+      var aprovSl= sl.filter(function(r){return (r.cv&&r.cv!=='')||(r.cl&&r.cl!=='');});
+      var aprov= aprovSl.length;
+      var aprov_val= aprovSl.reduce(function(a,r){return a+(r.valor||0);},0);
       var perd = sl.filter(function(r){return r.isPerda;}).length;
-      var n1   = sl.filter(function(r){return r.isN1v||r.isN1l;}).length;
+      var n1Sl = sl.filter(function(r){return r.isN1v||r.isN1l;});
+      var n1   = n1Sl.length;
+      var n1_val= n1Sl.reduce(function(a,r){return a+(r.valor||0);},0);
+      var n2Sl = sl.filter(function(r){return r.isN2v;});
+      var n2   = n2Sl.length;
+      var n2_val= n2Sl.reduce(function(a,r){return a+(r.valor||0);},0);
+      var n3Sl = sl.filter(function(r){return r.isN3v;});
+      var n3   = n3Sl.length;
+      var n3_val= n3Sl.reduce(function(a,r){return a+(r.valor||0);},0);
+      var n4Sl = sl.filter(function(r){return r.isN4v;});
+      var n4   = n4Sl.length;
+      var n4_val= n4Sl.reduce(function(a,r){return a+(r.valor||0);},0);
       var cred = sl.filter(function(r){return r.cred&&r.cred!=='';}).length;
+      var brlS = function(n){return 'R$'+Number(n.toFixed(0)).toLocaleString('pt-BR');};
       // Usa conv_g do ultimosSegmentos (mesmo valor exibido na aba Segmentos/Ganhos)
       var segDash = (typeof ultimosSegmentos!=='undefined'&&ultimosSegmentos) ? ultimosSegmentos.find(function(s){return s.funilOrig===seg;}) : null;
       var conv = segDash ? segDash.conv_g.toFixed(1) : (sl.length?(vds/sl.length*100).toFixed(1):0);
@@ -6240,7 +6254,7 @@ function lanaConstruirContexto(){
         var pctMeta = metaV>0?Math.round(vlr/metaV*100):0;
         metaInfo = ' | meta R$'+Number(metaV).toLocaleString('pt-BR')+' ('+pctMeta+'% atingido) | conv atual '+conv+'% | conv alvo '+convAlvo+'%';
       }
-      L.push(nome+': '+sl.length+' leads | '+vds+' vendas | R$'+Number(vlr.toFixed(0)).toLocaleString('pt-BR')+' | '+conv+'% conv | '+aprov+' aprovados CQL | '+perd+' perdidos | '+n1+' N1 | '+cred+' em crédito'+metaInfo);
+      L.push(nome+': '+sl.length+' leads | '+vds+' vendas | '+brlS(vlr)+' receita | '+conv+'% conv | Aprovados CQL: '+aprov+' ('+brlS(aprov_val)+') | N1: '+n1+' ('+brlS(n1_val)+') | N2: '+n2+' ('+brlS(n2_val)+') | N3: '+n3+' ('+brlS(n3_val)+') | N4: '+n4+' ('+brlS(n4_val)+') | '+perd+' perdidos | '+cred+' em crédito'+metaInfo);
     });
   }
 
@@ -6251,21 +6265,27 @@ function lanaConstruirContexto(){
     base.forEach(function(r){
       var v = r.proprietario||'';
       if(!v) return;
-      if(!vendMap[v]) vendMap[v]={seg:r.funil,leads:0,vendas:0,vlr:0,n1:0,aprov:0,perd:0};
+      if(!vendMap[v]) vendMap[v]={seg:r.funil,leads:0,vendas:0,vlr:0,
+        n1:0,n1_val:0,n2:0,n2_val:0,n3:0,n3_val:0,n4:0,n4_val:0,
+        aprov:0,aprov_val:0,perd:0};
       vendMap[v].leads++;
-      if(r.isN1v||r.isN1l) vendMap[v].n1++;
-      if((r.cv&&r.cv!=='')||(r.cl&&r.cl!=='')) vendMap[v].aprov++;
+      if(r.isN1v||r.isN1l){ vendMap[v].n1++; vendMap[v].n1_val+=(r.valor||0); }
+      if(r.isN2v){ vendMap[v].n2++; vendMap[v].n2_val+=(r.valor||0); }
+      if(r.isN3v){ vendMap[v].n3++; vendMap[v].n3_val+=(r.valor||0); }
+      if(r.isN4v){ vendMap[v].n4++; vendMap[v].n4_val+=(r.valor||0); }
+      if((r.cv&&r.cv!=='')||(r.cl&&r.cl!=='')){ vendMap[v].aprov++; vendMap[v].aprov_val+=(r.valor||0); }
       if(r.isPerda) vendMap[v].perd++;
     });
     ganhos.forEach(function(g){
       var v = g.proprietario||'';
       if(vendMap[v]){vendMap[v].vendas++;vendMap[v].vlr+=(g.valor||0);}
     });
+    var brlV = function(n){return 'R$'+Number(n.toFixed(0)).toLocaleString('pt-BR');};
     Object.keys(vendMap).sort(function(a,b){return vendMap[b].vendas-vendMap[a].vendas;}).forEach(function(v){
       var d = vendMap[v];
       var conv = d.leads?(d.vendas/d.leads*100).toFixed(1):0;
       var seg = d.seg.replace('Blips - ','').replace('Ideal - ','');
-      L.push(v+' ['+seg+']: '+d.leads+' leads | '+d.vendas+' vendas | R$'+Number(d.vlr.toFixed(0)).toLocaleString('pt-BR')+' | '+conv+'% conv | '+d.n1+' N1 | '+d.aprov+' CQL | '+d.perd+' perdidos');
+      L.push(v+' ['+seg+']: '+d.leads+' leads | '+d.vendas+' vendas | '+brlV(d.vlr)+' receita | '+conv+'% conv | Aprovados CQL: '+d.aprov+' ('+brlV(d.aprov_val)+') | N1: '+d.n1+' ('+brlV(d.n1_val)+') | N2: '+d.n2+' ('+brlV(d.n2_val)+') | N3: '+d.n3+' ('+brlV(d.n3_val)+') | N4: '+d.n4+' ('+brlV(d.n4_val)+') | '+d.perd+' perdidos');
     });
   }
 
@@ -6598,6 +6618,7 @@ function lanaSistemaPrompt(){
 '- Quando buscar um vendedor pelo nome, faça correspondência parcial (ex: "Heitor" encontra "Heitor Ricieri").\n' +
 '- Se um vendedor não aparecer numa seção diária, ele teve 0 naquele dia — diga isso claramente.\n' +
 '- Só diga "não disponível" se o dado genuinamente não existir no contexto.\n' +
+'- Ao responder sobre N1, N2, N3, N4, Aprovados CQL ou qualquer classificação de lead: informe SEMPRE a quantidade E o valor em R$ (ex: "31 N1 totalizando R$ 4.968.415"). Nunca informe só contagem nem calcule "queda" de leads — o valor monetário da coluna é a métrica principal.\n' +
 '- Respostas diretas: perguntas simples = 1-2 linhas. Análises = bullet points curtos.\n' +
 '- Contextualize sempre: compare com meta quando disponível. Use ✅ se bom, ⚠️ se abaixo.\n' +
 '- Se identificar algo crítico (vendedor zerado, muitas perdas, conversão muito baixa), alerte proativamente.\n' +
