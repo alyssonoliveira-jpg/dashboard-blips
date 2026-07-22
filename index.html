@@ -6432,7 +6432,7 @@ function lanaConstruirContexto(){
   if(temCred){
     L.push('\n--- Crédito por Vendedor ---');
     var credVMap={};
-    base.forEach(function(r){ if(!r.cred) return; if(!credVMap[r.vendedor])credVMap[r.vendedor]={}; credVMap[r.vendedor][r.cred]=(credVMap[r.vendedor][r.cred]||0)+1; });
+    base.forEach(function(r){ if(!r.cred) return; if(!credVMap[r.proprietario])credVMap[r.proprietario]={}; credVMap[r.proprietario][r.cred]=(credVMap[r.proprietario][r.cred]||0)+1; });
     Object.keys(credVMap).sort().forEach(function(v){ L.push(v+': '+Object.keys(credVMap[v]).map(function(c){return c+'='+credVMap[v][c];}).join(' | ')); });
   }
 
@@ -6440,7 +6440,7 @@ function lanaConstruirContexto(){
   if(base.length){
     L.push('\n--- Ranking N1 (aprovados - venda+locacao) por vendedor ---');
     var rn1={};
-    base.forEach(function(r){ if(!r.vendedor) return; if(!rn1[r.vendedor])rn1[r.vendedor]={n1:0,leads:0}; rn1[r.vendedor].leads++; if((r.cv&&r.cv!=='')||(r.cl&&r.cl!==''))rn1[r.vendedor].n1++; });
+    base.forEach(function(r){ if(!r.proprietario) return; if(!rn1[r.proprietario])rn1[r.proprietario]={n1:0,leads:0}; rn1[r.proprietario].leads++; if((r.cv&&r.cv!=='')||(r.cl&&r.cl!==''))rn1[r.proprietario].n1++; });
     Object.keys(rn1).sort(function(a,b){return rn1[b].n1-rn1[a].n1;}).forEach(function(v){ L.push(v+': N1='+rn1[v].n1+' leads='+rn1[v].leads+' tx='+(rn1[v].leads>0?(rn1[v].n1/rn1[v].leads*100).toFixed(1)+'%':'0%')); });
   }
 
@@ -6448,7 +6448,7 @@ function lanaConstruirContexto(){
   if(ganhos.length){
     L.push('\n--- Ranking Venda (ganhos fechados) por vendedor ---');
     var rv={};
-    ganhos.forEach(function(r){ if(!r.vendedor) return; if(!rv[r.vendedor])rv[r.vendedor]={qtd:0,val:0}; rv[r.vendedor].qtd++; rv[r.vendedor].val+=(r.valor||0); });
+    ganhos.forEach(function(r){ if(!r.proprietario) return; if(!rv[r.proprietario])rv[r.proprietario]={qtd:0,val:0}; rv[r.proprietario].qtd++; rv[r.proprietario].val+=(r.valor||0); });
     Object.keys(rv).sort(function(a,b){return rv[b].qtd-rv[a].qtd;}).forEach(function(v){ L.push(v+': vendas='+rv[v].qtd+' valor=R$'+(rv[v].val||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})); });
   }
 
@@ -6479,7 +6479,7 @@ function lanaConstruirContexto(){
 
   // D1. Leads por dia × vendedor
   var _dm1 = {};
-  base.forEach(function(r){ if(!r.dataTs) return; var d=_toDay(r.dataTs); if(!_dm1[d])_dm1[d]={}; var v=r.vendedor||'S/N'; _dm1[d][v]=(_dm1[d][v]||0)+1; });
+  base.forEach(function(r){ if(!r.dataTs) return; var d=_toDay(r.dataTs); if(!_dm1[d])_dm1[d]={}; var v=r.proprietario||'S/N'; _dm1[d][v]=(_dm1[d][v]||0)+1; });
   var _dd1 = Object.keys(_dm1).sort().reverse().slice(0,15);
   if(_dd1.length){ L.push('\n--- D1. Leads por dia por vendedor ---'); _dd1.forEach(function(d){ L.push(_lbl(d)+' -> '+Object.keys(_dm1[d]).sort().map(function(v){return v+':'+_dm1[d][v];}).join(' | ')); }); }
   else { L.push('D1: sem dados de leads diários'); }
@@ -6493,7 +6493,7 @@ function lanaConstruirContexto(){
   // D3. Vendas fechadas por dia × vendedor
   if(ganhos.length){
     var _dm3 = {};
-    ganhos.forEach(function(r){ if(!r.dataTs) return; var d=_toDay(r.dataTs); if(!_dm3[d])_dm3[d]={}; var v=r.vendedor||'S/N'; _dm3[d][v]=(_dm3[d][v]||0)+1; });
+    ganhos.forEach(function(r){ if(!r.dataTs) return; var d=_toDay(r.dataTs); if(!_dm3[d])_dm3[d]={}; var v=r.proprietario||'S/N'; _dm3[d][v]=(_dm3[d][v]||0)+1; });
     var _dd3 = Object.keys(_dm3).sort().reverse().slice(0,15);
     if(_dd3.length){ L.push('\n--- D3. Vendas fechadas por dia por vendedor ---'); _dd3.forEach(function(d){ L.push(_lbl(d)+' -> '+Object.keys(_dm3[d]).sort().map(function(v){return v+':'+_dm3[d][v];}).join(' | ')); }); }
   }
@@ -6516,7 +6516,7 @@ function lanaConstruirContexto(){
       if(r.cv==='N1') tier='N1v'; else if(r.cv==='N2') tier='N2v'; else if(r.cv==='N3') tier='N3v'; else if(r.cv==='N4') tier='N4v';
       else if(r.cl==='N1') tier='N1l';
       if(!tier) return;
-      var d=_toDay(r.dataTs), v=r.vendedor||'S/N';
+      var d=_toDay(r.dataTs), v=r.proprietario||'S/N';
       if(!_dm5[d])_dm5[d]={};
       if(!_dm5[d][v])_dm5[d][v]={N1v:0,N2v:0,N3v:0,N4v:0,N1l:0};
       _dm5[d][v][tier]++;
