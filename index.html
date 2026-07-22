@@ -6721,8 +6721,16 @@ async function lanaEnviar(){
   try {
     // Monta payload — sistema como primeiro turno de usuário
     var _sp = lanaSistemaPrompt();
+    // Extrai só as seções de dados do contexto para log compacto
+    var _ctxStart = _sp.indexOf('=== DASHBOARD COMERCIAL BLIPS ===');
+    var _ctxDados = _ctxStart >= 0 ? _sp.slice(_ctxStart) : _sp;
+    var _d1Start  = _ctxDados.indexOf('D1. Leads por dia');
+    var _d1Bloco  = _d1Start >= 0 ? _ctxDados.slice(_d1Start, _d1Start+2000) : '(D1 não encontrado no contexto)';
     console.group('%c[LANA] Pergunta: '+texto, 'color:#a78bfa;font-weight:bold');
-    console.log('%cContexto enviado (system prompt):', 'color:#34d399;font-weight:bold');
+    console.log('%c[LANA] Cabeçalho do contexto:', 'color:#34d399;font-weight:bold', _ctxDados.slice(0,300));
+    console.log('%c[LANA] D1 — Leads por dia por vendedor:', 'color:#fbbf24;font-weight:bold');
+    console.log(_d1Bloco);
+    console.log('%c[LANA] Prompt completo (expandir se precisar):', 'color:#94a3b8');
     console.log(_sp);
     console.groupEnd();
     var msgs = [{ role:'system', content: _sp }];
