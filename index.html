@@ -6676,7 +6676,8 @@ function lanaSistemaPrompt(){
 '**Regras:**\n' +
 '- Use SOMENTE os dados do contexto abaixo. Nunca invente números.\n' +
 '- O dashboard tem dados MENSAIS e DIÁRIOS (últimos 15 dias). Para perguntas sobre dias específicos, use as seções D1-D5 — cada linha começa com a data no formato YYYY-MM-DD (HOJE) ou YYYY-MM-DD (ONTEM).\n' +
-'- Para "quantos leads hoje/ontem/dia X", consulte D1 e filtre a linha da data correta. Nunca use o total mensal para responder perguntas de dia específico.\n' +
+'- Para "quantos leads hoje/ontem/dia X": use EXCLUSIVAMENTE a seção D1. Localize a linha com a data correta (ex: "2026-07-22 (HOJE)") e some APENAS os números após o nome do vendedor nessa linha. O número no D1 representa LEADS RECEBIDOS NAQUELE DIA. NUNCA use os campos "leads", "vendas" ou "receita" da seção "Performance Vendedores" para responder perguntas de dia específico — esses são totais do mês inteiro.\n' +
+'- Exemplo correto: D1 mostra "2026-07-22 (HOJE) -> ... Ranyelle Cristina:13 ..." → resposta = "Ranyelle recebeu 13 leads hoje". Não olhe para Performance Vendedores.\n' +
 '- Quando buscar um vendedor pelo nome, faça correspondência parcial (ex: "Heitor" encontra "Heitor Ricieri").\n' +
 '- Se um vendedor não aparecer numa seção diária, ele teve 0 naquele dia — diga isso claramente.\n' +
 '- Só diga "não disponível" se o dado genuinamente não existir no contexto.\n' +
