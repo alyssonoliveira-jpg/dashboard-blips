@@ -4920,6 +4920,7 @@ async function carregarMesSilencioso(ym, diaInicio, diaFim){
                 keys.find(function(k){return n(k).includes('data')&&!n(k).includes('perda')&&!n(k).includes('reserva');})||'';
   var K_CRED  = keys.find(function(k){return n(k).includes('analise')&&n(k).includes('cred');})||'';
   var K_ORIG  = keys.find(function(k){return n(k).includes('origem')&&n(k).includes('mkt');})||'';
+  var K_PROP  = keys.find(function(k){return n(k).includes('propriet');})||'';
   console.log('[DEBUG carregarMesSilencioso] '+ym+' — colunas detectadas:', {K_FUNIL:K_FUNIL,K_VALOR:K_VALOR,K_INTER:K_INTER,K_CL:K_CL,K_CV:K_CV,K_DATA:K_DATA,K_CRED:K_CRED});
   var sampleFitness = rawLeads.find(function(r){return String(r[K_FUNIL]||'').includes('Fitness');});
   if(sampleFitness) console.log('[DEBUG Fitness sample] '+ym+':', {interesse:sampleFitness[K_INTER], cv:sampleFitness[K_CV], cl:sampleFitness[K_CL], cred:sampleFitness[K_CRED]});
@@ -4942,25 +4943,38 @@ async function carregarMesSilencioso(ym, diaInicio, diaFim){
     var cl = String(r[K_CL]||'').trim();
     var cv = String(r[K_CV]||'').trim();
     var dataStr = K_DATA ? String(r[K_DATA]||'').trim() : '';
-    var diaMes = dataStr ? new Date(dataStr.replace(' ','T')).getDate() : 0;
+    var dataObj = dataStr ? new Date(dataStr.replace(' ','T')) : null;
+    var diaMes  = dataObj ? dataObj.getDate() : 0;
+    var prop    = K_PROP ? String(r[K_PROP]||'').trim() : '';
     return{
       funil: String(r[K_FUNIL]||'').trim(),
       valor: parseFloat(String(r[K_VALOR]||'0').replace(/[^\d.-]/g,''))||0,
       interesse: int_, cl:cl, cv:cv,
       isN1v:cv==='N1', isN2v:cv==='N2', isN3v:cv==='N3', isN4v:cv==='N4',
       isN1l:cl==='N1', diaMes:diaMes,
+      dataObj: dataObj,
+      dataTs:  dataObj ? dataObj.getTime() : null,
+      proprietario: prop,
+      propKey: (function(p){p=p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');if(p.indexOf('@')!==-1)p=p.split('@')[0].replace(/\./g,' ');return p;})(prop),
+      isPerda: false,
       cred: K_CRED ? String(r[K_CRED]||'').trim() : '',
       origem: K_ORIG ? String(r[K_ORIG]||'').trim() : ''
     };
   }).filter(function(r){ return r.diaMes === 0 || (r.diaMes >= _diaInicio && r.diaMes <= _diaFim); });
 
+  var GK_PROP2 = gKeys.find(function(k){return k.toLowerCase().includes('propriet');})||'';
   var ganhos = rawGanhos.map(function(r){
     var dataGanhoStr = GK_DATA ? String(r[GK_DATA]||'').trim() : '';
-    var diaGanho = dataGanhoStr ? new Date(dataGanhoStr.replace(' ','T')).getDate() : 0;
+    var dataGanhoObj = dataGanhoStr ? new Date(dataGanhoStr.replace(' ','T')) : null;
+    var diaGanho = dataGanhoObj ? dataGanhoObj.getDate() : 0;
+    var gProp = GK_PROP2 ? String(r[GK_PROP2]||'').trim() : '';
     return{
       funil: String(r[GK_FUNIL]||'').trim(),
       valor: parseFloat(String(r[GK_VALOR]||'0').replace(/[^\d.-]/g,''))||0,
       equip: GK_EQUIP ? String(r[GK_EQUIP]||'').trim() : '',
+      proprietario: gProp,
+      dataObj: dataGanhoObj,
+      dataTs:  dataGanhoObj ? dataGanhoObj.getTime() : null,
       diaGanho: diaGanho
     };
   }).filter(function(r){ return r.diaGanho === 0 || (r.diaGanho >= _diaInicio && r.diaGanho <= _diaFim); });
