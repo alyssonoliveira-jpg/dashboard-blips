@@ -6202,26 +6202,42 @@ function lanaKeydown(e){
 
 function lanaConstruirContexto(){
   var L = [];
-  // Segmentos que o usuário logado tem permissão para ver (null = acesso total)
   var segsPermitidos = (typeof _userSegmentos!=='undefined'&&_userSegmentos&&_userSegmentos.length) ? _userSegmentos : null;
   var base   = (leadsAtivos  || []).filter(function(r){return !segsPermitidos||segsPermitidos.indexOf(r.funil)!==-1;});
   var ganhos = (ganhosAtivos || ganhosAll || []).filter(function(r){return !segsPermitidos||segsPermitidos.indexOf(r.funil)!==-1;});
   var segsVisiveis = segsPermitidos ? SEGMENTOS.filter(function(s){return segsPermitidos.indexOf(s)!==-1;}) : SEGMENTOS;
-  var mes    = mesSelecionado || 'não selecionado';
+  var mes    = mesSelecionado || 'Todos';
+
+  // Helper: extrai YYYY-MM de um lead
+  var ymDe = function(r){
+    if(!r.dataTs) return null;
+    var d = new Date(r.dataTs);
+    return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1);
+  };
+
+  // Agrupar base por mês
+  var basesPorMes = {};
+  base.forEach(function(r){
+    var ym = ymDe(r) || 'sem-data';
+    if(!basesPorMes[ym]) basesPorMes[ym] = [];
+    basesPorMes[ym].push(r);
+  });
+  var mesesDisp = Object.keys(basesPorMes).filter(function(m){return m!=='sem-data';}).sort();
 
   L.push('=== DASHBOARD COMERCIAL BLIPS ===');
-  L.push('Mês: '+mes+' | Segmento ativo: '+(filtroGlobal.segmento!=='all'?filtroGlobal.segmento:'Todos')+' | Total leads: '+base.length);
+  L.push('Mês selecionado: '+mes+' | Meses com dados: '+mesesDisp.join(', ')+' | Segmento ativo: '+(filtroGlobal.segmento!=='all'?filtroGlobal.segmento:'Todos')+' | Total leads: '+base.length);
   L.push('Usuário: '+(usuarioAtual?(usuarioAtual.user_metadata.full_name||usuarioAtual.user_metadata.name||usuarioAtual.email):'?'));
   if(segsPermitidos) L.push('Acesso restrito aos segmentos: '+segsPermitidos.map(function(s){return s.replace('Blips - ','').replace('Ideal - ','');}).join(', '));
 
-  // ── 1. KPIs + METAS POR SEGMENTO ──
-  if(base.length){
-    L.push('\n--- KPIs por Segmento ---');
+  // Função que constrói bloco KPI por segmento para um conjunto de leads/ganhos
+  var brlS = function(n){return 'R$'+Number(n.toFixed(0)).toLocaleString('pt-BR');};
+  var construirKpiSegmentos = function(slBase, gnBase, label){
+    L.push('\n--- KPIs por Segmento ['+label+'] ---');
     segsVisiveis.forEach(function(seg){
-      var sl  = base.filter(function(r){return r.funil===seg;});
+      var sl  = slBase.filter(function(r){return r.funil===seg;});
       if(!sl.length) return;
       var nome= seg.replace('Blips - ','').replace('Ideal - ','');
-      var gs  = ganhos.filter(function(g){return g.funil===seg;});
+      var gs  = gnBase.filter(function(g){return g.funil===seg;});
       var vds = gs.length;
       var vlr = gs.reduce(function(a,g){return a+(g.valor||0);},0);
       var aprovSl= sl.filter(function(r){return (r.cv&&r.cv!=='')||(r.cl&&r.cl!=='');});
@@ -6241,28 +6257,25 @@ function lanaConstruirContexto(){
       var n4   = n4Sl.length;
       var n4_val= n4Sl.reduce(function(a,r){return a+(r.valor||0);},0);
       var cred = sl.filter(function(r){return r.cred&&r.cred!=='';}).length;
-      var brlS = function(n){return 'R$'+Number(n.toFixed(0)).toLocaleString('pt-BR');};
-      // Usa conv_g do ultimosSegmentos (mesmo valor exibido na aba Segmentos/Ganhos)
-      var segDash = (typeof ultimosSegmentos!=='undefined'&&ultimosSegmentos) ? ultimosSegmentos.find(function(s){return s.funilOrig===seg;}) : null;
-      var conv = segDash ? segDash.conv_g.toFixed(1) : (sl.length?(vds/sl.length*100).toFixed(1):0);
-      // Meta
+      var conv = sl.length?(vds/sl.length*100).toFixed(1):0;
+      // Meta (só no mês selecionado ou mês mais recente)
       var metaInfo = '';
-      if(typeof metasConfig!=='undefined'&&metasConfig&&metasConfig[seg]){
+      if(label===mes && typeof metasConfig!=='undefined'&&metasConfig&&metasConfig[seg]){
         var m = metasConfig[seg];
         var metaV = m.meta_valor||0;
-        var convAlvo = segDash ? (segDash.conv_alvo||m.conv_alvo||0) : (m.conv_alvo||0);
         var pctMeta = metaV>0?Math.round(vlr/metaV*100):0;
-        metaInfo = ' | meta R$'+Number(metaV).toLocaleString('pt-BR')+' ('+pctMeta+'% atingido) | conv atual '+conv+'% | conv alvo '+convAlvo+'%';
+        metaInfo = ' | meta R$'+Number(metaV).toLocaleString('pt-BR')+' ('+pctMeta+'% atingido)';
       }
       L.push(nome+': '+sl.length+' leads | '+vds+' vendas | '+brlS(vlr)+' receita | '+conv+'% conv | Aprovados CQL: '+aprov+' ('+brlS(aprov_val)+') | N1: '+n1+' ('+brlS(n1_val)+') | N2: '+n2+' ('+brlS(n2_val)+') | N3: '+n3+' ('+brlS(n3_val)+') | N4: '+n4+' ('+brlS(n4_val)+') | '+perd+' perdidos | '+cred+' em crédito'+metaInfo);
     });
-  }
+  };
 
-  // ── 2. VENDEDORES ──
-  if(base.length){
-    L.push('\n--- Performance Vendedores ---');
+  // Função que constrói bloco vendedores para um conjunto de leads/ganhos
+  var brlV = function(n){return 'R$'+Number(n.toFixed(0)).toLocaleString('pt-BR');};
+  var construirVendedores = function(slBase, gnBase, label){
+    L.push('\n--- Performance Vendedores ['+label+'] ---');
     var vendMap = {};
-    base.forEach(function(r){
+    slBase.forEach(function(r){
       var v = r.proprietario||'';
       if(!v) return;
       if(!vendMap[v]) vendMap[v]={seg:r.funil,leads:0,vendas:0,vlr:0,
@@ -6276,16 +6289,49 @@ function lanaConstruirContexto(){
       if((r.cv&&r.cv!=='')||(r.cl&&r.cl!=='')){ vendMap[v].aprov++; vendMap[v].aprov_val+=(r.valor||0); }
       if(r.isPerda) vendMap[v].perd++;
     });
-    ganhos.forEach(function(g){
+    gnBase.forEach(function(g){
       var v = g.proprietario||'';
       if(vendMap[v]){vendMap[v].vendas++;vendMap[v].vlr+=(g.valor||0);}
     });
-    var brlV = function(n){return 'R$'+Number(n.toFixed(0)).toLocaleString('pt-BR');};
     Object.keys(vendMap).sort(function(a,b){return vendMap[b].vendas-vendMap[a].vendas;}).forEach(function(v){
       var d = vendMap[v];
       var conv = d.leads?(d.vendas/d.leads*100).toFixed(1):0;
       var seg = d.seg.replace('Blips - ','').replace('Ideal - ','');
       L.push(v+' ['+seg+']: '+d.leads+' leads | '+d.vendas+' vendas | '+brlV(d.vlr)+' receita | '+conv+'% conv | Aprovados CQL: '+d.aprov+' ('+brlV(d.aprov_val)+') | N1: '+d.n1+' ('+brlV(d.n1_val)+') | N2: '+d.n2+' ('+brlV(d.n2_val)+') | N3: '+d.n3+' ('+brlV(d.n3_val)+') | N4: '+d.n4+' ('+brlV(d.n4_val)+') | '+d.perd+' perdidos');
+    });
+  };
+
+  // ── 1. KPIs + METAS POR SEGMENTO ──
+  if(mesSelecionado){
+    // Mês específico: usa base diretamente
+    construirKpiSegmentos(base, ganhos, mesSelecionado);
+  } else {
+    // Todos: uma seção por mês para comparativos precisos
+    mesesDisp.forEach(function(ym){
+      var bMes = basesPorMes[ym]||[];
+      var gMes = ganhos.filter(function(g){
+        var gd = g.dataTs?new Date(g.dataTs):null;
+        if(!gd) return false;
+        var gym = gd.getFullYear()+'-'+(gd.getMonth()+1<10?'0':'')+(gd.getMonth()+1);
+        return gym===ym;
+      });
+      construirKpiSegmentos(bMes, gMes, ym);
+    });
+  }
+
+  // ── 2. VENDEDORES ──
+  if(mesSelecionado){
+    construirVendedores(base, ganhos, mesSelecionado);
+  } else {
+    mesesDisp.forEach(function(ym){
+      var bMes = basesPorMes[ym]||[];
+      var gMes = ganhos.filter(function(g){
+        var gd = g.dataTs?new Date(g.dataTs):null;
+        if(!gd) return false;
+        var gym = gd.getFullYear()+'-'+(gd.getMonth()+1<10?'0':'')+(gd.getMonth()+1);
+        return gym===ym;
+      });
+      construirVendedores(bMes, gMes, ym);
     });
   }
 
@@ -6619,6 +6665,8 @@ function lanaSistemaPrompt(){
 '- Se um vendedor não aparecer numa seção diária, ele teve 0 naquele dia — diga isso claramente.\n' +
 '- Só diga "não disponível" se o dado genuinamente não existir no contexto.\n' +
 '- Ao responder sobre N1, N2, N3, N4, Aprovados CQL ou qualquer classificação de lead: informe SEMPRE a quantidade E o valor em R$ (ex: "31 N1 totalizando R$ 4.968.415"). Nunca informe só contagem nem calcule "queda" de leads — o valor monetário da coluna é a métrica principal.\n' +
+'- Os dados estão separados por mês nos blocos "[YYYY-MM]". Ao responder sobre um mês específico, use SOMENTE o bloco daquele mês. Nunca misture dados de meses diferentes nem tente deduzi-los de um bloco que não seja o mês perguntado. Se o mês não constar no contexto, diga explicitamente que não há dados daquele período.\n' +
+'- Para comparativos entre meses (ex: "comparado a maio, como está julho?"), busque os dois blocos correspondentes e compare os valores diretamente — nunca estime ou interpole.\n' +
 '- Respostas diretas: perguntas simples = 1-2 linhas. Análises = bullet points curtos.\n' +
 '- Contextualize sempre: compare com meta quando disponível. Use ✅ se bom, ⚠️ se abaixo.\n' +
 '- Se identificar algo crítico (vendedor zerado, muitas perdas, conversão muito baixa), alerte proativamente.\n' +
